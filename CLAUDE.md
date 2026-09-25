@@ -48,7 +48,14 @@
 >   smaller face with the name under it on the left, the belt scaled with it
 >   via `--belt-scale`, score · comment · like · when to its right, the text
 >   across) is kept in app.css behind an opt-in `s-home-v3--fb-left` shell
->   class that nothing adds. Same markup; CSS lays each out.
+>   class. Same markup; CSS lays each out. **2026-09-25: both kept ideas are
+>   phones in the viewer** — home has FOUR: Float·Dark, Float·Light, then
+>   Compact·Dark (`fb-left`) and Review first·Dark (`coversUp` false) to the
+>   right, for comparison only; the first two are the app. The two are
+>   `alt: true` and show only while the toolbar's **⧉ Alts** switch (beside
+>   Free | Pro; `SD_ALT` / `stageVariants` in app.js, kept in localStorage)
+>   is on. The toolbar was reorganised the same day to fit it: the five
+>   tools are icon buttons, Dots · Belt · Page Map sit in a Labs menu.
 >   The pills are the feed's, keyed by `feedRevKey` so likes are shared. No
 >   album score line — one rating on screen. The review clamps at five
 >   lines with a fade and a View more (`fbMore`); under a persona the quotes

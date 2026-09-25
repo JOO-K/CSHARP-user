@@ -109,9 +109,14 @@ body {
    overflowed — which silently ate the click on the last persona button once a
    fifth persona made the row that long. The gutter is transparent, so it should
    not be a click target either; the controls inside it still are. */
-.tb-section.center { justify-content: center; flex: 2; pointer-events: none; }
+/* ⚠️ `flex: 1`, not the 2 it had (2026-09-25): the right section grew an Alts
+   switch and the toolbar has to fit at 1280 — the centre only needs its three
+   controls, so it gives the sides the room. */
+.tb-section.center { justify-content: center; flex: 1; pointer-events: none; }
 .tb-section.center > * { pointer-events: auto; }
-.tb-section.end    { justify-content: flex-end; }
+.tb-section.end    { justify-content: flex-end; gap: 6px; flex: 1.6; }
+/* A hairline between the toolbar's groups (who's looking · zoom · tools). */
+.tb-sep { width: 1px; height: 18px; background: var(--vborder); flex-shrink: 0; margin: 0 2px; }
 
 .vinyl-icon { width: 22px; height: auto; flex-shrink: 0; }
 
@@ -201,6 +206,29 @@ body {
   transition: color .1s, border-color .1s;
 }
 .tb-act:hover { color: var(--vtext); border-color: #404040; }
+/* The tools as ICONS (2026-09-25): Dev · Pet · Guides · Shuffle · PNG were five
+   labelled buttons and the row did not fit once the Alts switch joined it.
+   Their names live in the tooltips; the cluster has no gaps so it reads as one
+   strip of five, not five loose buttons. */
+.tb-tools { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+.tb-act--ico { width: 28px; padding: 5px 0; text-align: center; font-size: 13px; line-height: 1; }
+/* A tool that is OPEN (the pet box stamps `.on`) reads lit, since its icon alone cannot say so. */
+.tb-act.on { background: rgba(136,146,164,0.22); border-color: #404040; color: var(--vtext); }
+/* Labs — the three external pages behind one button. */
+.tb-menu { position: relative; flex-shrink: 0; }
+.tb-menu-list {
+  display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 300;
+  flex-direction: column; min-width: 132px; padding: 4px;
+  background: var(--vsurface); border: 1px solid var(--vborder); border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+}
+.tb-menu.open .tb-menu-list { display: flex; }
+.tb-menu.open > .tb-act { color: var(--vtext); border-color: #404040; }
+.tb-menu-it {
+  display: block; padding: 7px 10px; border-radius: 5px;
+  font-size: 11px; color: var(--vdim); text-decoration: none; white-space: nowrap;
+}
+.tb-menu-it:hover { background: rgba(255,255,255,0.06); color: var(--vtext); }
 
 /* Persona switcher — one segmented control, rendered into BOTH the desktop
    toolbar and the mobile bar by renderPersonaBar(). "Demo" is the original
@@ -730,8 +758,8 @@ body {
 /* Multi-variant container (all variants of one page side by side) */
 #phone-container.multi-variant {
   align-items: flex-end;
-  gap: 20px;
-  padding: 16px 20px 24px;
+  gap: 10px;                      /* 20 → 10 (Eric, 2026-09-25: "closer together"); renderSingle's width budget matches */
+  padding: 16px 12px 24px;
   overflow-x: auto;
   justify-content: safe center;   /* center the dark+light pair; fall back to start if it ever overflows */
   cursor: grab;

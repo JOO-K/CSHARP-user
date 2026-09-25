@@ -14,9 +14,28 @@ let navHistory   = [];
 let variantState = { home: 0 };      // v3.0 dark, index 0 after filter
 let _dragActive  = false;
 
+/* ALTS (Eric, 2026-09-25) — the comparison phones. A variant marked `alt: true`
+   (home's Compact and Review-first, screens.js) is on stage only while this is
+   on; the toolbar switch beside Free | Pro flips it and it survives a reload.
+   ⚠ A viewer control like the plan, not app state: nothing in a phone reads it. */
+const ALT_KEY = 'spindeck-alt';
+let SD_ALT = false;
+try { SD_ALT = localStorage.getItem(ALT_KEY) === '1'; } catch (e) {}
+// The variants of a screen that are on stage right now, each with its REAL
+// index — `pickVariant` / `setVariant` index into `s.variants`, so hiding a
+// column must not renumber the ones beside it.
+function stageVariants(s) {
+  return s.variants.map((v, i) => ({ v, i })).filter(x => SD_ALT || !x.v.alt);
+}
+
 // ── Helpers ───────────────────────────────────────────────────
 function currentScreen()  { return SCREENS[currentIdx]; }
-function getVariantIdx(s) { return variantState[s.id] || 0; }
+function getVariantIdx(s) {
+  const i = variantState[s.id] || 0;
+  // An alt column that was active when the switch went off → back to the first.
+  const v = s.variants[i];
+  return (v && v.alt && !SD_ALT) ? 0 : i;
+}
 function getVariant(s)    { const i = getVariantIdx(s); return s.variants[Math.min(i, s.variants.length-1)]; }
 
 // ── Init ─────────────────────────────────────────────────────
@@ -77,8 +96,10 @@ function init() {
   // Show only v3.x home variants (v1/v2 retired)
   const homeScreen = SCREENS.find(s => s.id === 'home');
   if (homeScreen) {
+    // A phone has one home; the comparison alts are a desktop thing.
+    const phone = window.matchMedia('(max-width: 767px)').matches;
     homeScreen.variants = homeScreen.variants.filter(
-      v => v.version && v.version >= 'v3.0'
+      v => v.version && v.version >= 'v3.0' && !(phone && v.alt)
     );
   }
 
@@ -5135,7 +5156,33 @@ function renderPlanBar() {
     b.addEventListener('click', () => setPlan(b.dataset.plan === 'pro')));
 }
 
-function initPlan() { applyPlanClass(); applySkinClass(); renderPlanBar(); }
+function initPlan() { applyPlanClass(); applySkinClass(); renderPlanBar(); initAltBar(); }
+
+/* The Alts switch, beside Free | Pro — same segmented family (`.tb-plan`),
+   one cell. Counts how many alt phones the current screen would add. */
+window.setAlt = function (on) {
+  on = !!on;
+  if (on === SD_ALT) return;
+  SD_ALT = on;
+  try { localStorage.setItem(ALT_KEY, SD_ALT ? '1' : '0'); } catch (e) {}
+  renderAltBar();
+  renderViewer();
+};
+function renderAltBar() {
+  const bar = document.getElementById('alt-bar');
+  if (!bar) return;
+  const n = (SCREENS.find(x => x.id === 'home') || { variants: [] }).variants.filter(v => v.alt).length;
+  bar.innerHTML = `<button class="tb-plan-b${SD_ALT ? ' active' : ''}" title="${SD_ALT ? 'Hide' : 'Show'} the ${n} comparison phones (Compact · Review first) beside home">⧉ Alts</button>`;
+  bar.querySelector('.tb-plan-b').addEventListener('click', () => setAlt(!SD_ALT));
+}
+function initAltBar() {
+  renderAltBar();
+  /* The toolbar's Labs menu (index.html) — a click anywhere else shuts it. */
+  document.addEventListener('click', e => {
+    document.querySelectorAll('.tb-menu.open').forEach(m => { if (!m.contains(e.target)) m.classList.remove('open'); });
+  });
+}
+window.toggleTbMenu = function (btn) { btn.parentNode.classList.toggle('open'); };
 
 // ── Hand layout (left/right) ──────────────────────────────────
 function getHand() { return localStorage.getItem('spindeck-hand') || 'left'; }
@@ -6224,17 +6271,32 @@ function renderSingle() {
   // Always lay out as a 2-up (dark + light) so the phone is the SAME size on every page
   // and doesn't jump when switching. Pages with one variant just fill the left slot.
   c.className = 'multi-variant';
-  const n      = Math.max(s.variants.length, 2);
+  const vis    = stageVariants(s);                  // alts only while the switch is on
+  const n      = Math.max(vis.length, 2);
+  /* ⚠ THE RAIL (Eric, 2026-09-25: "the left side isn't accounting for that bar").
+     `#page-nav` FLOATS over the stage (style.css) so a pair centres in the true
+     middle of the window — but four phones fill the width, and the first one
+     went under it. With more than the pair, the container is padded past the
+     rail and the width budget is what is left. `--nav-w` is the rail's width. */
+  const GAP  = 10;                                  // the columns' gap (style.css)
+  const navW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-w')) || 148;
+  const rail = n > 2 ? navW + 12 : 0;
+  c.style.paddingLeft = rail ? rail + 'px' : '';
   const scaleH = (c.clientHeight - 70) / 852;
-  const scaleW = (c.clientWidth  / n - 20) / 393;
+  const scaleW = ((c.clientWidth - rail - 24) / n - GAP) / 393;   // 24 = the side padding
   const scale  = Math.min(scaleH, scaleW, 0.88);
+  /* ⚠ `transform: scale` leaves the LAYOUT box at 393×852 — the vertical dead
+     space was already pulled in by the margins; the horizontal never was, so
+     shrunken phones sat in full-width columns and the gap between them was
+     mostly that slack ("closer together, man"). Both axes now. */
   const dead   = 852 * (scale - 1);
+  const deadW  = 393 * (scale - 1);
   const curr   = getVariantIdx(s);
 
-  c.innerHTML = s.variants.map((v, i) => `
+  c.innerHTML = vis.map(({ v, i }) => `
     <div class="var-col ${i === curr ? 'var-active' : ''}" onclick="pickVariant('${s.id}',${i})">
       <div class="var-label">${v.version || v.label}</div>
-      <div class="phone-wrap" style="transform:scale(${scale});margin-top:${dead/2}px;margin-bottom:${dead/2}px">
+      <div class="phone-wrap" style="transform:scale(${scale});margin:${dead/2}px ${deadW/2}px">
         ${buildPhoneHTML(s, v)}
       </div>
       <div class="var-sublabel">${v.label}</div>
@@ -6288,6 +6350,7 @@ window.pickVariant = function(screenId, idx) {
 function renderMulti() {
   const container = document.getElementById('phone-container');
   container.className = 'multi';
+  container.style.paddingLeft = '';        // renderSingle pads past the rail for 3+ phones; not here
   const cols   = Math.min(SCREENS.length, Math.floor(container.clientWidth / 220));
   const scaleH = (container.clientHeight - 80) / 852;
   const scaleW = (container.clientWidth / cols - 32) / 393;
@@ -6423,8 +6486,9 @@ function renderVariantBar() {
   if (!bar) return;
   const s   = currentScreen();
   const curr = getVariantIdx(s);
-  if (s.variants.length <= 1) { bar.innerHTML = ''; return; }
-  bar.innerHTML = s.variants.map((v, i) =>
+  const vis = stageVariants(s);
+  if (vis.length <= 1) { bar.innerHTML = ''; return; }
+  bar.innerHTML = vis.map(({ v, i }) =>
     `<button class="vpill ${i === curr ? 'active' : ''}" onclick="setVariant('${s.id}',${i})">${v.label}</button>`
   ).join('');
 }
@@ -6509,7 +6573,7 @@ async function exportPNG() {
     link.click();
   } finally {
     wrap.style.transform = prev; setPhoneScale();
-    btn.textContent = '⬇ PNG'; btn.disabled = false;
+    btn.textContent = '⬇'; btn.disabled = false;   // icon-only since 2026-09-25 (index.html)
   }
 }
 

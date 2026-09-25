@@ -6115,7 +6115,7 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
    words at least. */
 .s-home-v3 .v3-rev-card--feed .v3-rev-text {
   font-family: var(--font-main);
-  font-size: 12.5px; line-height: 1.75; max-height: calc(1.75em * 4);   /* the deck review's type (Eric, 2026-09-24): same size and leading, its own width and place */
+  font-size: 12.5px; line-height: 1.55; max-height: calc(1.55em * 4);   /* the deck review's type (Eric, 2026-09-24): same size and leading, its own width and place. 1.75 → 1.55 = 2.5px less a line (Eric, 2026-09-25) */
   text-align: left; text-wrap: wrap;
 }
 .s-home-v3 .v3-rev-card--feed .v3-rev-text.is-long {
@@ -11723,7 +11723,11 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 /* The bubble sits a touch small beside the heart at the same box size — its
    drawing is shorter than the box. 5% up (Eric). */
 .v3-fbr .v3-cmt-btn svg { width: 31px; height: 31px; }   /* 3% off (Eric) */
-.v3-fbr .v3-up { font-size: 17px; }   /* the COUNTS larger (Eric: "larger numbers", not the score) */
+/* THE COUNTS: 13px, REGULAR (Eric, 2026-09-25: "not bolded and smaller").
+   They went to 17px on 09-24 ("larger numbers") and back; the pill's base
+   rule is 700, so the weight is said here outright. ⚠ Don't grow these again
+   without Eric naming the size. */
+.v3-fbr .v3-up { font-size: 13px; font-weight: 400; }
 .v3-fbr-act { display: flex; align-items: center; flex: 0 0 auto; min-width: 64px; }
 .v3-fbr-act:first-child { justify-content: flex-end; }
 .v3-fbr-act:first-child .v3-up { flex-direction: row-reverse; }
@@ -11777,7 +11781,7 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 .v3-fbr-score .hstars { display: inline-flex; gap: 2px; }
 .v3-fbr-text {
   font-family: var(--font-main);   /* pinned: never the serif */
-  font-size: 12.5px; line-height: 1.75;   /* was 1.4, then 1.55 — taller (Eric) */
+  font-size: 12.5px; line-height: 1.55;   /* was 1.4, then 1.55, then 1.75 — and back to 1.55 = 2.5px less a line (Eric, 2026-09-25: "lower the line height for all reviews by 2.5px"). Every review in the app takes this or the feed card's copy of it. */
   color: var(--sd-ink2, rgba(232,226,214,0.68));
   width: 346px; max-width: 100%; margin-top: 8px;   /* 310 → 320 → 334 → 340 → 346: 3px less margin a side, twice (Eric, 2026-09-24) */
   text-align: left;              /* the block is centred by its margins; the lines inside read left (Eric) */

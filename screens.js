@@ -480,9 +480,11 @@ function friendsBentoHtml() {
    copies of the same template differing in a class; the template lives here
    once and `light` adds the light scope. Both carry the friends deck
    (friendsBentoHtml) above the feed. */
-function homeShellHtml(light, coversUp) {
+/* `cls` (2026-09-25): extra shell classes for the viewer's comparison phones —
+   `s-home-v3--fb-left` is the compact left-aligned review (app.css). */
+function homeShellHtml(light, coversUp, cls) {
   return `
-        <div class="app-screen s-home-v3${light ? ' s-home-v3--light' : ''}${coversUp ? ' s-home-v3--fb-up' : ''}">
+        <div class="app-screen s-home-v3${light ? ' s-home-v3--light' : ''}${coversUp ? ' s-home-v3--fb-up' : ''}${cls ? ' ' + cls : ''}">
 
           <!-- TOP HEADER: bubble cluster (left) · spindeck wordmark (center) · single bubble (right).
                Fixed height pushes the bento + everything below it ~100px down the flex column. -->
@@ -720,6 +722,19 @@ const SCREENS = [
          as an idea, not shipped. */
       { label: 'Float·Dark',  version: 'v4.0', thumb: ['accent','w60','w80','w60','w80'], get html() { return homeShellHtml(false, true); } },
       { label: 'Float·Light', version: 'v4.1', thumb: ['accent','w60','w80','w60','w80'], get html() { return homeShellHtml(true,  true); } },
+      /* The two kept ideas, as phones to the RIGHT for comparison (Eric,
+         2026-09-25). Neither is shipped — the first two are the app; these
+         exist so the alternatives can be seen next to it, not remembered.
+         COMPACT: the dark-only left-aligned review grid (`s-home-v3--fb-left`,
+         app.css) — face and name on the left, score · pills to its right,
+         the text across — instead of the centred stack.
+         REVIEW FIRST: the markup's own order, the review over the deck and
+         the covers lower and easier to reach (`coversUp` false). */
+      /* `alt: true` — shown only while the toolbar's Alts switch is on
+         (SD_ALT, app.js); the viewer skips them otherwise, so home is the
+         usual pair. */
+      { label: 'Compact·Dark',      version: 'v4.2', alt: true, thumb: ['accent','w60','w80','w60','w80'], get html() { return homeShellHtml(false, true, 's-home-v3--fb-left'); } },
+      { label: 'Review first·Dark', version: 'v4.3', alt: true, thumb: ['accent','w60','w80','w60','w80'], get html() { return homeShellHtml(false, false); } },
     ]
   },
 
