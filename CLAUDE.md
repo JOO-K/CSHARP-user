@@ -16,7 +16,15 @@
 > - **Profile = card · stats · pinned reviews · review history.** Favourite
 >   albums, playlists and favourite songs are gone from the profile and the
 >   Edit Profile form. Notifications and Settings lost their playlist / shop /
->   listening-activity rows.
+>   listening-activity rows. **2026-09-25 — THE PICKS came back, between the
+>   stats and the pins:** one section, a three-cell segmented picker (Favourite songs ·
+>   Listened · Listen later) over a `.prof-song` row list (`profPicksHtml` +
+>   `profPicksLists` in screens.js, `profPicksTab` / `profPickOpen` in app.js,
+>   `.prof-picks-*` in app.css). All three lists are in the markup; a tab only
+>   swaps `hidden`. DERIVED, not stored: songs = `P.favSongs`; Listened = your
+>   own `listened` log drafts (own profile only) then the review history's
+>   albums; Listen later = your own `later` drafts topped up with a seeded
+>   handful the person has not reviewed. A row opens the album page.
 > - **Album Wall stays** as is.
 > - **2026-09-23 — the friends deck.** Eric wanted the bento back on home
 >   "for a different purpose", then the frame gone: home is now a **FRIENDS
@@ -75,7 +83,9 @@
 >   the head past `RSH_CLOSE_PX`). Its top part is the deck's review block
 >   VERBATIM (`.v3-fbr` markup from `rshHtml`, so face, belt, name, score row
 >   and pills share the deck's CSS; only the clamp comes off), then a record
->   line (tap → album page), then the comments (composer first, the thread
+>   line (tap → album page; its CD raises the NAV CONSOLE for that album, same
+>   as the album page's CD — `rshCdTap`; no preview, and the nav is lifted over
+>   the sheet's overlay while the console is up), then the comments (composer first, the thread
 >   paging via `cmtAutoMore`, which knows `.v3-rsh-body`). Same feed key, so
 >   likes and comments are shared; `toggleRevUp` now syncs every like pill on
 >   a key. `REV_INDEX` entries from the feed and the deck carry `face` and
@@ -83,6 +93,38 @@
 >   standalone review page are UNTOUCHED — Eric wants to rethink that system.
 >   Also: a deck review of two lines or fewer is centred (`.is-short`,
 >   `fbMarkShort`).
+> - **2026-09-24 — THE DISCOVERY DECK on the Trending wall.** The wall
+>   (`wallHtml`) now opens with the home deck's cover flow at the top, where
+>   the bento used to be: `discoveryDeckHtml` (screens.js) is the deck's
+>   markup with the album's title · year and artist under it and, in the
+>   review's place, the ACTUAL REVIEW row (`.v3-dd-score`: the aggregate
+>   score, discs and count — no user review). `renderDiscoveryDeck` (app.js)
+>   deals the wall's own ranking (`wallItems`, first `DD_N`), re-dealt by the
+>   sort chips. The deck code reads its list per screen (`fbListOf`:
+>   `_fbList` or the friends' reviews), and `fbGo` branches on `_dd`. Cover,
+>   strip and score all open the album (`ddOpenFront`). The tiled wall sits
+>   below, unchanged.
+> - **2026-09-24 — YOUR REVIEW · COMMUNITY REVIEW.** The album page's rate
+>   ring and its wings (`rateGroupHtml`, parked; `.v3-rate-group` CSS dormant)
+>   are replaced by `.v3-rev-yours`: a full-width band labelled "Your review"
+>   with your number over your discs in the headline score's shape (tap → the
+>   log sheet; `syncRevCta` paints it from the draft), and "Community review"
+>   labelled over the album's own headline score below. Listened / Later /
+>   Favourite live in the log sheet; Share left the album page with the wings.
+> - **2026-09-25 — the REVIEW PAGE wears the sheet.** `reviewPanelHtml`
+>   (screens.js) — the standalone review page AND the album page's in-place
+>   review — now renders `rshBodyHtml` (app.js): the sheet's content (the
+>   deck's review block, the record line with its CD, the comments) in a
+>   `.v3-rsh-body--page` under the back pill. The hero card is gone from it;
+>   the sheet's inner CSS keys off `.v3-rsh-body`, so both surfaces share it.
+> - **2026-09-25 — the LOG SHEET.** One button at the top, `.sd-log-post`
+>   (still `.sd-log-save`, `paintLogSave` drives it): Post while there is
+>   something unposted, Revise once posted (tap → cursor back in the text).
+>   Share is gone from the sheet. The rating is one row: `.sd-log-num` (the
+>   score, disc-height, "_._" until rated, written by `paintLogRating`) left
+>   of the five discs, which are 46px with a 4px gap now. The songs box is
+>   headed "Optional". The review page / in-place review are the screen's own
+>   bg in both themes now (no album flood, no re-ink), 18px sides like the sheet.
 > - **The bottom nav is a plain PILL** — no hump, no contour SVGs, no masks.
 >   `.v3-nav-glass` is a border-radius + 1px border; `--nav-ar` / `--nav-r` /
 >   `--nav-items-top` on `.s-home-v3` and `--console` are the whole geometry.

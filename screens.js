@@ -472,7 +472,7 @@ function friendsBentoHtml() {
                  high to reach; lower is better. -->
             <div class="v3-fb-review" onclick="fbOpenFront(this, event)"></div>
             <div class="v3-fb-flow" aria-label="Friends' recent reviews" onclick="fbFlowTap(this, event)"></div>
-            <div class="v3-fb-strip" onclick="fbOpenFront(this, event)"></div>
+            <div class="v3-fb-strip" onclick="fbOpenAlbum(this, event)"></div>
           </div>`;
 }
 
@@ -545,17 +545,39 @@ function homeShellHtml(light, coversUp) {
                    with — the point is that marking something listened / later /
                    favourite costs one tap instead of opening the sheet. -->
               <div class="v3-rev-mine">
-                ${rateGroupHtml()}
+                <!-- YOUR REVIEW (Eric, 2026-09-24): the rate ring and its wings
+                     (rateGroupHtml, parked) gave way to the headline score's own
+                     shape — your number, large, over your discs — on a band the
+                     width of the screen, labelled. A tap opens the log sheet, where
+                     the rating, the text and listened / later / favourite live.
+                     syncRevCta paints it from the draft. -->
+                <div class="v3-rev-yours" onclick="event.stopPropagation(); openLogSheet(this)">
+                  <!-- The hint, SIDEWAYS down the band's right edge, marqueeing
+                       (Eric, 2026-09-25); CSS shows it only until you rate or write. -->
+                  <span class="v3-rev-hint" aria-hidden="true"><span class="v3-rev-hint-run">${'Tap to rate · '.repeat(6)}</span><span class="v3-rev-hint-run">${'Tap to rate · '.repeat(6)}</span></span>
+                  <span class="v3-rev-lbl">Your review</span>
+                  <div class="v3-rev-score v3-rev-score--mine">
+                    <span class="v3-rev-score-n v3-rev-mine-n">0.0</span>
+                    <span class="v3-rev-score-sub v3-rev-mine-sub">${halfStars(0, 13, true)}</span>
+                  </div>
+                </div>
               </div>
 
             </div><!-- /v3-rev-top -->
 
-            <!-- The album's score, large. The compact one-liner under the artist
-                 stays as it is — that one is a label on the record, this one is
-                 the headline for the ratings section it sits on top of. -->
-            <div class="v3-rev-score">
-              <span class="v3-rev-score-n"></span>
-              <span class="v3-rev-score-sub"></span>
+            <!-- The album's score, large — the COMMUNITY's, labelled so against
+                 yours above (Eric, 2026-09-24). The compact one-liner under the
+                 artist stays as it is — that one is a label on the record, this
+                 one is the headline for the ratings section it sits on top of. -->
+            <!-- Wrapped so its left edge is ONE number the band above shares
+                 (.v3-rev-community's padding = the band's minus the panel's
+                 10px), whatever nudges the score rule or the dev box carry. -->
+            <div class="v3-rev-community">
+              <span class="v3-rev-lbl v3-rev-lbl--community">Community review</span>
+              <div class="v3-rev-score">
+                <span class="v3-rev-score-n"></span>
+                <span class="v3-rev-score-sub"></span>
+              </div>
             </div>
 
             <!-- Rating distribution bars (header text removed, bars kept) -->
@@ -1903,6 +1925,121 @@ function profPinsHtml(P) {
             </div>`;
 }
 
+/* ── The picks — Favourite songs · Listened · Listen later (csharpuser, 2026-09-25)
+   ONE section between the stats and the pins, a three-way segmented picker over
+   a list of rows.
+   The row is `.prof-song` (art · title / sub · a glyph on the right) — the old
+   Pro favourite-songs shelf's row, now carrying all three lists so an album and
+   a song read as the same kind of thing on the page.
+   ⚠ The lists are DERIVED, like the review history, not stored on PROFILE:
+   - Favourite songs are `P.favSongs`, which every writer of PROFILE fills.
+   - Listened is what the log sheet marked `listened` (your own drafts, real
+     state — only on YOUR profile; a friend's drafts are not yours to read),
+     then the albums in their review history: a review implies a listen.
+   - Listen later is your own `later` drafts first, topped up with a seeded
+     handful from the shelf the person has NOT reviewed, so a random visitor
+     has a queue. Seeded off the handle through `dzSeed` + `profMix`, so the
+     same profile shows the same queue twice.
+   The tabs swap panels in the DOM (`profPicksTab`, app.js) — no re-render, all
+   three lists are in the markup. */
+const PROF_PICK_ROWS = 8;
+const PROF_PICK_LATER = 5;
+function profPicksLists(P) {
+  const A = window.ARCHIVE || [];
+  const findAlb = name => A.find(a => a.album === name);
+  const seed = String(P.handle || P.name || 'you');
+  const raw = (typeof dzSeed === 'function') ? dzSeed : ((...a) => a.join('').length);
+  const h = (...a) => profMix(raw(...a));
+  const own = !window.PROFILE_GUEST;
+
+  const songs = (P.favSongs || []).slice(0, 5).map(s => {
+    const a = findAlb(s.album);
+    return { kind: 'song', title: s.title, sub: `${s.album} · ${s.artist}`,
+             image: a ? a.image : '', album: s.album, artist: s.artist };
+  });
+
+  /* Your own drafts, newest first. Albums only — a song's draft is about a track. */
+  const mine = k => {
+    if (!own || typeof logDrafts !== 'function') return [];
+    const all = logDrafts();
+    return Object.keys(all)
+      .filter(key => key.indexOf('album::') === 0 && all[key][k])
+      .sort((x, y) => (all[y].updated || 0) - (all[x].updated || 0))
+      .map(key => {
+        const [, title, artist] = key.split('::');
+        const a = findAlb(title);
+        const snap = all[key].snap || {};
+        const year = (a && a.year) || snap.year || 0;
+        return { kind: 'album', title, artist, album: title,
+                 sub: artist + (year ? ` · ${year}` : ''),
+                 image: (a && a.image) || all[key].image || snap.image || '',
+                 rating: all[key].rating || 0 };
+      });
+  };
+  const push = (list, seen, row) => {
+    if (!row || seen[row.album]) return;
+    seen[row.album] = 1; list.push(row);
+  };
+
+  const listened = [], seenL = {};
+  mine('listened').forEach(r => push(listened, seenL, r));
+  profReviewLog(P).forEach(e => push(listened, seenL, {
+    kind: 'album', title: e.album.album, artist: e.album.artist, album: e.album.album,
+    sub: e.album.artist + (e.album.year ? ` · ${e.album.year}` : ''),
+    image: e.album.image, rating: e.rating }));
+
+  const later = [], seenT = {};
+  mine('later').forEach(r => push(later, seenT, r));
+  for (let i = 0; i < A.length * 2 && later.length < PROF_PICK_LATER && A.length; i++) {
+    const a = A[h(seed, 'lt', i) % A.length];
+    if (seenL[a.album]) continue;               // not something they already listened to
+    push(later, seenT, { kind: 'album', title: a.album, artist: a.artist, album: a.album,
+                         sub: a.artist + (a.year ? ` · ${a.year}` : ''), image: a.image });
+  }
+  return { songs, listened: listened.slice(0, PROF_PICK_ROWS), later: later.slice(0, PROF_PICK_ROWS) };
+}
+
+const PROF_PICK_TABS = [
+  ['songs',    'Favourite songs', 'No favourite songs yet.'],
+  ['listened', 'Listened',        'Nothing logged as listened yet.'],
+  ['later',    'Listen later',    'Nothing queued yet — tap the clock on an album.'],
+];
+function profPicksHtml(P) {
+  const L = profPicksLists(P);
+  const at = s => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const playIco = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+  const ico = (typeof SD_ICONS !== 'undefined') ? SD_ICONS : {};
+  /* The glyph on the right says which list you are in without reading the tab:
+     a play for a song, THEIR NUMBER for a record they reviewed (the headphones
+     where they only logged it), the clock for the queue. */
+  const tail = (r, k) => {
+    if (k === 'songs')    return `<span class="prof-song-play">${playIco}</span>`;
+    if (k === 'later')    return `<span class="prof-song-play prof-song-play--dot">${ico.clock || ''}</span>`;
+    return r.rating ? `<span class="prof-song-score">${r.rating}</span>`
+                    : `<span class="prof-song-play prof-song-play--dot">${ico.ear || ''}</span>`;
+  };
+  const row = (r, k) => `
+                <button class="prof-song" data-alb="${at(r.album)}" data-artist="${at(r.artist)}" onclick="profPickOpen(this)">
+                  <span class="prof-song-art" style="background-image:url('${r.image}')"></span>
+                  <span class="prof-song-meta">
+                    <span class="prof-song-title">${at(r.title)}</span>
+                    <span class="prof-song-sub">${at(r.sub)}</span>
+                  </span>
+                  ${tail(r, k)}
+                </button>`;
+  const first = PROF_PICK_TABS[0][0];
+  return `
+            <div class="prof-sec prof-picks">
+              <div class="prof-picks-seg" role="tablist">${PROF_PICK_TABS.map(([k, label]) => `
+                <button class="prof-picks-tab${k === first ? ' active' : ''}" role="tab" aria-selected="${k === first}" data-k="${k}" onclick="profPicksTab(this)">${label}</button>`).join('')}
+              </div>${PROF_PICK_TABS.map(([k, , empty]) => `
+              <div class="prof-songs prof-picks-pane" data-k="${k}"${k === first ? '' : ' hidden'}>${
+                L[k].length ? L[k].map(r => row(r, k)).join('') : `<div class="prof-pins-empty">${empty}</div>`}
+              </div>`).join('')}
+            </div>`;
+}
+
 function profFavsHtml(P) {
   const findAlb = name => (window.ARCHIVE || []).find(a => a.album === name);
   const esc = s2 => String(s2).replace(/'/g, '\'');
@@ -2022,9 +2159,10 @@ function profileHtml(light) {
 
 
   /* csharpuser (2026-09-22): the profile is the REVIEWS — card, stats, pinned
-     reviews, review history. The favourite-albums rail, the playlists shelf and
-     the Pro favourite-songs shelf are gone from this fork (their builders are
-     still in this file, unused). */
+     reviews, review history. The favourite-albums rail and the playlists shelf
+     are gone from this fork (their builders are still in this file, unused).
+     2026-09-25: the picks came back ABOVE the pins — Favourite songs ·
+     Listened · Listen later as one segmented picker (`profPicksHtml`). */
 
   return `
       <div class="app-screen s-home-v3 s-prof2${light ? ' s-home-v3--light' : ''}"
@@ -2036,6 +2174,10 @@ function profileHtml(light) {
             ${profCanvasHtml(P)}
 
             ${profStatsHtml(P)}
+
+            <!-- The picks — Favourite songs · Listened · Listen later, one
+                 picker ABOVE the pins (Eric, 2026-09-25; it opened under them). -->
+            ${profPicksHtml(P)}
 
             ${profPinsHtml(P)}
 
@@ -2299,12 +2441,35 @@ function wallGridHtml() {
               </div>`).join('');
 }
 
+/* THE DISCOVERY DECK (Eric, 2026-09-24): the home deck's markup (the cover
+   flow, then the album's title · year and artist) with, in the review's
+   place, the ACTUAL REVIEW — the record's aggregate score, discs and count.
+   Dealt by renderDiscoveryDeck (app.js); the cover, the strip and the score
+   all open the album. Sits at the top of the wall where the bento used to. */
+function discoveryDeckHtml() {
+  return `
+            <div class="v3-fb v3-fb--dd" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+              <div class="v3-fb-flow" aria-label="Albums to discover" onclick="fbFlowTap(this, event)"></div>
+              <div class="v3-fb-strip" onclick="ddOpenFront(this, event)">
+                <div class="v3-fb-title"><span class="v3-fb-album"></span><span class="v3-fb-year"></span></div>
+                <div class="v3-fb-artist" onclick="fbArtistTap(this, event)"></div>
+              </div>
+              <div class="v3-dd-score" onclick="ddOpenFront(this, event)">
+                <!-- The home review's score box (Eric, 2026-09-24): the number over its discs, the count under. -->
+                <span class="v3-fbr-scorebox"><span class="v3-fbr-n v3-dd-n"></span><span class="v3-fbr-discs v3-dd-discs"></span></span>
+                <!-- The count, and beside it the tag at the SAME weight (Eric, 2026-09-24). -->
+                <span class="v3-dd-line"><span class="v3-dd-count"></span><span class="v3-dd-tag">popular album</span></span>
+              </div>
+            </div>`;
+}
+
 function wallHtml(light) {
   return `
       <div class="app-screen s-home-v3 s-wall2${light ? ' s-home-v3--light' : ''}">
         ${appHeader()}
         <div class="v3-body">
           <div class="wall2-scroll">
+            ${discoveryDeckHtml()}
             <div class="wall2-bar">
               <button class="wall2-cat wall2-sort${WALL_SORT === 'popular' ? ' active' : ''}" data-sort="popular"
                       onclick="event.stopPropagation(); pickWallSort(this)">Popular</button>
@@ -2790,25 +2955,13 @@ window.reviewPanelHtml = function (R) {
               <span class="v3-ring plp-ring"><span class="v3-ring-spin">${dots}</span></span>
             </button>
 
-            <!-- THE CARD, LARGER (Eric, 2026-09-11): the review page's hero is the
-                 album page's own review card, scaled up, with the text at
-                 reading size and never clamped. One builder (revCardHtml), so
-                 the page cannot drift from the card that opened it.
-                 REBUILT on the feed card's skeleton (Eric, 2026-09-16): it wears
-                 .v3-rev-card--page like the album page's cards — byline with
-                 the heart and the share button on the top row and the time
-                 hard right, the 40px score with the discs stacked under it on
-                 the left, the text full width beneath. -->
-            ${typeof revCardHtml === 'function' ? revCardHtml({
-              key: R.key, cls: 'v3-rev-card--page v3-rev-card--hero', big: true, timeRight: true, actsTop: true,
-              name: R.name || 'Listener', handle, face, ago: R.ago || '',
-              rating: R.rating || 0, text: R.text || '',
-              likes: R.mine ? null : (R.likes || 0), comments: R.comments || 0, share: !!R.mine,
-            }) : ''}
-
-            <div class="rvp-cmts">
-              <div class="rvp-cmts-hd">Comments <span class="rvp-cmts-n" data-k="${R.key}" data-n="${R.comments || 0}">${call('cmtCount', R.key, R.comments || 0)}</span></div>
-              ${call('cmtWrapHtml', R.key, R.comments || 0)}
+            <!-- THE SHEET'S LOOK (Eric, 2026-09-25): the page is the review sheet's
+                 content — the deck's review block (face, belt, name, score with
+                 its pills, the full text), the record line with its CD, then
+                 the comments — in a .v3-rsh-body--page that scrolls with the
+                 page instead of inside a sheet. One builder (rshBodyHtml,
+                 app.js), so the page cannot drift from the popup. -->
+            <div class="v3-rsh-body v3-rsh-body--page">${typeof rshBodyHtml === 'function' ? rshBodyHtml(R) : ''}
             </div>
           </div>`;
 };

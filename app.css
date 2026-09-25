@@ -2629,16 +2629,19 @@
    state grows it upward into a rounded rect and drops the radius so the
    corners don't balloon; the icon band (`--nav-items-top`) keeps the bottom
    82 units of whichever box is showing, so the icons never move on screen.
-   82 / 205 = 40% → the band starts at 60%. */
+   ⚠️ 240 units tall, not the 205 it opened at (Eric, 2026-09-25: the service
+   marks sat on top of the nav icons and the album line sat on the marks).
+   82 / 240 = 34.2% → the band starts at 65.8%; the extra 35 units are all
+   air inside the panel — see `.v3-console` below for where it goes. */
 .s-home-v3 {
   --nav-ar:        553 / 82;
   --nav-r:         999px;
   --nav-items-top: 0%;
 }
 .s-home-v3--console {
-  --nav-ar:        553 / 205;
+  --nav-ar:        553 / 240;
   --nav-r:         30px;
-  --nav-items-top: 60%;
+  --nav-items-top: 65.8%;
 }
 
 /* -- The console panel ---------------------------------------------------
@@ -2651,14 +2654,17 @@
   /* All four numbers are % of the NAV, whose child this is — the nav is
      aspect-ratio driven, so only a % tracks the box at every phone scale.
      csharpuser (2026-09-23): the pill has no hump walls, so the panel takes
-     nearly the whole width. Vertically it runs from just under the top edge
-     to the icon band at 60%. */
+     nearly the whole width. Vertically it runs from under the top edge to
+     well short of the icon band at 65.8%: bottom 42% puts the marks' bottom
+     at 58%, ~19 units (13px) of air over the band, where there were 6 before
+     (Eric, 2026-09-25). `space-between` then opens the album line and the
+     marks ~24px apart inside the 132-unit panel, instead of ~9. */
   position: absolute;
   left: 7%; right: 7%;
-  top: 7%; bottom: 43%;
+  top: 6%; bottom: 42%;
   z-index: 6;
   display: none;
-  flex-direction: column; justify-content: space-between; gap: 6px;
+  flex-direction: column; justify-content: space-between; gap: 10px;
 }
 .s-home-v3--console .v3-console { display: flex; }
 /* WARNING: the ticker and the console are never both up, and this is
@@ -4649,6 +4655,14 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
 }
 /* An artist has no score — same rule as the one-liner's. */
 .s-home-v3--artist .v3-rev-score { display: none; }
+/* No YOUR REVIEW band and no COMMUNITY REVIEW heading either (Eric,
+   2026-09-25). Both arrived on 09-24 as parts of the ALBUM page's ratings
+   section, and the artist page inherited them: the band still read "Tap to
+   rate" over an artist, and the community label sat over a score this rule
+   already hides. Same reason as the CTA row above — an artist isn't reviewed,
+   their albums are. The reviews list under the albums grid stays. */
+.s-home-v3--artist .v3-rev-top,
+.s-home-v3--artist .v3-rev-community { display: none; }
 
 /* No artist rating — an artist isn't a thing you score; their ALBUMS carry the
    ratings, in the grid below. The review count stays as the one stat.
@@ -4784,7 +4798,17 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
    either a horizontal rail or the trending grid (both reuse .wall2-* styling,
    so a cover looks the same wherever it appears). Built by populateArtistPage. */
 .v3-artist-albums { display: none; }
-.s-home-v3--artist .v3-artist-albums { display: block; padding: 6px 12px 0; }
+/* ⚠️ The top padding is the CLEARANCE for the info box's overhang, moved here
+   (Eric, 2026-09-25). It used to ride on `.v3-rev-mine` (`26px +
+   --rev-cred-h`, see the album page's rule) and this grid sat under that band;
+   with the YOUR REVIEW / COMMUNITY REVIEW block hidden on the artist page the
+   grid became the panel's first visible child and slid up under the artist
+   info and the Favorite pill. Same `--rev-cred-h` (125px, or 55px with no
+   description) plus the air; the 24px is the one number to turn. */
+.s-home-v3--artist .v3-artist-albums {
+  display: block;
+  padding: calc(24px + var(--rev-cred-h, 0px)) 12px 0;
+}
 .v3-aa-hd {
   display: flex; align-items: center; gap: 8px;
   padding: 0 0 9px;
@@ -5612,7 +5636,7 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
    CONTENT fades (the .v3-body), never the shell, so the album colour behind
    it holds the whole way. sdFadeOut fades the outgoing content, the incoming
    screen's body fades in here. */
-:is(.s-rvp, .s-home-v3--rvp) { color: #e8e2d6; }
+:is(.s-rvp, .s-home-v3--rvp) { color: var(--sd-ink, #e8e2d6); }
 /* ── The review IN PLACE (.s-home-v3--rvp on the album page's shell) ───────
    The bento and the review panel step aside, the review panel takes the body.
    --rvp-out is the 200ms fade of whatever is leaving. ⚠️ .v3-review-panel's
@@ -5640,19 +5664,16 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
    does — a cream fallback meant white text on cream until then, and for good
    if the cover had never been extracted. The page is legible from the first
    frame now, and the album colour floods in on top. */
-:is(.s-rvp, .s-home-v3--rvp).s-home-v3--light { background: var(--v3-box1-color, #1c1c22); color: #e8e2d6; }
+/* 2026-09-25: the page wears the REVIEW SHEET's look (Eric), so it is the
+   screen's own background in both themes — cream in light, with the light
+   theme's dark ink — not the album flood, and nothing below re-inks it. */
+:is(.s-rvp, .s-home-v3--rvp).s-home-v3--light { background: var(--sd-bg, #f0ece3); color: #1a1208; }
+.s-home-v3--rvp .v3-body { background: var(--sd-bg, #111116); }   /* in place on the album page: the body covers the flood */
 /* …and re-ink what the light theme darkened, since the page is dark in both
    themes: the shell's inherited ink, the header's masked logo and bubbles,
    the handle, and the upvote/comment pills. Verified in the viewer. */
 :is(.s-rvp, .s-home-v3--rvp) .rvp-name { color: #e8e2d6; }
-:is(.s-rvp, .s-home-v3--rvp).s-home-v3--light .v3-header-logo { background-color: rgba(232,226,214,0.9); }
-:is(.s-rvp, .s-home-v3--rvp).s-home-v3--light .v3-header-handle { color: rgba(232,226,214,0.42); }
-:is(.s-rvp, .s-home-v3--rvp).s-home-v3--light .v3-bubble { color: rgba(232,226,214,0.62); background: rgba(255,255,255,0.06); }
-:is(.s-rvp, .s-home-v3--rvp).s-home-v3--light .v3-up { background: rgba(255,255,255,0.06); color: rgba(232,226,214,0.5); }
-:is(.s-rvp, .s-home-v3--rvp).s-home-v3--light .v3-up:hover { background: rgba(255,255,255,0.1); color: #e8e2d6; }
-:is(.s-rvp, .s-home-v3--rvp).s-home-v3--light .v3-up.is-on { background: rgba(232,168,60,0.16); color: var(--star, #e8a83c); }
-:is(.s-rvp, .s-home-v3--rvp).s-home-v3--light .v3-up.is-on svg { fill: rgba(232,168,60,0.2); }
-.rvp-scroll { padding: 16px 12px 96px; }                      /* the back pill sat hard under the header (2026-09-11) */
+.rvp-scroll { padding: 16px 12px 96px; }   /* the sheet's body adds 6 a side inside this → the sheet's 18 */                      /* the back pill sat hard under the header (2026-09-11) */
 .rvp-scroll > .plp-back-pill { margin-bottom: 16px; }
 .rvp-cmts-hd { margin: 14px 0 2px; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(232,226,214,0.45); }
 .rvp-cmts-n { margin-left: 4px; color: rgba(232,226,214,0.7); }
@@ -5740,7 +5761,12 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 
 /* Column, not a row: the reply chip stacks above the input line. */
 .v3-cmt-add { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
-.v3-cmt-add-row { display: flex; align-items: center; gap: 6px; }
+/* The Post button sits INSIDE the box, pinned to its top-right corner, and
+   stays there as the box grows down (Eric, 2026-09-24); the textarea keeps
+   a right padding so the text never runs under it. */
+.v3-cmt-add-row { position: relative; display: block; }
+.v3-cmt-add-row .v3-cmt-input { width: 100%; padding-right: 58px; }
+.v3-cmt-add-row .v3-cmt-post { position: absolute; top: 4px; right: 4px; padding: 4px 10px; }
 /* Says where the next post will land — and is the way back out of reply mode. */
 .v3-cmt-to {
   align-self: flex-start;
@@ -5755,12 +5781,21 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 .v3-cmt-to:hover { background: rgba(232,168,60,0.24); }
 .v3-cmt-input {
   flex: 1; min-width: 0;
-  padding: 6px 11px; border-radius: 999px;
+  padding: 6px 11px; border-radius: 12px;   /* the record box's corner, not a pill (Eric, 2026-09-24) */
   border: 1px solid rgba(232,226,214,0.13);
   background: rgba(0,0,0,0.2);
   font-family: var(--font-main); font-size: 11px;
   color: rgba(232,226,214,0.88);
+  /* A TEXTAREA that grows DOWN (Eric, 2026-09-24: "when it's active it
+     becomes larger, not the font, it grows downwards"): one line at rest,
+     three when it has focus, and taller still as you type (cmtGrow sets the
+     height to the content, up to eight lines). Same size type as before. */
+  display: block; resize: none; line-height: 1.45;
+  height: auto; min-height: calc(1.45em + 14px); max-height: calc(1.45em * 12 + 14px);
+  overflow-y: auto; box-sizing: border-box;
+  transition: min-height .18s ease, border-radius .18s ease;
 }
+.v3-cmt-input:focus { min-height: calc(1.45em * 5 + 14px); }   /* 3 → 5 lines open (Eric, 2026-09-24: "grow more") */
 .v3-cmt-input::placeholder { color: rgba(232,226,214,0.3); }
 .v3-cmt-input:focus { outline: none; border-color: var(--star); }
 .v3-cmt-post {
@@ -5816,7 +5851,7 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
      its content and everything below it stays exactly where it was.
      19 bottom: the divider is a pseudo now, not a border, so the px it took
      comes back as padding. */
-  padding: 20px 3px 19px;
+  padding: 20px 9px 19px;   /* 3 → 15 a side (Eric, 2026-09-24): the content lines up with the deck review's 334px column (≈25px in), not the full width; the divider still runs edge to edge */
   position: relative;
 }
 /* The divider runs the FULL width of the screen (Eric, 2026-09-17), not the
@@ -6080,7 +6115,7 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
    words at least. */
 .s-home-v3 .v3-rev-card--feed .v3-rev-text {
   font-family: var(--font-main);
-  font-size: 12.5px; line-height: 1.4; max-height: calc(1.4em * 4);
+  font-size: 12.5px; line-height: 1.75; max-height: calc(1.75em * 4);   /* the deck review's type (Eric, 2026-09-24): same size and leading, its own width and place */
   text-align: left; text-wrap: wrap;
 }
 .s-home-v3 .v3-rev-card--feed .v3-rev-text.is-long {
@@ -6731,12 +6766,22 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
    pads it 3px above and below so each cell is as tall as it is wide, and
    `touch-action: none` keeps a slide on it from scrolling the sheet. */
 .sd-log-rate {
-  display: flex; flex-direction: column; align-items: center; gap: 7px;
-  padding: 12px 0 13px;              /* 18 → 8 → 13: the option buttons sit 5px higher than they began (2026-09-11) */
+  /* ONE ROW (Eric, 2026-09-25): the number on the left, as tall as a disc,
+     the five discs to its right and closer together; the number follows the
+     discs as you rate (paintLogRating writes it). */
+  display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 14px;
+  padding: 12px 0 13px;
   /* ⚠️ Read by recFillWidth (app.js) — the fill is measured in these units.
      Change the disc size or the gap HERE and nowhere else. */
-  --rec: 54px; --gap: 7px;
+  --rec: 46px; --gap: 4px;   /* 54/7 → 46/4: room for the number beside them */
 }
+.sd-log-num {
+  flex: 0 0 auto; min-width: 2.2ch; text-align: right;
+  font-family: var(--font-main); font-size: var(--rec); line-height: 1; font-weight: 800; letter-spacing: -0.03em;
+  color: var(--sd-ink, #e8e2d6);
+  font-variant-numeric: tabular-nums;
+}
+.sd-log-num.is-blank { color: var(--sd-ink3, rgba(232,226,214,0.32)); }
 .sd-log-stars-track {
   position: relative; display: inline-flex; cursor: pointer;
   touch-action: none; user-select: none; -webkit-user-select: none;
@@ -6785,7 +6830,10 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 }
 .sd-log-opt-ico { display: inline-flex; width: 22px; height: 22px; color: rgba(232,226,214,0.55); transition: color .15s; }
 .sd-log-opt-ico svg { width: 22px; height: 22px; }
-.sd-log-opt.on { color: #fff; background: rgba(232,226,214,0.10); border-color: rgba(255,255,255,0.16); }
+/* No box behind them (Eric, 2026-09-25): bare icon + word; on, the word
+   brightens and the icon takes its colour. */
+.sd-log-opt, .sd-log-opt.on { background: none; border-color: transparent; }
+.sd-log-opt.on { color: #fff; }
 .sd-log-opt.on .sd-log-opt-ico { color: var(--star, #e8a83c); }
 .sd-log-opt[data-k="fav"].on .sd-log-opt-ico { color: #ff5c8a; }
 
@@ -6816,6 +6864,9 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
   font-size: 12px; font-weight: 700; color: #e8e2d6;
 }
 .sd-log-songs-sub { font-size: 10px; font-weight: 500; color: rgba(232,226,214,0.4); }
+/* The one button at the top: Post (lit while there is something to post),
+   Revise once it's posted. Share left with it (Eric, 2026-09-25). */
+.sd-log-actions .sd-log-post { min-width: 96px; }
 .sd-log-songs-list { display: flex; flex-direction: column; }
 /* ⚠️ These rows are the ALBUM PAGE'S tracklist rows (.v3-song-row and its
    cells), restated for the sheet (2026-09-11): same 9px vertical rhythm, 10px
@@ -8124,6 +8175,11 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
   display: flex; flex-direction: column;
 }
 .sds-overlay.open { visibility: visible; opacity: 1; transition: opacity .2s ease; }
+/* THE NAV STAYS UP while you search (Eric, 2026-09-24): the screen wears
+   `.is-searching` (openSearch), which lifts the bottom nav over the overlay;
+   the results scroll clears it. A nav tap closes the search first. */
+.s-home-v3.is-searching .v3-bottom-nav { z-index: 215; }
+.s-home-v3.is-searching .sds-body { padding-bottom: 100px; }
 .sds-panel {
   flex: 1; min-height: 0; display: flex; flex-direction: column;
   transform: translateY(10px);
@@ -10045,6 +10101,42 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 .prof-song-play { flex-shrink: 0; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; color: var(--pf-fg2); }
 .prof-song-play svg { width: 13px; height: 13px; }
 
+/* ── The picks — Favourite songs · Listened · Listen later (csharpuser, 2026-09-25)
+   A three-cell segmented picker in the section-heading slot, then a `.prof-songs`
+   list per tab. Same pill language as `.set-seg`, inked off the profile's own
+   `--pf-*` tokens so it sits on the skin; the ACTIVE cell is the profile's ink
+   on a well, not the gold — a tab is navigation, not a rating. */
+.prof-picks-seg {
+  display: flex; gap: 2px; padding: 3px; margin: 0 0 8px;
+  border-radius: 999px;
+  background: var(--pf-well, rgba(128,128,128,0.12));
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.18);
+}
+.prof-picks-tab {
+  flex: 1; min-width: 0; border: none; background: none; cursor: pointer;
+  padding: 7px 4px; border-radius: 999px;
+  font-family: var(--font-mono); font-size: 9.5px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--pf-fg2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: background .15s, color .15s;
+}
+.prof-picks-tab:hover { color: var(--pf-fg); }
+.prof-picks-tab.active {
+  background: var(--pf-fg); color: var(--pf-base, var(--pf-well, #16130d));
+  box-shadow: 0 1px 3px rgba(0,0,0,0.22);
+}
+.prof-picks-pane[hidden] { display: none; }
+/* Their number on a record they reviewed, in the glyph's slot. */
+.prof-song-score {
+  flex-shrink: 0; min-width: 24px; text-align: right;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  color: var(--pf-fg); letter-spacing: .02em;
+}
+/* The dot glyphs (clock / headphones) run slightly larger than the play
+   triangle so the 5×5 grid reads at this size. */
+.prof-song-play--dot svg { width: 15px; height: 15px; }
+
 /* Top playlists — a row of 3 cards */
 .prof-pls { display: flex; gap: 10px; }
 .prof-pl {
@@ -11501,6 +11593,12 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 .v3-fb-album { display: inline; }
 .v3-fb-year  { display: inline; margin-left: 6px; font-size: 14px; font-weight: 300; color: var(--sd-ink2, rgba(232,226,214,0.5)); }
 .v3-fb-year:empty { display: none; }
+/* The artist's name is a LINK to the artist page (Eric, 2026-09-25) —
+   `fbArtistTap`, on both decks' strips. The strip around it still opens the
+   album, so the name is the one part that goes elsewhere; the underline on
+   hover is the only tell. */
+.v3-fb-artist { cursor: pointer; }
+.v3-fb-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 .v3-fb-artist {
   margin-top: 5px;               /* 5 more under the title (Eric) */
   font-family: 'Roboto Flex', var(--font-main);
@@ -11681,7 +11779,7 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
   font-family: var(--font-main);   /* pinned: never the serif */
   font-size: 12.5px; line-height: 1.75;   /* was 1.4, then 1.55 — taller (Eric) */
   color: var(--sd-ink2, rgba(232,226,214,0.68));
-  width: 320px; max-width: 100%; margin-top: 8px;   /* 310 → 320: 5px wider each side (Eric, 2026-09-24) */
+  width: 346px; max-width: 100%; margin-top: 8px;   /* 310 → 320 → 334 → 340 → 346: 3px less margin a side, twice (Eric, 2026-09-24) */
   text-align: left;              /* the block is centred by its margins; the lines inside read left (Eric) */
   white-space: pre-line;
   display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;   /* five lines (Eric) */
@@ -11758,13 +11856,13 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
   padding: 2px 18px 28px;
 }
 /* The deck's review block, unclamped: the whole review, no fade, no View more. */
-.v3-rsh .v3-fbr--sheet { margin: 0; padding: 4px 0 0; cursor: default; touch-action: none; }
-.v3-rsh .v3-fbr--sheet .v3-fbr-text {
+.v3-rsh-body .v3-fbr--sheet { margin: 0; padding: 4px 0 0; cursor: default; touch-action: none; }
+.v3-rsh-body .v3-fbr--sheet .v3-fbr-text {
   display: block; -webkit-line-clamp: unset; overflow: visible;
   width: auto; max-width: none; align-self: stretch;
   -webkit-mask-image: none; mask-image: none;
 }
-.v3-rsh .v3-fbr--sheet .v3-fbr-more { display: none; }
+.v3-rsh-body .v3-fbr--sheet .v3-fbr-more { display: none; }
 /* The record line: cover · album over artist · year — a tap opens the album. */
 .v3-rsh-record {
   display: flex; align-items: center; gap: 10px;
@@ -11775,9 +11873,10 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 .v3-rsh-record:hover { background: var(--sd-hover, rgba(255,255,255,0.04)); }
 .v3-rsh-art { width: 40px; height: 40px; border-radius: 6px; flex: 0 0 auto; background: #222 center / cover no-repeat; box-shadow: 0 2px 6px rgba(0,0,0,0.35); }
 .v3-rsh-rec-who { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-/* The CD, hard right (margin-left auto), always turning; tap = the preview.
-   Its hole is the bento CD's own (.v3-cd-hole). Faster and lit while playing;
-   a blink when the record has no preview. */
+/* The CD, hard right (margin-left auto), always turning; tap = the NAV
+   CONSOLE for this album (rshCdTap), as on the album page. Its hole is the
+   bento CD's own (.v3-cd-hole). (It played a preview until 2026-09-25; the
+   lit `.is-playing` ring and the `.is-none` blink went with that.) */
 .v3-rsh-cd {
   position: relative; flex: 0 0 auto; margin-left: auto; margin-right: 2px;
   width: 40px; height: 40px; border-radius: 50%; overflow: hidden;
@@ -11789,14 +11888,274 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 }
 .v3-rsh-cd .v3-cd-hole { width: 8px; height: 8px; background: var(--sd-bg, #111116); }
 .v3-rsh-cd:hover { filter: brightness(1.08); }
-.v3-rsh-cd.is-playing { animation-duration: 4s; box-shadow: 0 3px 10px rgba(0,0,0,0.35), 0 0 0 2px #3b82f6; }
-.v3-rsh-cd.is-none { animation-play-state: paused; filter: brightness(0.6) saturate(0.7); }
+/* ⚠️ The sheet's overlay is z 220 and the nav is z 5, so a console the sheet's
+   CD raised would grow up BEHIND the sheet. While a sheet is up and the console
+   is open, the nav rides over the overlay; the console's own state class is
+   the gate, so the nav drops back under the sheet the moment it closes. */
+.s-home-v3--console:has(.v3-rsh-ov) .v3-bottom-nav { z-index: 230; }
 @media (prefers-reduced-motion: reduce) { .v3-rsh-cd { animation: none; } }
 .v3-rsh-rec-album  { font-family: 'Roboto Flex', var(--font-main); font-size: 14px; font-weight: 500; color: var(--sd-ink, #e8e2d6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .v3-rsh-rec-artist { font-size: 11.5px; color: var(--sd-ink2, rgba(232,226,214,0.55)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.v3-rsh .rvp-cmts { margin-top: 6px; }
-.v3-rsh .rvp-cmts-hd { color: var(--sd-ink3, rgba(232,226,214,0.45)); }
-.v3-rsh .rvp-cmts-n { color: var(--sd-ink2, rgba(232,226,214,0.7)); }
+.v3-rsh-body .rvp-cmts { margin-top: 6px; }
+.v3-rsh-body .rvp-cmts-hd { color: var(--sd-ink3, rgba(232,226,214,0.45)); }
+.v3-rsh-body .rvp-cmts-n { color: var(--sd-ink2, rgba(232,226,214,0.7)); }
 @media (prefers-reduced-motion: reduce) {
   .v3-rsh, .v3-rsh-ov { transition: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE DISCOVERY DECK on the Trending wall (Eric, 2026-09-24) — `.v3-fb--dd`,
+   discoveryDeckHtml (screens.js) / renderDiscoveryDeck (app.js). The home
+   deck's rules do the covers and the title strip; this is only its place at
+   the top of the wall and the ACTUAL REVIEW row under the strip: the label
+   small in the mono, the aggregate score large beside its discs (the deck
+   review's number and discs), the count under. ═══════════════════════════ */
+.v3-fb--dd { margin: 2px -2px 12px; }   /* inside .wall2-scroll's 12px: the box 10px in from the edge, like home's */
+.v3-dd-score {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  margin-top: 6px; padding: 0 4px;
+  text-align: center; cursor: pointer;
+}
+.v3-dd-label {
+  font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--sd-ink3, rgba(232,226,214,0.32));
+}
+/* The score is the home review's own box — `.v3-fbr-scorebox` / `.v3-fbr-n`
+   (Eric, 2026-09-24: "the same as the homepage") — so only the count is here. */
+.v3-dd-discs { display: inline-flex; }
+.v3-dd-line { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; }   /* more air under the discs (Eric, 2026-09-24) */
+.v3-dd-count, .v3-dd-tag { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: var(--sd-ink2, rgba(232,226,214,0.55)); }
+.v3-dd-tag::before { content: '·'; margin-right: 6px; }   /* "89k reviews · popular album", one weight */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   YOUR REVIEW · COMMUNITY REVIEW on the album page (Eric, 2026-09-24).
+   The rate ring and its four wings (`.v3-rate-group`, rules above, now
+   dormant) are replaced by something plain: the headline score's shape,
+   twice. Yours first — `.v3-rev-yours`, a band the full width of the screen
+   (the panel's 10px padding pulled back with negative margins), the label
+   small in the mono, your number large over your discs (the same
+   `.v3-rev-score` rules as the community's below, so the two match), a tap
+   → the log sheet. Then "Community review" over the album's own score. The
+   numbers line up: the band's left padding is the panel's 10 + the
+   community score's 15.5 nudge. ════════════════════════════════════════════ */
+.v3-rev-top { margin-bottom: 0; }
+.v3-rev-mine { padding: 0; }
+/* RAISED, not inverted (Eric, 2026-09-25: "just give that section a drop
+   shadow"): the band keeps the page's colours — a faint lift of the surface
+   with a soft shadow under it — so it reads as a card sitting on the page,
+   the same ink as the community score below. */
+.v3-rev-yours {
+  margin: 0 -10px;
+  padding: 12px 10px 14px 25.5px;
+  background: rgba(255,255,255,0.04);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 8px 22px rgba(0,0,0,0.38), 0 2px 6px rgba(0,0,0,0.28);
+  cursor: pointer;
+  position: relative; z-index: 1;   /* the shadow falls over what follows */
+}
+.v3-rev-yours:hover { background: rgba(255,255,255,0.06); }
+.v3-rev-lbl {
+  display: block;
+  font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: rgba(232,226,214,0.45);
+}
+/* THE TWO NUMBERS SHARE ONE LEFT EDGE (Eric, 2026-09-25: "that's the whole
+   point"): every nudge the score rule carries — and the dev box's live copy
+   of it, which wins ties — is zeroed on BOTH rows (`!important`, because the
+   injected style is later and would otherwise put its 15.5px back), and the
+   offset lives on the wrappers instead: the band pads 25.5 from the screen
+   edge, the community box 15.5 inside the panel's 10. Same number. */
+.v3-rev-community { padding-left: 15.5px; margin-top: 16px; }
+.v3-rev-lbl--community { margin: 0; }
+.s-home-v3--review .v3-rev-score--mine,
+.s-home-v3--review .v3-rev-community .v3-rev-score {
+  left: 0 !important; top: 0 !important; padding: 6px 0 0 !important; max-width: 100%;
+}
+/* Unrated: the 0.0 dim. Rated: your number in the album gold. */
+.s-home-v3--review .v3-rev-score--mine .v3-rev-score-n,
+.s-home-v3--light.s-home-v3--review .v3-rev-score--mine .v3-rev-score-n { color: rgba(232,226,214,0.4); }
+.s-home-v3--review .v3-rev-yours.is-rated .v3-rev-score-n,
+.s-home-v3--light.s-home-v3--review .v3-rev-yours.is-rated .v3-rev-score-n { color: var(--star, #e8a83c); }
+.v3-rev-yours .v3-rev-score-count:empty { display: none; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE WALL'S CHIPS, SPREAD AND BARE (Eric, 2026-09-25): Popular ·
+   Controversial · Genres · Week share the row evenly instead of stacking
+   left, and — a version to try — no pill behind them: bare words, the
+   active one in the album gold with a hairline under it, the open dropdown
+   the same. The neumorphic pills above stay as the fallback: drop this block
+   to get them back. ═══════════════════════════════════════════════════════ */
+.s-home-v3 .wall2-bar { justify-content: space-between; gap: 0; padding: 2px 4px 12px; }
+.s-home-v3 .wall2-cat, .s-home-v3--light .wall2-cat {
+  background: none; box-shadow: none; padding: 6px 2px 5px;
+  border-bottom: 1.5px solid transparent; border-radius: 0;
+  font-size: 11.5px; letter-spacing: 0; font-weight: 600;
+  color: var(--sd-ink2, rgba(232,226,214,0.55));
+}
+.s-home-v3 .wall2-cat:hover, .s-home-v3--light .wall2-cat:hover { background: none; color: var(--sd-ink, #e8e2d6); }
+.s-home-v3 .wall2-cat.active, .s-home-v3--light .wall2-cat.active,
+.s-home-v3 .wall2-drop-btn.open, .s-home-v3--light .wall2-drop-btn.open {
+  background: none; box-shadow: none; color: var(--star); border-bottom-color: var(--star);
+}
+
+/* THE REVIEW PAGE wears the sheet's body (Eric, 2026-09-25) — `.v3-rsh-body--page`
+   inside `.rvp-scroll`, under the back pill. No sheet: it is in flow and the
+   page's `.v3-body` scrolls it, so the body's own scroller and padding come
+   off (the scroll wrapper already pads the sides). */
+.v3-rsh-body--page { overflow: visible; padding: 0 6px 8px; flex: none; }   /* 12 + 6 = the sheet's 18px sides */
+
+/* TAP TO RATE (Eric, 2026-09-25): SIDEWAYS down the band's right edge — the
+   glyphs' tops point right (vertical-rl) — and marqueeing: the line is in
+   there twice and slides up by one copy, so it loops without a seam. Shown
+   only until the record is rated or written about; the empty discs breathe
+   in turn meanwhile. The band pads right for it. */
+.v3-rev-yours { padding-right: 30px; }
+.v3-rev-hint {
+  display: none;
+  position: absolute; top: 0; bottom: 0; right: 6px; width: 18px;
+  overflow: hidden; pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+          mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+}
+.v3-rev-yours:not(.is-rated):not(.is-written) .v3-rev-hint { display: block; }
+.v3-rev-hint-run {
+  display: block;
+  writing-mode: vertical-rl;            /* top to bottom, tops of the letters to the right */
+  white-space: nowrap;
+  font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(232,226,214,0.5);
+  animation: rev-hint-marquee 24s linear infinite;   /* 9 → 24: slower (Eric) */
+}
+@keyframes rev-hint-marquee { from { transform: translateY(0); } to { transform: translateY(-100%); } }
+.v3-rev-yours:not(.is-rated):not(.is-written) .hstar { animation: rev-hint-disc 2.4s ease-in-out infinite; }
+.v3-rev-yours:not(.is-rated):not(.is-written) .hstar:nth-child(2) { animation-delay: .12s; }
+.v3-rev-yours:not(.is-rated):not(.is-written) .hstar:nth-child(3) { animation-delay: .24s; }
+.v3-rev-yours:not(.is-rated):not(.is-written) .hstar:nth-child(4) { animation-delay: .36s; }
+.v3-rev-yours:not(.is-rated):not(.is-written) .hstar:nth-child(5) { animation-delay: .48s; }
+@keyframes rev-hint-disc { 0%, 70%, 100% { transform: scale(1); } 20% { transform: scale(1.16); } }
+@media (prefers-reduced-motion: reduce) {
+  .v3-rev-hint-run, .v3-rev-yours .hstar { animation: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COMMENTS IN THE LIGHT THEME (2026-09-25). The thread's ink was hard-coded
+   light for the dark surfaces it lived on (the flooded album page, the dark
+   review page). The review sheet and, since today, the review page sit on
+   the light theme's cream — where every row vanished (seen in the viewer).
+   Dark ink for all of it here: the header, the rows, the composer. ════════ */
+.s-home-v3--light .rvp-cmts-hd { color: rgba(26,18,8,0.45); }
+.s-home-v3--light .rvp-cmts-n  { color: rgba(26,18,8,0.7); }
+.s-home-v3--light .v3-cmt { border-top-color: rgba(26,18,8,0.09); }
+.s-home-v3--light .v3-cmt-user { color: rgba(26,18,8,0.92); }
+.s-home-v3--light .v3-cmt-text { color: rgba(26,18,8,0.8); }
+.s-home-v3--light .v3-cmt-ago  { color: rgba(26,18,8,0.42); }
+.s-home-v3--light .v3-cmt-like, .s-home-v3--light .v3-cmt-reply { color: rgba(26,18,8,0.42); }
+.s-home-v3--light .v3-cmt-like:hover, .s-home-v3--light .v3-cmt-reply:hover { color: rgba(26,18,8,0.9); }
+.s-home-v3--light .v3-cmt-like.is-on { color: #e0396e; }
+.s-home-v3--light .v3-cmt-av { background-color: rgba(26,18,8,0.08); box-shadow: 0 0 0 1px rgba(26,18,8,0.1); }
+.s-home-v3--light .v3-cmt-none, .s-home-v3--light .v3-cmt-more { color: rgba(26,18,8,0.4); }
+.s-home-v3--light .v3-cmt-input {
+  background: rgba(26,18,8,0.05); border-color: rgba(26,18,8,0.12); color: #1a1208;
+}
+.s-home-v3--light .v3-cmt-input::placeholder { color: rgba(26,18,8,0.38); }
+.s-home-v3--light .v3-cmt-post { background: rgba(176,106,42,0.16); color: #b06a2a; }
+.s-home-v3--light .v3-cmt-post:hover { background: #b06a2a; color: #fff; }
+.s-home-v3--light .v3-cmt-to { color: rgba(26,18,8,0.6); }
+
+/* The album page's IN-PLACE review is the sheet's look end to end (2026-09-25):
+   the whole shell drops the album flood — header included — for the screen's
+   own background, in both themes. (0,2,0) beats the flood's (0,1,0). */
+.s-home-v3.s-home-v3--rvp { background: var(--sd-bg, #111116); }
+.s-home-v3--light.s-home-v3--rvp { background: var(--sd-bg, #f0ece3); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE REVIEW POPUP AND THE REVIEW PAGE: EDGE TO EDGE, NO SIDE GAPS (Eric,
+   2026-09-25). The popup spans the screen (no 10px float like the log
+   sheet — tried, "there's gaps in the sides"), its inside 12px; the page's
+   content sits at the same 12px from the screen edge, on the same surface,
+   no card around it. ═══════════════════════════════════════════════════════ */
+.v3-rsh { left: 0; right: 0; bottom: 0; border-radius: 20px 20px 0 0; }
+.v3-rsh-body { padding: 2px 20px 24px; }                    /* the home review's column: 346 in 385 → ~20 a side (Eric, 2026-09-25: "same margins as the homepage main review") */
+.rvp-scroll { padding-left: 20px; padding-right: 20px; }    /* the page keeps step */
+.v3-rsh-body--page { margin: 0; padding: 0 0 8px; background: none; border-radius: 0; box-shadow: none; }
+.s-home-v3--light .v3-rsh-body--page { background: none; box-shadow: none; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE WRITE-A-REVIEW SHEET, EDGE TO EDGE (Eric, 2026-09-25: "the popup for
+   the review has gaps in the sides, the popup for the comment doesn't — I
+   like that aesthetic, make it that margin"). The log sheet floated 10px in
+   from both sides and off the bottom; the comment sheet (`.v3-rsh`) spans
+   the screen with its top corners rounded and 12px inside. Same here now:
+   full width, flush with the bottom, top corners only, the comment sheet's
+   surface colour, 12px inside. ══════════════════════════════════════════ */
+.sd-log-sheet {
+  width: 100%; margin-bottom: 0;
+  border-radius: 20px 20px 0 0;
+  background: var(--sd-bg, #111116);
+  padding: 12px 12px 14px;
+  box-shadow: 0 -1px 0 var(--sd-line, rgba(232,226,214,0.09)), 0 -18px 48px rgba(0,0,0,0.45);
+}
+.s-home-v3--light .sd-log-sheet { background: var(--sd-bg, #f0ece3); box-shadow: 0 -1px 0 var(--sd-line, rgba(26,18,8,0.1)), 0 -18px 48px rgba(0,0,0,0.18); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE WRITE-A-REVIEW SHEET, 2026-09-25 (Eric):
+   · POST rides the cover — bottom centre of the picture, a drop shadow under
+     it, nothing pushed down — and only appears once something changed.
+   · The SONG rows' discs are larger, with the song's score beside them at
+     the discs' height, "0.0" dim until rated, like the big one.
+   · Listened / Listen later / Favourite EMBOSS upward when on: the button
+     lifts on a raised neumorphic shadow and takes its colour. ═══════════════ */
+.sd-log-cover { position: relative; }
+.sd-log-cover .sd-log-actions {
+  position: absolute; left: 0; right: 0; bottom: 10px;
+  display: none; justify-content: center;
+}
+.sd-log-cover .sd-log-actions:has(.sd-log-post[data-mode="post"]) { display: flex; }
+.sd-log-cover .sd-log-post {
+  box-shadow: 0 6px 18px rgba(0,0,0,0.55), 0 2px 5px rgba(0,0,0,0.4);
+}
+/* The song rows. */
+.sd-log-song-rate-track { --rec: 20px; --gap: 4px; }   /* 14 → 20 */
+.sd-log-song-val {
+  min-width: 2.2ch; text-align: right;
+  font-family: var(--font-main); font-size: 20px; line-height: 1; font-weight: 800; letter-spacing: -0.03em;
+  color: var(--sd-ink, #e8e2d6); font-variant-numeric: tabular-nums;
+}
+.sd-log-song-val.is-blank { color: var(--sd-ink3, rgba(232,226,214,0.32)); }
+/* The three toggles: air above and below the row, and — once ON — the
+   POPULAR belt round the icon (logBeltIcon, app.js): the band in the
+   toggle's colour with its word riding it, passing behind the icon and over
+   its foot. Off: just the icon and the word. The emboss and the flat ribbon
+   are gone (Eric). */
+.sd-log-opts { margin: 12px 0 30px; justify-content: center; gap: 16px; }   /* the belts hang ~28px under the words; the three sit close together (Eric) */
+.sd-log-opt { flex: 0 0 auto; padding: 8px 10px; }
+.sd-log-opt, .sd-log-opt.on { background: none; box-shadow: none; transform: none; }
+.sd-log-opt-word { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.sd-log-opt-lbl  { position: relative; }                           /* painted between the belt's halves */
+.sd-log-opt .v3-fbr-belt { width: auto; height: auto; }            /* the belt's own box, not the icon's 22px */
+.sd-log-opt.on .sd-log-opt-lbl { color: #fff; }
+.sd-log-opt .v3-fbr-belt { display: none; }
+.sd-log-opt.on .v3-fbr-belt { display: block; }
+.sd-log-opt .v3-fbr-belt-band { stroke: var(--star, #e8a83c); stroke-width: 7; }
+.sd-log-opt .v3-fbr-belt--back .v3-fbr-belt-band { stroke: var(--star, #e8a83c); filter: brightness(0.82); }
+.sd-log-opt .v3-fbr-belt-text { fill: #16130d; font-size: 4.8px; }
+.sd-log-opt .v3-fbr-belt--back .v3-fbr-belt-text { fill: rgba(22,19,13,0.75); }
+.sd-log-opt[data-k="fav"] .v3-fbr-belt-band { stroke: #ff5c8a; }
+.sd-log-opt.on .sd-log-opt-ico { color: var(--star, #e8a83c); }
+.sd-log-opt[data-k="fav"].on .sd-log-opt-ico { color: #ff5c8a; }
+/* The song numbers a touch in from the edge; Post near the TOP of the cover. */
+.sd-log-song-num { margin-left: 4px; }
+.sd-log-cover .sd-log-actions { top: 10px; bottom: auto; }
+
+/* THE CD POPUP on the album page, more air (Eric, 2026-09-25: "a bit small,
+   the icons touch the streaming icons"): a taller preview row with room
+   under it, the streaming rows padded and spaced, the menu padded. */
+.v3-cd-menu { padding: 8px; gap: 3px; min-width: 168px; }
+.v3-cd-menu .v3-stream-preview { padding: 10px 12px; margin: 2px 0 6px; }
+.v3-cd-menu-sep { margin: 4px 6px 6px; }
+.v3-cd-menu .wall2-menu-item { padding: 10px 12px; }
+.v3-cd-menu .plp-plat-item { gap: 10px; }
+
+/* The bottom sheets' TOP corners, tighter (Eric, 2026-09-25: "lower the
+   corner radius at the top, not the bottom"): 20 → 12 on the review sheet
+   and the write-a-review sheet; the bottom stays flush. */
+.v3-rsh, .sd-log-sheet { border-radius: 12px 12px 0 0; }
