@@ -97,8 +97,8 @@
 
 **Cache-busting:** assets are loaded with `?v=N` in `index.html` — bump N on every CSS/JS/data change so the browser reloads.
 
-**Live URL:** https://joo-k.github.io/CSHARP-eric/
-**Repo:** https://github.com/JOO-K/CSHARP-eric.git
+**Live URL:** https://joo-k.github.io/CSHARP-user/ (this fork, from 2026-09-24; the original is at …/CSHARP-eric/)
+**Repo:** https://github.com/JOO-K/CSHARP-user.git (the original's is JOO-K/CSHARP-eric — never push there from this folder)
 
 ---
 
