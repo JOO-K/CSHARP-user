@@ -446,37 +446,43 @@ function bentoHtml() {
           </div>`;
 }
 
-const SCREENS = [
+/* csharpuser (2026-09-23): THE FRIENDS DECK — your friends' recent album
+   reviews, where the bento used to be. Eric: "focus on reviews and friends'
+   reviews … drop-shadow cards that go behind each other like the old-school
+   iPod"; then, same day: "get rid of that bento svg … have the album be the
+   same size as the bento before … typography pretty similar to before, just
+   without the bento … the cards are the same size as the album, offset in z
+   so they look smaller, translated horizontally so you can see the next
+   albums in the sequence."
+   So: NO frame. The FRONT card is the size the bento's album slot was; the
+   cards behind it are the same size pushed back in z and stepped out to the
+   right, each turned a step further away so the deck curves off in an ARC
+   to the screen's edge — the sequence. No CD for now (Eric: "I'll tell you
+   when to add it"). The friend's review sits ABOVE the deck (Eric: the
+   covers were too high to reach), and under the deck the album page's info
+   — the title large with the year beside it, the artist below. No album score line: one rating on screen,
+   the friend's. All painted by renderFriendsBento (app.js); this is the
+   empty furniture. Hidden with the feed on the album page (--review),
+   where `.v3-bento` — still the album page — takes over. */
+function friendsBentoHtml() {
+  return `<!-- FRIENDS DECK (csharpuser) — see friendsBentoHtml -->
+          <div class="v3-fb" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+            <!-- ORDER (Eric, 2026-09-23): the review FIRST, the deck under it, the
+                 album's title and artist under the deck — the covers sat too
+                 high to reach; lower is better. -->
+            <div class="v3-fb-review" onclick="fbOpenFront(this, event)"></div>
+            <div class="v3-fb-flow" aria-label="Friends' recent reviews" onclick="fbFlowTap(this, event)"></div>
+            <div class="v3-fb-strip" onclick="fbOpenFront(this, event)"></div>
+          </div>`;
+}
 
-  // ── 1. AUTH ─────────────────────────────────────────────────
-  {
-    id: 'auth', name: 'Auth / Login', statusTheme: 'light',
-    variants: [
-      { label: 'Float·Dark',  thumb: ['w50','w80','accent','w80','accent'], get html() { return authHtml(false); } },
-      { label: 'Float·Light', thumb: ['w50','w80','accent','w80','accent'], get html() { return authHtml(true);  } },
-    ]
-  },
-
-  // ── 2. ONBOARDING ───────────────────────────────────────────
-  {
-    id: 'onboarding', name: 'Onboarding', statusTheme: 'light',
-    variants: [
-      { label: 'Float·Dark',  thumb: ['w70','accent','w80','w60','w70'], get html() { return onboardingHtml(false); } },
-      { label: 'Float·Light', thumb: ['w70','accent','w80','w60','w70'], get html() { return onboardingHtml(true);  } },
-    ]
-  },
-
-  // ── 3. HOME ──────────────────────────────────────────────────
-  {
-    id: 'home', name: 'Home', statusTheme: 'light',
-    variants: [
-
-      // ── 3f. Bento Hero v3.0 ─────────────────────────────────
-      {
-        label: 'Float·Dark', version: 'v3.0',
-        thumb: ['accent','w60','w80','w60','w80'],
-        html: `
-        <div class="app-screen s-home-v3">
+/* csharpuser (2026-09-23): ONE home builder. The two home variants were two
+   copies of the same template differing in a class; the template lives here
+   once and `light` adds the light scope. Both carry the friends deck
+   (friendsBentoHtml) above the feed. */
+function homeShellHtml(light, coversUp) {
+  return `
+        <div class="app-screen s-home-v3${light ? ' s-home-v3--light' : ''}${coversUp ? ' s-home-v3--fb-up' : ''}">
 
           <!-- TOP HEADER: bubble cluster (left) · spindeck wordmark (center) · single bubble (right).
                Fixed height pushes the bento + everything below it ~100px down the flex column. -->
@@ -501,13 +507,10 @@ const SCREENS = [
               <div class="v3-header-handle"></div>
             </div>
             <div class="v3-header-right">
-              <!-- Settings (inner) -->
+              <!-- Settings. csharpuser (2026-09-23): the Search bubble that sat
+                   outside it is gone — Search lives in the bottom nav now. -->
               <button class="v3-bubble v3-bubble--settings" title="Settings" aria-label="Settings" onclick="navigate('settings')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-              </button>
-              <!-- Search (outer/rightmost) -->
-              <button class="v3-bubble v3-bubble--search" title="Search" aria-label="Search" onclick="openSearch(this)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
               </button>
             </div>
           </div>
@@ -516,6 +519,8 @@ const SCREENS = [
           <div class="v3-body">
 
           ${bentoHtml()}
+
+          ${friendsBentoHtml()}
 
           <!-- SCROLL: activity feed — notification-style rows, filled by
                renderFriendFeed(). The "you may know" rails used to sit above it. -->
@@ -654,190 +659,45 @@ const SCREENS = [
             </div>
           </div>
 
-        </div>`,
-      },
+        </div>`;
+}
 
-      // ── 3g. Bento Hero v3.1 (light) ─────────────────────────
-      {
-        label: 'Float·Light', version: 'v3.1',
-        thumb: ['accent','w60','w80','w60','w80'],
-        html: `
-        <div class="app-screen s-home-v3 s-home-v3--light">
+const SCREENS = [
 
-          <!-- TOP HEADER: bubble cluster (left) · spindeck wordmark (center) · single bubble (right).
-               Fixed height pushes the bento + everything below it ~100px down the flex column. -->
-          <div class="v3-header">
-            <div class="v3-header-bubbles">
-              <!-- Notifications: friends adding you, replies to your reviews, etc.
-                   .has-notif expands the bubble into a blue pill with the unread count on the right.
-                   Click toggles the state (mockup demo). -->
-              <button class="v3-bubble v3-bubble--notif has-notif" title="Notifications" aria-label="Notifications"
-                      onclick="navigate('notifications')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                <span class="v3-bubble-count">+5</span>
-              </button>
-            </div>
-            <div class="v3-header-brand">
-              <div class="v3-header-logo" role="img" aria-label="Spindeck"></div>
-              <!-- filled by populateHomeData(). The two home variants are static
-                   html templates evaluated ONCE at load, so interpolating
-                   PROFILE here would freeze the handle and never follow a
-                   persona switch. (No backticks in here - this sits inside a
-                   template literal.) -->
-              <div class="v3-header-handle"></div>
-            </div>
-            <div class="v3-header-right">
-              <!-- Settings (inner) -->
-              <button class="v3-bubble v3-bubble--settings" title="Settings" aria-label="Settings" onclick="navigate('settings')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-              </button>
-              <!-- Search (outer/rightmost) -->
-              <button class="v3-bubble v3-bubble--search" title="Search" aria-label="Search" onclick="openSearch(this)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-              </button>
-            </div>
-          </div>
+  // ── 1. AUTH ─────────────────────────────────────────────────
+  {
+    id: 'auth', name: 'Auth / Login', statusTheme: 'light',
+    variants: [
+      { label: 'Float·Dark',  thumb: ['w50','w80','accent','w80','accent'], get html() { return authHtml(false); } },
+      { label: 'Float·Light', thumb: ['w50','w80','accent','w80','accent'], get html() { return authHtml(true);  } },
+    ]
+  },
 
-          <!-- Scrollable body: bento + feed scroll together -->
-          <div class="v3-body">
+  // ── 2. ONBOARDING ───────────────────────────────────────────
+  {
+    id: 'onboarding', name: 'Onboarding', statusTheme: 'light',
+    variants: [
+      { label: 'Float·Dark',  thumb: ['w70','accent','w80','w60','w70'], get html() { return onboardingHtml(false); } },
+      { label: 'Float·Light', thumb: ['w70','accent','w80','w60','w70'], get html() { return onboardingHtml(true);  } },
+    ]
+  },
 
-          ${bentoHtml()}
+  // ── 3. HOME ──────────────────────────────────────────────────
+  {
+    id: 'home', name: 'Home', statusTheme: 'light',
+    variants: [
 
-          <!-- SCROLL: activity feed — notification-style rows, filled by
-               renderFriendFeed(). The "you may know" rails used to sit above it. -->
-          <div class="v3-scroll-area">
-
-            <div class="v3-feed-items"></div>
-
-          </div><!-- /v3-scroll-area -->
-
-          <!-- REVIEW PANEL: replaces the feed when the stats box is tapped.
-               stopPropagation keeps clicks from bubbling to the viewer's variant-switch wrapper -->
-          <div class="v3-review-panel" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
-
-            <!-- Top row: streaming links (centered under CD) + your review (aligned to stats text).
-                 Uses the bento's 78/22 split so it mirrors with the hand layout. -->
-            <div class="v3-rev-top">
-
-              <!-- Your rating + written review + submit — aligned to the stats text.
-                   The three squares butt straight onto the CTA and each other
-                   (shared borders, no gap) so the four read as one cascading
-                   control. They are the same three toggles the log sheet opens
-                   with — the point is that marking something listened / later /
-                   favourite costs one tap instead of opening the sheet. -->
-              <div class="v3-rev-mine">
-                ${rateGroupHtml()}
-              </div>
-
-            </div><!-- /v3-rev-top -->
-
-            <!-- The album's score, large. The compact one-liner under the artist
-                 stays as it is — that one is a label on the record, this one is
-                 the headline for the ratings section it sits on top of. -->
-            <div class="v3-rev-score">
-              <span class="v3-rev-score-n"></span>
-              <span class="v3-rev-score-sub"></span>
-            </div>
-
-            <!-- Rating distribution bars (header text removed, bars kept) -->
-            <div class="v3-rev-hist">
-              <div class="v3-rev-hist-bars"></div>
-              <div class="v3-rev-hist-axis"><span>½</span><span>5</span></div>
-            </div>
-
-            <!-- Tracklist — every track, in flow; rate one by tapping its row -->
-            <div class="v3-rev-songs"></div>
-
-            <!-- Artist page — grid of the artist's albums (trending style; shown only in --artist state) -->
-            <div class="v3-artist-albums"></div>
-
-            <!-- Friend rec tag — shown only when a friend has activity on this album
-                 (else algo-served: no tag). Sits with the reviews, below the
-                 tracklist: it IS social proof, so it reads as part of that section. -->
-            <div class="v3-rev-rec" hidden>
-              <span class="v3-rev-rec-av"></span>
-              <span class="v3-rev-rec-txt"><b class="v3-rev-rec-name"></b> listened to this</span>
-            </div>
-
-            <!-- Other users' reviews — full width -->
-            <div class="v3-rev-filters">
-              <button class="v3-rev-filter active" data-f="popular" onclick="setReviewFilter(this)">Popular</button>
-              <button class="v3-rev-filter" data-f="friends" onclick="setReviewFilter(this)">Friends</button>
-              <button class="v3-rev-filter" data-f="new" onclick="setReviewFilter(this)">New</button>
-              <span class="v3-rev-count"></span>
-            </div>
-
-            <div class="v3-rev-list"></div>
-
-          </div><!-- /v3-review-panel -->
-          <!-- THE REVIEW PANEL: the review page as a STATE of this shell (--rvp),
-               filled by rvpOpenInPlace so opening a review never re-renders
-               the header, the nav or the album colour. -->
-          <div class="v3-rvp-panel"></div>
-          </div><!-- /v3-body -->
-
-          <!-- NOW-PLAYING TICKER + the CD console that replaces it.
-               ⚠ ${nowBar()}, NOT the markup inlined again. Both home variants had
-               their own copy of the ticker, so the console the helper now also
-               ships simply did not exist on the one screen it matters most on —
-               the tap set the state and there was nothing in the plateau to show.
-               Exactly the duplication that made bentoHtml() necessary. -->
-          ${nowBar()}
-
-          <!-- BOTTOM NAV — shared glass console (see bottomNav helper) -->
-          ${bottomNav('home')}
-
-          <!-- Streaming sheet -->
-          <div class="v3-stream-overlay" style="display:none" onclick="this.style.display='none'">
-            <div class="v3-stream-sheet" onclick="event.stopPropagation()">
-              <div class="v3-stream-handle"></div>
-              <button class="v3-stream-preview" onclick="playPreview(this, event)">
-                <span class="v3-stream-preview-ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
-                <span class="v3-stream-preview-txt">Listen to preview</span>
-                <span class="v3-stream-preview-dur">0:30</span>
-              </button>
-              <div class="v3-stream-label">Listen on</div>
-              <button class="v3-stream-app">
-                <div class="v3-stream-icon" style="background:#1DB954">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.52 17.34c-.24.36-.66.48-1.02.24-2.82-1.74-6.36-2.1-10.56-1.14-.42.12-.78-.18-.9-.54-.12-.42.18-.78.54-.9 4.56-1.02 8.52-.6 11.64 1.32.42.18.48.66.3 1.02zm1.44-3.3c-.3.42-.84.6-1.26.3-3.24-1.98-8.16-2.58-11.94-1.38-.48.12-1.02-.12-1.14-.6-.12-.48.12-1.02.6-1.14 4.38-1.32 9.78-.72 13.5 1.56.36.24.54.84.24 1.26zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.3c-.6.18-1.2-.18-1.38-.72-.18-.6.18-1.2.72-1.38 4.26-1.26 11.28-1.02 15.72 1.62.54.3.72 1.02.42 1.56-.3.42-1.02.6-1.56.3z"/></svg>
-                </div>
-                Spotify
-              </button>
-              <button class="v3-stream-app">
-                <div class="v3-stream-icon" style="background:linear-gradient(135deg,#fc3c44,#fc6f32)">
-                  <svg width="13" height="16" viewBox="0 0 13 16" fill="white"><path d="M6.5 0L8 3.5 13 4.3l-3.5 3.4.8 4.8L6.5 10.5 2.2 12.5l.8-4.8L0 4.3l5-.8z"/></svg>
-                </div>
-                Apple Music
-              </button>
-              <button class="v3-stream-app">
-                <div class="v3-stream-icon" style="background:linear-gradient(135deg,#ff5500,#ff8800)">
-                  <svg width="17" height="11" viewBox="0 0 24 16" fill="white"><rect x="2" y="7" width="1.8" height="6" rx=".9"/><rect x="6" y="4" width="1.8" height="9" rx=".9"/><rect x="10" y="6" width="1.8" height="7" rx=".9"/><rect x="14" y="2" width="1.8" height="11" rx=".9"/><rect x="18" y="8" width="1.8" height="5" rx=".9"/></svg>
-                </div>
-                SoundCloud
-              </button>
-              <div class="v3-stream-label">Save</div>
-              <button class="v3-stream-save" onclick="event.stopPropagation(); this.classList.toggle('on')">
-                <span class="v3-stream-sico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8a5 5 0 0 1 10 0c0 3-2.2 4.1-3.4 5.3-.8.8-1.2 1.5-1.2 2.7A2.4 2.4 0 0 1 7.6 17"/><path d="M9.6 8.5a2.6 2.6 0 0 1 4.9-.6"/></svg></span>
-                <span class="v3-stream-stext">Listened</span>
-                <span class="v3-stream-check"></span>
-              </button>
-              <button class="v3-stream-save" onclick="event.stopPropagation(); this.classList.toggle('on')">
-                <span class="v3-stream-sico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg></span>
-                <span class="v3-stream-stext">Listen later</span>
-                <span class="v3-stream-check"></span>
-              </button>
-              <button class="v3-stream-save" onclick="event.stopPropagation(); this.classList.toggle('on')">
-                <span class="v3-stream-sico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="14" y2="7"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="4" y1="17" x2="11" y2="17"/><line x1="17" y1="10" x2="17" y2="18"/><line x1="13" y1="14" x2="21" y2="14"/></svg></span>
-                <span class="v3-stream-stext">Add to playlist</span>
-                <span class="v3-stream-check"></span>
-              </button>
-              <button class="v3-stream-cancel" onclick="this.closest('.v3-stream-overlay').style.display='none'">Cancel</button>
-            </div>
-          </div>
-
-        </div>`
-      }
-
+      /* csharpuser (2026-09-23): the friends deck over the feed (friendsBentoHtml),
+         dark and light. There were four layouts for a day (a bento-shell
+         cover flow, a straight-on stack, a shell-less one); Eric picked the
+         shell-less deck and the rest went. */
+      /* Both variants: the COVERS ABOVE the review (Eric, 2026-09-23, after
+         a day with the review on top: "go back to the albums being at the
+         top"). The review-above order is one flag away — pass `false` as the
+         second argument (`s-home-v3--fb-up` is the CSS `order` flip) — kept
+         as an idea, not shipped. */
+      { label: 'Float·Dark',  version: 'v4.0', thumb: ['accent','w60','w80','w60','w80'], get html() { return homeShellHtml(false, true); } },
+      { label: 'Float·Light', version: 'v4.1', thumb: ['accent','w60','w80','w60','w80'], get html() { return homeShellHtml(true,  true); } },
     ]
   },
 
@@ -869,39 +729,12 @@ const SCREENS = [
     ]
   },
 
-  // ── 12. PLAYLISTS (Expanded, multi-variant) ─────────────────
-  {
-    id: 'playlists', name: 'Playlists', statusTheme: 'light',
-    variants: [
-      { label: 'Float·Dark',  version: 'v2', thumb: ['w80','accent','w60','w80','w70'], get html() { return playlistsHtml(false); } },
-      { label: 'Float·Light', version: 'v2', thumb: ['w80','accent','w60','w80','w70'], get html() { return playlistsHtml(true);  } },
-    ]
-  },
-
   // ── 11b. EDIT PROFILE (customising, behind the card's pencil) ──
   {
     id: 'profile-edit', name: 'Edit Profile', statusTheme: 'light',
     variants: [
       { label: 'Funky·Dark',  thumb: ['accent','w60','w80','w50','w70'], get html() { return profileEditHtml(false); } },
       { label: 'Funky·Light', thumb: ['accent','w60','w80','w50','w70'], get html() { return profileEditHtml(true);  } },
-    ]
-  },
-
-  // ── 12a. NEW PLAYLIST (creation, behind the Playlists "+") ──
-  {
-    id: 'playlist-new', name: 'New Playlist', statusTheme: 'light',
-    variants: [
-      { label: 'Float·Dark',  version: 'v1', thumb: ['accent','w50','w80','w60','w70'], get html() { return playlistNewHtml(false); } },
-      { label: 'Float·Light', version: 'v1', thumb: ['accent','w50','w80','w60','w70'], get html() { return playlistNewHtml(true);  } },
-    ]
-  },
-
-  // ── 12b. PLAYLIST PAGE (detail) ─────────────────────────────
-  {
-    id: 'playlist', name: 'Playlist Page', statusTheme: 'light',
-    variants: [
-      { label: 'Float·Dark',  version: 'v1', thumb: ['accent','w80','w60','w70','w50'], get html() { return playlistPageHtml(false); } },
-      { label: 'Float·Light', version: 'v1', thumb: ['accent','w80','w60','w70','w50'], get html() { return playlistPageHtml(true);  } },
     ]
   },
 
@@ -929,15 +762,6 @@ const SCREENS = [
     variants: [
       { label: 'Float·Dark',  version: 'v1', thumb: ['w50','w80','w60','w80','w70'], get html() { return settingsHtml(false); } },
       { label: 'Float·Light', version: 'v1', thumb: ['w50','w80','w60','w80','w70'], get html() { return settingsHtml(true);  } },
-    ]
-  },
-
-  // ── 15. SHOP (behind the nav scoop's bag button) ────────────
-  {
-    id: 'shop', name: 'Shop', statusTheme: 'light',
-    variants: [
-      { label: 'Float·Dark',  version: 'v1', thumb: ['w50','accent','w70','w80','w60'], get html() { return shopHtml(false); } },
-      { label: 'Float·Light', version: 'v1', thumb: ['w50','accent','w70','w80','w60'], get html() { return shopHtml(true);  } },
     ]
   },
 
@@ -1021,9 +845,6 @@ function appHeader(subtitle) {
               <button class="v3-bubble v3-bubble--settings" title="Settings" aria-label="Settings" onclick="navigate('settings')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               </button>
-              <button class="v3-bubble v3-bubble--search" title="Search" aria-label="Search" onclick="openSearch(this)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-              </button>
             </div>
             ${userEl}
           </div>`;
@@ -1037,11 +858,11 @@ function appHeader(subtitle) {
    at every frame size, and only a child can do that. This ticker stays a
    sibling because its px offsets ride the viewer's zoom, as they always did. */
 function nowBar() {
-  return `
-          <div class="v3-nowbar">
-            <div class="v3-now-text"></div>
-            <div class="v3-now-wave" aria-hidden="true"></div>
-          </div>`;
+  /* csharpuser (2026-09-22): the "friends listening now" ticker is GONE from
+     this fork. Every shell still calls nowBar() so the call sites stay
+     one-to-one with the original; it simply emits nothing, and renderNowBar
+     (app.js) finds no .v3-nowbar and returns. */
+  return '';
 }
 
 // ── Standalone entry/detail screens, themed as dark + light pairs ──
@@ -2200,39 +2021,10 @@ function profileHtml(light) {
   const logHtml = profReviewLog(P).map(e => profReviewCardHtml(P, e)).join('');
 
 
-  /* Favourite songs (5) — artwork borrowed from the song's album cover.
-     ⚠ PRO ONLY, and hidden rather than locked on a Free account. A profile is
-     someone's page: a greyed-out shelf with a padlock on it advertises to
-     everyone who visits that the owner didn't pay, which is not a thing to put
-     on a person's profile. The upsell lives on the Edit page instead, where it
-     is addressed to the one person it is for. */
-  const playIco = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-  const favSongsHtml = (P.favSongs || []).slice(0, 5).map(s => {
-    const a = findAlb(s.album);
-    return `<button class="prof-song" onclick="openAlbumPage(ARCHIVE.find(x=>x.album==='${esc(s.album)}')||ARCHIVE[0])">
-      <span class="prof-song-art" style="background-image:url('${a ? a.image : ''}')"></span>
-      <span class="prof-song-meta">
-        <span class="prof-song-title">${s.title}</span>
-        <span class="prof-song-sub">${s.album} · ${s.artist}</span>
-      </span>
-      <span class="prof-song-play">${playIco}</span>
-    </button>`;
-  }).join('');
-
-
-  // Playlists — the persona's 3 picks (falls back to the user's own, most-loved).
-  const allPls = plLists();
-  const myPls = (P.playlistNames && P.playlistNames.length)
-    ? P.playlistNames.map(n => allPls.find(p => p.name === n)).filter(Boolean)
-    : allPls.filter(p => p.creator === 'you').sort((a, b) => b.favs - a.favs).slice(0, 3);
-  const plsHtml = myPls.map((pl, i) => {
-    const cover = (P.playlistCovers && P.playlistCovers[i]) || pl.image;
-    return `<button class="prof-pl" onclick="openPlaylistPage('${esc(pl.name)}')">
-      <span class="prof-pl-cover" style="background-image:url('${cover}')"></span>
-      <span class="prof-pl-nm">${pl.name}</span>
-      <span class="prof-pl-meta">${pl.tracks} songs</span>
-    </button>`;
-  }).join('');
+  /* csharpuser (2026-09-22): the profile is the REVIEWS — card, stats, pinned
+     reviews, review history. The favourite-albums rail, the playlists shelf and
+     the Pro favourite-songs shelf are gone from this fork (their builders are
+     still in this file, unused). */
 
   return `
       <div class="app-screen s-home-v3 s-prof2${light ? ' s-home-v3--light' : ''}"
@@ -2245,23 +2037,7 @@ function profileHtml(light) {
 
             ${profStatsHtml(P)}
 
-            ${profFavsHtml(P)}
-
             ${profPinsHtml(P)}
-
-            <!-- Top playlists -->
-            <div class="prof-sec">
-              <div class="prof-sec-hd">Playlists</div>
-              <div class="prof-pls">${plsHtml}</div>
-            </div>
-
-            <!-- Favourite songs — Pro only, and absent (not locked) without
-                 it; see the note where favSongsHtml is built. -->
-            ${(typeof isPro === 'function' && isPro() && favSongsHtml) ? `
-            <div class="prof-sec">
-              <div class="prof-sec-hd">Favourite songs</div>
-              <div class="prof-songs">${favSongsHtml}</div>
-            </div>` : ''}
 
             <!-- Review history — last section on the page, deliberately: it is
                  the longest and the one you scroll INTO, not past. -->
@@ -2306,7 +2082,6 @@ function profileEditHtml(light) {
   const at = s => String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const sfx = light ? 'l' : 'd';
-  const lockIco = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="2.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>`;   // the viewer draws both shells at once — ids must differ
 
   /* One labelled text row. `pre` is the fixed prefix the username row needs.
      ⚠ data-k is not decoration — pfeditField mirrors the keystroke into the
@@ -2356,18 +2131,6 @@ function profileEditHtml(light) {
                 <span class="pfe-add-lbl">${label}</span>
               </button>`;
 
-  /* Favourite albums — 5 discs. On the profile these live in a swipeable rail
-     with an info panel under it; here they are five targets in a row, since the
-     only question this page asks about them is "which record goes here". */
-  const discsHtml = [0, 1, 2, 3, 4].map(i => {
-    const a = findAlb((D.favs || [])[i]);
-    if (!a) return `<button class="pfe-disc pfe-disc--empty" onclick="openProfEditor('album', '${i}')" title="Add favourite ${i + 1}"><span class="pfe-add-plus">+</span></button>`;
-    return `<button class="pfe-disc pfe-slot" onclick="openProfEditor('album', '${i}')" title="Replace ${at(a.album)}">
-                <span class="prof-fav-img" style="background-image:url('${a.image}')"></span>
-                <span class="prof-fav-hole"></span>
-              </button>`;
-  }).join('');
-
   /* Pinned reviews — 3 tiles, cover + album + "4.5 · what you wrote". Tapping
      one opens the same category-aware popup on kind 'review' (the log of your
      own reviews); picking the one already in the slot clears it. */
@@ -2383,41 +2146,9 @@ function profileEditHtml(light) {
     </button>`;
   }).join('');
 
-  // Playlists — 3 slots
-  const allPls = plLists();
-  const plNames = (D.playlistNames && D.playlistNames.length)
-    ? D.playlistNames.slice(0, 3)
-    : allPls.filter(p => p.creator === 'you').sort((a, b) => b.favs - a.favs).slice(0, 3).map(p => p.name);
-  const plsHtml = [0, 1, 2].map(i => {
-    const pl = allPls.find(p => p.name === plNames[i]);
-    if (!pl) return addTile('playlist', i, 'Add playlist', 'tile');
-    return `<button class="prof-pl pfe-slot" onclick="openProfEditor('playlist', '${i}')" title="Replace">
-      <span class="prof-pl-cover" style="background-image:url('${(D.playlistCovers && D.playlistCovers[i]) || pl.image}')"></span>
-      <span class="prof-pl-nm">${pl.name}</span>
-      <span class="prof-pl-meta">${pl.tracks} songs</span>
-    </button>`;
-  }).join('');
-
-  /* Favourite songs — 5 slots, PRO ONLY.
-     ⚠ This is where the lock belongs. The profile hides the section outright on
-     a Free account (a padlock on someone's page tells every visitor what they
-     didn't buy); the edit page is the one screen only its owner sees, so it is
-     the only place the offer is addressed to the person who can take it. */
-  const pro = typeof isPro === 'function' && isPro();
-  const favSongs = D.favSongs || [];
-  const songsHtml = [0, 1, 2, 3, 4].map(i => {
-    const s = favSongs[i];
-    if (!s) return addTile('song', i, 'Add a song', 'row');
-    const a = findAlb(s.album);
-    return `<button class="prof-song pfe-slot" onclick="openProfEditor('song', '${i}')" title="Replace">
-      <span class="prof-song-art" style="background-image:url('${a ? a.image : ''}')"></span>
-      <span class="prof-song-meta">
-        <span class="prof-song-title">${s.title}</span>
-        <span class="prof-song-sub">${s.album} · ${s.artist}</span>
-      </span>
-      <span class="pfe-song-plus">+</span>
-    </button>`;
-  }).join('');
+  /* csharpuser (2026-09-22): favourite albums, playlists and favourite songs
+     are not on the profile any more, so the form has no slots for them. Pinned
+     reviews stay — they are reviews. */
 
   return `
       <div class="app-screen s-home-v3 s-prof2 s-pfedit${light ? ' s-home-v3--light' : ''}"
@@ -2499,31 +2230,8 @@ function profileEditHtml(light) {
             <!-- Everything below is chosen, not typed: each slot opens the same
                  category-aware popup (openProfEditor in app.js). -->
             <div class="prof-sec">
-              <div class="prof-sec-hd">Favourite albums</div>
-              <div class="pfe-discs">${discsHtml}</div>
-            </div>
-
-            <div class="prof-sec">
               <div class="prof-sec-hd">Pinned reviews</div>
               <div class="prof-pls">${pinsHtml}</div>
-            </div>
-
-            <div class="prof-sec">
-              <div class="prof-sec-hd">Playlists</div>
-              <div class="prof-pls">${plsHtml}</div>
-            </div>
-
-            <div class="prof-sec">
-              <div class="prof-sec-hd">Favourite songs</div>
-              ${pro ? `<div class="prof-songs">${songsHtml}</div>` : `
-              <button class="pfe-pro" onclick="navigate('shop')">
-                <span class="pfe-pro-ico">${lockIco}</span>
-                <span class="pfe-pro-txt">
-                  <span class="pfe-pro-t">Pin five songs to your profile</span>
-                  <span class="pfe-pro-s">Favourite songs is part of Spindeck Pro</span>
-                </span>
-                <span class="pfe-pro-go">Get Pro</span>
-              </button>`}
             </div>
 
           </div>
@@ -3045,7 +2753,24 @@ function playlistNewHtml(light) {
    applies it again once the page exists for the cold case. */
 // A heart, not a thumb, on the review page's like (the pill is upvoteHtml's —
 // same key, same state — with its glyph swapped).
-const RVP_HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
+/* csharpuser (2026-09-23): ERIC'S HEART — the belt-drive one (images/heart-icon.svg
+   has the construction). Two belts: each lobe + the tip over outer tangents,
+   and the pulley hole concentric in the right lobe. Stroked here like the old
+   glyph was (the hole reads as a ring); `.is-on svg { fill: currentColor }`
+   fills it and evenodd keeps the hole open. stroke-width 8.5 in a 100 box is
+   the 2-in-24 the old heart wore, at the same on-screen size.
+   ⚠️ The viewBox is padded 6 units a side: the path runs to the box's very
+   edges and half the stroke fell OUTSIDE it, so the lobes and the tip were
+   clipped flat ("it's getting cut off"). */
+/* ⚠️ TWO paths (Eric, 2026-09-23: "get rid of the circle in the heart until
+   you like, and then the circle appears"): `.rvp-out` is the outline alone,
+   `.rvp-full` the outline WITH the pulley hole (evenodd). CSS shows one or
+   the other by state — `.is-on` (and the song's always-on favourite) get the
+   full one, filled, with the hole open; everything else the plain outline. */
+/* …and a THIRD piece (Eric, 2026-09-24): the hole as its own circle, for the
+   unliked heart's BEAT — every five seconds the pulley shows for a moment
+   and beats (`.rvp-hole`, app.css). Hidden once liked: the full path has it. */
+const RVP_HEART = '<svg viewBox="-6 -6 112 106.47" fill="none" fill-rule="evenodd" stroke="currentColor" stroke-width="8.5" stroke-linejoin="round"><path class="rvp-out" d="M49.87 12.04A27.26 27.26 0 1 1 93.83 44.22L56.41 91.32A8.34 8.34 0 0 1 43.34 91.32L5.92 44.22A27.26 27.26 0 1 1 49.87 12.04Z"/><path class="rvp-full" d="M49.87 12.04A27.26 27.26 0 1 1 93.83 44.22L56.41 91.32A8.34 8.34 0 0 1 43.34 91.32L5.92 44.22A27.26 27.26 0 1 1 49.87 12.04ZM89.45 27.26A16.96 16.96 0 1 0 55.53 27.26A16.96 16.96 0 1 0 89.45 27.26Z"/><circle class="rvp-hole" cx="72.49" cy="27.26" r="16.96"/></svg>';
 /* The review, as a panel: back pill · Letterboxd-shaped hero · comments.
    Two hosts — the standalone review-page screen (reached from the profile's
    pins and the left rail) and, in place, the album page's own shell
@@ -3253,15 +2978,11 @@ function ntfItems() {
     { type:'comment',   tab:'social',   user:'staticfog',   bucket:'today', unread:true,
       text:'replied to your review of', album:'Punisher', time:'1h',
       quote:'ok but you gave this a 4.5 and Blonde a 4.0? explain yourself' },
-    { type:'like',      tab:'social',   user:'velvetblast', bucket:'today', unread:true,
-      text:'favourited your playlist', playlist:'desert island picks ✧', time:'3h' },
     { type:'milestone', tab:'reviews',  bucket:'today',     unread:true,
       subj:'Your review', link:'of', album:'Untrue', tail:'passed 100 upvotes', time:'5h' },
 
     { type:'like',      tab:'reviews',  user:'echoplex',    bucket:'week',
       text:'liked your review of', album:'Blonde', time:'1d' },
-    { type:'playlist',  tab:'social',   user:'staticfog',   bucket:'week',
-      text:'added a song you rated to', playlist:'3am and raining', time:'2d' },
     { type:'follow',    tab:'social',   user:'tapehiss',    bucket:'week',
       text:'started following you', time:'2d' },
     { type:'comment',   tab:'social',   user:'glassmoth',   bucket:'week',
@@ -3272,8 +2993,6 @@ function ntfItems() {
 
     { type:'like',      tab:'reviews',  user:'moonwire',    bucket:'earlier',
       text:'liked your review of', album:'To Pimp a Butterfly', time:'1w' },
-    { type:'milestone', tab:'reviews',  bucket:'earlier',
-      subj:'Your playlist', playlist:'desert island picks ✧', tail:'hit 87 favorites', time:'2w' },
     { type:'follow',    tab:'social',   user:'velvetblast', bucket:'earlier',
       text:'started following you', time:'3w' },
   ];
@@ -3472,22 +3191,11 @@ function settingsHtml(light) {
             ${section('Appearance', [
               setRow('Theme', null, seg(['Dark', 'Light', 'Auto'], light ? 'Light' : 'Dark')),
               setRow('Profile theme', 'Funky 01', chev, "navigate('profile-edit')"),
-              // The bento skin is REAL state (body class + localStorage), not a
-              // presentational switch — so it does not go through sdToggle. Its
-              // control is stamped data-skin-wear and syncSkinControls (app.js)
-              // keeps every copy of it, and the shop tile, agreeing.
-              (typeof bentoSkinOwned === 'function' && bentoSkinOwned('furry'))
-                ? setRow('Furry theme', 'Ears on your bento and your profile photo', `
-                  <button class="set-sw${(typeof bentoSkin === 'function' && bentoSkin() === 'furry') ? ' is-on' : ''}" role="switch"
-                          aria-checked="${typeof bentoSkin === 'function' && bentoSkin() === 'furry'}" data-skin-wear="furry"
-                          onclick="event.stopPropagation(); toggleBentoSkin('furry')"><span class="set-sw-knob"></span></button>`)
-                : setRow('Furry theme', 'Sold in the shop · $2', chev, "navigate('shop')"),
-              setRow('Reduce motion', 'Stops the spinning CD and ticker', sw(false)),
+              // csharpuser: the Furry theme row (a shop item) is gone with the shop.
+              setRow('Reduce motion', 'Stops the spinning CD', sw(false)),
             ].join('')) }
 
             ${section('Connected services', [
-              // Sits above the services because it governs what they broadcast.
-              setRow('Show listening activity', 'Friends see what you\'re playing, live', sw(true)),
               service('Spotify',     'Export playlists · scrobble plays', '#1db954', true),
               service('Apple Music', 'Sync your library',                 '#fa2d48', false),
               service('Last.fm',     'Import your listening history',     '#d51007', false),
@@ -3857,47 +3565,33 @@ function shopHtml(light) {
 
 function bottomNav(active = 'home') {
   const on = id => active === id ? ' active' : '';
-  /* THE FLOATING GLASS CONSOLE — back, by decision (2026-09-03). A wide rounded
-     bar with a raised centre hump (the now-playing ticker sits in it) and FIVE
-     buttons in the lower bar: Home · Trending · SHOP · Playlists · Profile.
-     Floats centred, 14px off the bottom, over the content.
-     ⚠️ It was DOCKED from 2026-08-20 to 2026-09-03: full-bleed, with a scoop cut
-     from its bottom edge that cradled the pet and then the shop button, and a
-     plateau that GREW into a CD console. Eric brought the bubble back, asked
-     for the shop as a plain nav icon, and for the console to go. So: no
-     siblings (the fade, the blur, the nest, the emboss, the scene), no gap, no
-     scoop. `sdScene` / `sdShopBtn` are no longer emitted by anything; the pet
-     engine behind SD_PET_ENABLED is untouched.
-     ⚠️ THE CD CONSOLE STAYS — it is the same principle on this bar: the hump is
-     a plateau too, and a CD tap grows it (`.s-home-v3--console`) into the
-     album + services panel. Two contours, as before: the short one and a tall
-     one with the hump's walls extended 110 units, swapped by state.
-     ⚠️ The shop's glyph is the dot-language bag (SD_ICONS.bag), filled with
-     currentColor like the other four, so it lights and dims with them. */
+  /* csharpuser (2026-09-22): THREE buttons — Home · Trending · Profile. The
+     Shop and Playlists items and the "friends listening now" panel are gone
+     with their screens. (2026-09-23): FOUR — Search is the second button
+     (Eric), the same openSearch the header's bubble calls; it mounts the
+     overlay into whichever .app-screen the nav is on.
+     csharpuser (2026-09-23): THE HUMP IS GONE TOO. Eric: "just turn it into
+     an oval bar without that bump". The bar is a plain pill now — no inline
+     contour <svg>s, no data-URI masks: `.v3-nav-glass` is a border-radius
+     and a 1px border (app.css, THE NAV CONSOLE). The CD console still opens
+     upward out of it: the pill grows into a rounded rect (`--nav-ar` /
+     `--nav-r` swap on `.s-home-v3--console`) and the panel sits in the room
+     that opens above the icons. Same principle, no plateau.
+     Floats centred, 14px off the bottom, over the content. The ORIGINAL's
+     history (docked bar 08-20 → 09-03, the scoop, the pet, the shop bag) is
+     in c-sharp/screens.js. */
   return `
           <nav class="v3-bottom-nav">
             <div class="v3-nav-glass" aria-hidden="true"></div>
-            <svg class="v3-nav-shape" viewBox="0 0 553 126" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M517.5 125H35.5C16.17 125 0.5 109.33 0.5 90V79.7942C0.5 60.4642 16.17 44.7942 35.5 44.7942L47.3137 44.7942C58.1862 44.7942 67 35.9803 67 25.1079C67 11.5173 78.0173 0.5 91.6079 0.5L460.892 0.500022C474.483 0.500023 485.5 11.5174 485.5 25.1079C485.5 35.9804 494.314 44.7942 505.186 44.7942H517.5C536.83 44.7942 552.5 60.4642 552.5 79.7942V90C552.5 109.33 536.83 125 517.5 125Z"/></svg>
-            <!-- The same contour with the hump grown 110 units, for the console
-                 state. A SECOND svg rather than a class on the first, because
-                 the viewBox changes with it and viewBox cannot be set from CSS.
-                 Both are preserveAspectRatio=none and the nav's aspect-ratio
-                 switches with the state, so whichever is showing always matches
-                 its own box. The hump's fillets are untouched; straight walls
-                 are inserted at x=67 and x=485.5, where the tangent is already
-                 vertical. Change one contour and change the other, plus the two
-                 masks in app.css. -->
-            <svg class="v3-nav-shape v3-nav-shape--tall" viewBox="0 0 553 236" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M517.5 235H35.5C16.17 235 0.5 219.33 0.5 200V189.7942C0.5 170.4642 16.17 154.7942 35.5 154.7942L47.3137 154.7942C58.1862 154.7942 67 145.9803 67 135.1079L67 25.1079C67 11.5173 78.0173 0.5 91.6079 0.5L460.892 0.5C474.483 0.5 485.5 11.5174 485.5 25.1079L485.5 135.1079C485.5 145.9804 494.314 154.7942 505.186 154.7942H517.5C536.83 154.7942 552.5 170.4642 552.5 189.7942V200C552.5 219.33 536.83 235 517.5 235Z"/></svg>
-            <!-- And a THIRD contour, the hump grown 700 units, for the friends
-                 panel (.s-home-v3--friends): same construction as the tall
-                 one, walls only, fillets untouched. At the 393 frame that is
-                 ~423px of nav, i.e. half the screen. Its mask is in app.css. -->
-            <svg class="v3-nav-shape v3-nav-shape--friends" viewBox="0 0 553 826" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M517.5 825H35.5C16.17 825 0.5 809.33 0.5 790V779.7942C0.5 760.4642 16.17 744.7942 35.5 744.7942L47.3137 744.7942C58.1862 744.7942 67 735.9803 67 725.1079L67 25.1079C67 11.5173 78.0173 0.5 91.6079 0.5L460.892 0.5C474.483 0.5 485.5 11.5174 485.5 25.1079L485.5 725.1079C485.5 735.9804 494.314 744.7942 505.186 744.7942H517.5C536.83 744.7942 552.5 760.4642 552.5 779.7942V790C552.5 809.33 536.83 825 517.5 825Z"/></svg>
+            <!-- BACK 2 TOP (Eric, 2026-09-24): once the page has scrolled, a small
+                 tab rises out of the pill's top edge — where the hump used to be —
+                 and a tap scrolls the body home. The shell's is-scrolled class shows
+                 it (sdScrollWatch, app.js). No backticks in here: template literal. -->
+            <button class="v3-nav-top" type="button" onclick="sdBackToTop(this, event)">back 2 top</button>
             <div class="v3-nav-items">
               <button class="v3-nav-item${on('home')}" onclick="navigate('home')" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></button>
+              <button class="v3-nav-item" onclick="event.stopPropagation(); openSearch(this)" title="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
               <button class="v3-nav-item${on('wall')}" onclick="navigate('wall')" title="Trending"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="2.5" y="2.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="2.5" width="5" height="5" rx="1.2"/><rect x="16.5" y="2.5" width="5" height="5" rx="1.2"/><rect x="2.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="16.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="2.5" y="16.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="16.5" width="5" height="5" rx="1.2"/><rect x="16.5" y="16.5" width="5" height="5" rx="1.2"/></svg></button>
-              <button class="v3-nav-item v3-nav-item--shop${on('shop')}" onclick="navigate('shop')" title="Shop" aria-label="Shop">${SD_ICONS.bag}</button>
-              <button class="v3-nav-item${on('playlists')}" onclick="navigate('playlists')" title="Playlists"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg></button>
               <button class="v3-nav-item${on('profile')}" onclick="navigate('profile')" title="Profile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
             </div>
             <!-- The CD console. WARNING: it lives INSIDE the nav, not beside it.
@@ -3926,18 +3620,6 @@ function bottomNav(active = 'home') {
                         onclick="event.stopPropagation(); consoleGo(this, '${sv.id}')">
                   ${svcMarkHtml(sv, 'v3-nc-ico')}
                 </button>`).join('')}</div>
-            </div>
-            <!-- FRIENDS LISTENING NOW — what a tap on the ticker opens (it used
-                 to jump straight to whoever was on the bar). Same principle as
-                 the console: the hump grows, this time to half the screen, and
-                 the list stands in it. A row opens that friend's profile. The
-                 chevron at the top puts it away; so does a scroll, or a touch
-                 anywhere outside it (openFriends / closeFriends in app.js). -->
-            <div class="v3-friends" aria-hidden="true">
-              <button class="v3-fr-close" type="button" title="Close" aria-label="Close"
-                      onclick="event.stopPropagation(); closeFriends(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
-              <div class="v3-fr-hd">Friends listening now</div>
-              <div class="v3-fr-list"></div>
             </div>
           </nav>`;
 }

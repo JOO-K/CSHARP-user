@@ -1,5 +1,98 @@
 # Spindeck — Music Review App Mockup
 
+> ## ⚠️ THIS IS `csharpuser/` — THE REVIEW-ONLY FORK (2026-09-22)
+> A full copy of `c-sharp/` made after user testing said the app was **too
+> complicated**. The original is untouched next door; this copy strips the
+> mockup down to reviews. What changed (grep `csharpuser` in the sources):
+> - **Home is the review feed.** The bento hero is hidden on home (CSS,
+>   `.s-home-v3:not(.s-home-v3--review) .v3-bento`) — NOT deleted, because it
+>   IS the album page (see *Fullscreen is the album page*). `FEED_RHYTHM` deals
+>   reviews and ratings only.
+> - **No Shop, no Playlists** (`playlists` / `playlist-new` / `playlist` /
+>   `shop` are out of `SCREENS` and `NAV_PAGES`; their builders still exist in
+>   `screens.js`, unused). The bottom nav is Home · Search · Trending · Profile (Search added 09-23).
+> - **No "listening now"**: `nowBar()` emits nothing and the friends panel is
+>   gone from `bottomNav()`. The hump now only holds the CD console.
+> - **Profile = card · stats · pinned reviews · review history.** Favourite
+>   albums, playlists and favourite songs are gone from the profile and the
+>   Edit Profile form. Notifications and Settings lost their playlist / shop /
+>   listening-activity rows.
+> - **Album Wall stays** as is.
+> - **2026-09-23 — the friends deck.** Eric wanted the bento back on home
+>   "for a different purpose", then the frame gone: home is now a **FRIENDS
+>   DECK** (`friendsBentoHtml` in screens.js, `renderFriendsBento` + `fbLayout`
+>   in app.js, the `.v3-fb` block at the end of app.css) — your friends'
+>   recent reviews as drop-shadow cards where the bento was. The front card is
+>   235px, CENTRED — COVER FLOW as the iPod classic drew it: the cards to come
+>   on the right and the dealt ones on the left, all turned the same hard
+>   62° toward the centre, a sliver further out each, the third faded out
+>   before the edge, each with a reflection (`-webkit-box-reflect`). ORDER
+>   on screen: the deck, THEN the album's title and artist, THEN the friend's
+>   review — both variants carry `s-home-v3--fb-up`, the CSS `order` flip;
+>   the markup's own order (review first, covers lower and easier to reach)
+>   is an idea Eric wants kept, one flag away in `homeShellHtml`. The deck
+>   is a RING (`fbDist`): both sides are always dealt, and every friend review
+>   is in it. No CD for now — Eric will say when. Under it, centred, the album
+>   page's info (title 22px + year, artist below), then the friend's review
+>   in its own shape (`.v3-fbr`): the CENTRED stack in BOTH themes (face over
+>   name, like and comment flanking the score, the text under) — Eric picked
+>   it over the dark-only left-aligned grid on 2026-09-24. That grid (a
+>   smaller face with the name under it on the left, the belt scaled with it
+>   via `--belt-scale`, score · comment · like · when to its right, the text
+>   across) is kept in app.css behind an opt-in `s-home-v3--fb-left` shell
+>   class that nothing adds. Same markup; CSS lays each out.
+>   The pills are the feed's, keyed by `feedRevKey` so likes are shared. No
+>   album score line — one rating on screen. The review clamps at five
+>   lines with a fade and a View more (`fbMore`); under a persona the quotes
+>   come from each album's generated review list (`personaFeed`), which tops
+>   out ~250 chars, so `FB_LONG_REVIEWS` (app.js) is dealt into every fourth
+>   card and pushed into that album's list so the album page agrees. Two
+>   POPULAR reviews a deal (`FB_POPULAR_PER_DEAL`, cards 4 and 11): not a
+>   friend's — a community name, a record in one of the shelf's top genres
+>   that the friends didn't deal, a viral write-up, big counts, and a
+>   BELT — a blue ribbon reading POPULAR REVIEW, tilted, wavy and turning,
+>   round the face 5px off it (`.v3-fbr-belt`, `fbBeltHtml`; no genre, no
+>   chip — Eric). Since 2026-09-24 it is ONE SVG PATH, not forty 3D
+>   segments: the band is a stroke, the legend a textPath, the motion SMIL;
+>   two clipped copies (back half before the face in the DOM, front half
+>   after) do the over/under. Geometry is the `FB_BELT_*` block in app.js;
+>   the face is 64px (`.v3-fbr-av`), and `FB_BELT_FACE` must match it.
+>   The feed card below still gets its plain `chip`. The
+>   deck's geometry is `FB_TUNE` (app.js); the dev box's **Deck** tab drives
+>   it live and prints it back as JS to paste over that block. It is a
+>   SIBLING of
+>   `.v3-bento`, which stays hidden on home and is still the album page; the
+>   two swap on `--review` / `--rvp`. `homeShellHtml(light)` builds both home
+>   variants. Card positions are inline transforms solved in `fbLayout` from
+>   the perspective (P = 1000, origin at the centre) — keep `FB_CARD` and
+>   `.v3-fb-card` / `.v3-fb-flow` in step. The front card's album
+>   becomes the shell's main album (tint).
+> - **2026-09-24 — THE REVIEW SHEET.** Every review on home opens ONE popup,
+>   not a page: tap the deck's review (or its comment pill) or a feed card
+>   (or its pill) and `openReviewSheet` (app.js) mounts `.v3-rsh-ov` /
+>   `.v3-rsh` inside that phone screen — a bottom sheet that slides up and
+>   drops back down (backdrop tap, Escape, or pull it down by the handle or
+>   the head past `RSH_CLOSE_PX`). Its top part is the deck's review block
+>   VERBATIM (`.v3-fbr` markup from `rshHtml`, so face, belt, name, score row
+>   and pills share the deck's CSS; only the clamp comes off), then a record
+>   line (tap → album page), then the comments (composer first, the thread
+>   paging via `cmtAutoMore`, which knows `.v3-rsh-body`). Same feed key, so
+>   likes and comments are shared; `toggleRevUp` now syncs every like pill on
+>   a key. `REV_INDEX` entries from the feed and the deck carry `face` and
+>   `popular` for it. The album page's in-place review and the profile's
+>   standalone review page are UNTOUCHED — Eric wants to rethink that system.
+>   Also: a deck review of two lines or fewer is centred (`.is-short`,
+>   `fbMarkShort`).
+> - **The bottom nav is a plain PILL** — no hump, no contour SVGs, no masks.
+>   `.v3-nav-glass` is a border-radius + 1px border; `--nav-ar` / `--nav-r` /
+>   `--nav-items-top` on `.s-home-v3` and `--console` are the whole geometry.
+>   The CD console still grows the bar upward (553/82 → 553/205). Scrolled
+>   (`.is-scrolled`, `sdScrollWatch`): the wordmark fades, the bubbles stay,
+>   and a "back 2 top" tab rises out of the pill's top edge (`.v3-nav-top`).
+> Everything below this box is the ORIGINAL's documentation and still describes
+> the code that is here — read it with the list above in mind.
+
+
 **What it is:** A Letterboxd-for-music app (working name **Spindeck**; the repo/URL still say CSHARP). Plain HTML/CSS/JS — no build tools, no npm, no framework. Designed as a phone UI prototype viewed in a desktop viewer.
 
 **Cache-busting:** assets are loaded with `?v=N` in `index.html` — bump N on every CSS/JS/data change so the browser reloads.

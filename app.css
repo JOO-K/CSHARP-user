@@ -1451,10 +1451,10 @@
           mask: radial-gradient(circle closest-side,
                   transparent 0 20%, #000 21% 91%, transparent 92%);
 }
-.hstar.full  { background: var(--star); }
+.hstar.full  { background: var(--vinyl-gold, var(--star)); }
 .hstar.empty { background: var(--vinyl-empty, var(--text3)); }
 .hstar.half  {
-  background: linear-gradient(90deg, var(--star) 50%, var(--vinyl-empty, var(--text3)) 50%);
+  background: linear-gradient(90deg, var(--vinyl-gold, var(--star)) 50%, var(--vinyl-empty, var(--text3)) 50%);
 }
 /* Unfilled vinyls read as part of the rating, not as background texture, so they
    get their own token rather than the very faint --text3 (which stays as the
@@ -1480,6 +1480,14 @@
    fall through to the persona/default. */
 .s-home-v3        { --star: var(--v3-star, var(--persona-accent, #e8a83c)); }
 .s-home-v3--light { --star: var(--v3-star, var(--persona-accent, #c08818)); }
+/* csharpuser (2026-09-23): THE VINYLS ARE ONE GOLD, EVERYWHERE (Eric: "a
+   consistent yellow, easier to see what the exact score is"). The discs
+   read `--vinyl-gold` ahead of `--star`, and it is pinned here on the shell
+   — so neither the album's extracted accent (`--v3-star`) nor a feed card's
+   inline per-cover `--star` (tintFeedRecords) re-tints a rating any more.
+   The hearts and the histogram still follow the album. */
+.s-home-v3        { --vinyl-gold: #e8a83c; }
+.s-home-v3--light { --vinyl-gold: #c08818; }
 
 /* ============================================================
    BENTO HOME
@@ -2364,7 +2372,7 @@
 .v3-header {
   flex-shrink: 0;
   position: relative;   /* anchor for the left-aligned nav username (Profile) */
-  height: 60px;   /* reduced 20px; the body gains matching top padding so the bento stays put */
+  height: 46px;   /* reduced 20px, then 4, 5 and 5 more (csharpuser 2026-09-23: the home deck closer to the top) */
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -2616,30 +2624,22 @@
    Eric wanted the panel to come out higher, and the panel was already at the
    hump's ceiling, so the ceiling went up.) The same line in absolute
    terms; a different fraction of a taller box. */
+/* csharpuser (2026-09-23): THE PILL. No hump, no contour, no mask — the bar
+   is a rounded box (`--nav-r`) at a fixed aspect (`--nav-ar`). The console
+   state grows it upward into a rounded rect and drops the radius so the
+   corners don't balloon; the icon band (`--nav-items-top`) keeps the bottom
+   82 units of whichever box is showing, so the icons never move on screen.
+   82 / 205 = 40% → the band starts at 60%. */
 .s-home-v3 {
-  --nav-ar:        553 / 126;
-  --nav-items-top: 40%;
-  --nav-mask:      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 553 126' preserveAspectRatio='none'%3E%3Cpath d='M517.5 125H35.5C16.17 125 0.5 109.33 0.5 90V79.7942C0.5 60.4642 16.17 44.7942 35.5 44.7942L47.3137 44.7942C58.1862 44.7942 67 35.9803 67 25.1079C67 11.5173 78.0173 0.5 91.6079 0.5L460.892 0.500022C474.483 0.500023 485.5 11.5174 485.5 25.1079C485.5 35.9804 494.314 44.7942 505.186 44.7942H517.5C536.83 44.7942 552.5 60.4642 552.5 79.7942V90C552.5 109.33 536.83 125 517.5 125Z' fill='%23fff'/%3E%3C/svg%3E");
+  --nav-ar:        553 / 82;
+  --nav-r:         999px;
+  --nav-items-top: 0%;
 }
 .s-home-v3--console {
-  --nav-ar:        553 / 236;
-  --nav-items-top: 68%;
-  --nav-mask:      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 553 236' preserveAspectRatio='none'%3E%3Cpath d='M517.5 235H35.5C16.17 235 0.5 219.33 0.5 200V189.7942C0.5 170.4642 16.17 154.7942 35.5 154.7942L47.3137 154.7942C58.1862 154.7942 67 145.9803 67 135.1079L67 25.1079C67 11.5173 78.0173 0.5 91.6079 0.5L460.892 0.5C474.483 0.5 485.5 11.5174 485.5 25.1079L485.5 135.1079C485.5 145.9804 494.314 154.7942 505.186 154.7942H517.5C536.83 154.7942 552.5 170.4642 552.5 189.7942V200C552.5 219.33 536.83 235 517.5 235Z' fill='%23fff'/%3E%3C/svg%3E");
+  --nav-ar:        553 / 205;
+  --nav-r:         30px;
+  --nav-items-top: 60%;
 }
-.v3-nav-shape--tall                     { display: none; }
-.s-home-v3--console .v3-nav-shape       { display: none; }
-.s-home-v3--console .v3-nav-shape--tall { display: block; }
-/* The friends panel: the same block again with the hump grown 700 units, so
-   the nav stands ~423px tall at the 393 frame — half the screen, as asked.
-   Items band: (44.79 + 700 + 5.7) / 826 = 90.9%. Contour in bottomNav(). */
-.s-home-v3--friends {
-  --nav-ar:        553 / 826;
-  --nav-items-top: 90.9%;
-  --nav-mask:      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 553 826' preserveAspectRatio='none'%3E%3Cpath d='M517.5 825H35.5C16.17 825 0.5 809.33 0.5 790V779.7942C0.5 760.4642 16.17 744.7942 35.5 744.7942L47.3137 744.7942C58.1862 744.7942 67 735.9803 67 725.1079L67 25.1079C67 11.5173 78.0173 0.5 91.6079 0.5L460.892 0.5C474.483 0.5 485.5 11.5174 485.5 25.1079L485.5 725.1079C485.5 735.9804 494.314 744.7942 505.186 744.7942H517.5C536.83 744.7942 552.5 760.4642 552.5 779.7942V790C552.5 809.33 536.83 825 517.5 825Z' fill='%23fff'/%3E%3C/svg%3E");
-}
-.v3-nav-shape--friends                     { display: none; }
-.s-home-v3--friends .v3-nav-shape          { display: none; }
-.s-home-v3--friends .v3-nav-shape--friends { display: block; }
 
 /* -- The console panel ---------------------------------------------------
    Sits in the hump the state above opened up. WARNING: anchored in px from
@@ -2648,19 +2648,14 @@
    (the shoulder) is ~40px up at the 393 frame and its ceiling is the nav's top
    at ~113px, so 46 -> 108 sits inside it with air at both ends. */
 .v3-console {
-  /* All four numbers are % of the NAV, whose child this is. WARNING: they were
-     px offsets from the screen bottom and that is wrong here -- the nav is
-     aspect-ratio driven, so its height follows the frame width, and the panel
-     floated clean out of the hump the moment the viewer scaled the phone.
-     Horizontally the hump's interior is x 67-485.5 of 553 = 12.1%-87.8%, and
-     the panel stands a little in from that; vertically it runs from the nav
-     top to the grown shoulder at (44.79+110)/236 = 65.6%.
-     WARNING: `bottom` deliberately leaves more air under the marks than over the
-     line -- the row wants to sit high in the hump, near its ceiling, not
-     centred in it. Centred, the logos drifted down onto the shoulder. */
+  /* All four numbers are % of the NAV, whose child this is — the nav is
+     aspect-ratio driven, so only a % tracks the box at every phone scale.
+     csharpuser (2026-09-23): the pill has no hump walls, so the panel takes
+     nearly the whole width. Vertically it runs from just under the top edge
+     to the icon band at 60%. */
   position: absolute;
-  left: 15.5%; right: 15.5%;
-  top: 5%; bottom: 46%;
+  left: 7%; right: 7%;
+  top: 7%; bottom: 43%;
   z-index: 6;
   display: none;
   flex-direction: column; justify-content: space-between; gap: 6px;
@@ -3115,6 +3110,22 @@
 /* The comment pill is the same object as the upvote pill, so the pair reads as
    one control. `is-open` means its thread is showing below. */
 .v3-cmt-btn.is-open { background: rgba(232,168,60,0.16); color: var(--star); }
+/* THE BUBBLE'S DOTS (Eric, 2026-09-23, "to match the heart"): hidden at
+   rest, and every three seconds they come up one after another — dot, dot,
+   dot — hold, and go. Once YOU have commented (`.is-mine`, cmtHasMine) the
+   bubble turns blue, filled, and the dots sit solid in the screen's colour. */
+.v3-cmt-btn .cmt-dot { opacity: 0; animation: cmt-dot 4s ease-in-out infinite; }   /* once every 4s, quick (Eric) */
+.v3-cmt-btn .cmt-dot:nth-of-type(2) { animation-delay: .12s; }
+.v3-cmt-btn .cmt-dot:nth-of-type(3) { animation-delay: .24s; }
+@keyframes cmt-dot {              /* the same ~half-second blink, on a 4s clock */
+  0%, 100%  { opacity: 0; }
+  2.5%, 9.5% { opacity: 1; }
+  13%       { opacity: 0; }
+}
+.v3-cmt-btn.is-mine { color: #3b82f6; }
+.v3-cmt-btn.is-mine svg path { fill: #3b82f6; stroke: #3b82f6; }
+.v3-cmt-btn.is-mine .cmt-dot { opacity: 1; animation: none; fill: var(--sd-bg, #111116); stroke: none; }
+@media (prefers-reduced-motion: reduce) { .v3-cmt-btn .cmt-dot { animation: none; opacity: 1; } }
 /* On a CARD the open state means nothing any more (the thread lives on the
    review page, and CMT_OPEN stays true once you have been there), so the pill
    keeps its resting look. On the page it lights as before. */
@@ -3224,21 +3235,11 @@
   -webkit-backdrop-filter: blur(22px) saturate(175%);
           backdrop-filter: blur(22px) saturate(175%);
   box-shadow: 0 10px 34px rgba(0,0,0,0.42);
-  /* ⚠️ Same path as the .v3-nav-shape <svg> in bottomNav(). Change both. */
-  -webkit-mask: var(--nav-mask) no-repeat center / 100% 100%;
-          mask: var(--nav-mask) no-repeat center / 100% 100%;
-}
-/* Hairline outline over the glass */
-.v3-nav-shape {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  z-index: 1; pointer-events: none;
-}
-.v3-nav-shape path {
-  fill: none;
-  stroke: rgba(255,255,255,0.2);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
+  /* csharpuser (2026-09-23): the pill. The hairline that used to be a stroked
+     <svg> contour is a border now — same 1px, same alpha. */
+  border-radius: var(--nav-r);
+  border: 1px solid rgba(255,255,255,0.2);
+  transition: border-radius .26s cubic-bezier(.22, 1, .36, 1);
 }
 /* 5 buttons — spread across the lower bar (below the centre hump). The lower
    band starts a touch under the shoulder (35.5%) so the icons sit centred in
@@ -3248,7 +3249,6 @@
      when the hump grows for the console. */
   position: absolute; left: 0; right: 0; top: var(--nav-items-top); bottom: 0;
   display: flex; align-items: center; justify-content: space-around;
-  transform: translateY(-3px);   /* lift icons off the low edge of the shelf */
   z-index: 2;
 }
 .v3-nav-item {
@@ -3267,6 +3267,31 @@
 .v3-nav-item:hover { color: #e8e2d6; }
 .v3-nav-item:hover svg { transform: scale(1.1); }
 .v3-nav-item:active { transform: scale(0.92); }
+
+/* ── SCROLLED (csharpuser, 2026-09-24) ──────────────────────────────────
+   `.is-scrolled` on the shell (sdScrollWatch): the wordmark and handle go,
+   the bubbles either side stay; and "back 2 top" rises out of the nav pill
+   where the hump was. The tab is the pill's own glass, a size down. */
+.v3-header-brand { transition: opacity .22s ease, transform .22s ease; }
+.s-home-v3.is-scrolled .v3-header-brand { opacity: 0; transform: translateY(-6px); pointer-events: none; }
+.v3-nav-top {
+  position: absolute; left: 50%; top: -14px;
+  transform: translate(-50%, 10px); opacity: 0; pointer-events: none;
+  z-index: 3;
+  padding: 5px 13px 6px; border-radius: 999px;
+  background: rgba(26,26,32,0.55);
+  -webkit-backdrop-filter: blur(22px) saturate(175%); backdrop-filter: blur(22px) saturate(175%);
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  color: #e8e2d6;
+  font-family: var(--font-main); font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; line-height: 1;
+  cursor: pointer; white-space: nowrap;
+  transition: opacity .2s ease, transform .26s cubic-bezier(.22, 1, .36, 1);
+}
+.s-home-v3.is-scrolled .v3-nav-top { opacity: 1; transform: translate(-50%, -100%); pointer-events: auto; }
+.v3-nav-top:active { transform: translate(-50%, -100%) scale(0.96); }
+.s-home-v3--light .v3-nav-top { background: rgba(255,255,255,0.6); border-color: rgba(26,18,8,0.16); color: #1a1208; box-shadow: 0 6px 18px rgba(30,20,10,0.16); }
+@media (prefers-reduced-motion: reduce) { .v3-header-brand, .v3-nav-top { transition: none; } }
 
 /* Registered property so --v3-accent can be CSS-transitioned */
 @property --v3-accent {
@@ -5252,6 +5277,32 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
 }
 /* A favourited song's TRACK NUMBER is a heart (Eric, 2026-09-18), in the
    number cell, so the columns hold. */
+/* THE HEART'S HOLE APPEARS WHEN YOU LIKE (Eric, 2026-09-23). RVP_HEART ships
+   two paths — the outline alone and the outline with the pulley hole — and
+   the state picks: plain until `.is-on`, then the full one, which the
+   existing `.is-on svg { fill }` rules fill with the hole left open. The
+   song's favourite mark is always on, so it always shows the hole. */
+.rvp-full { display: none; }
+.is-on .rvp-full, .v3-song-fav .rvp-full { display: block; }
+.is-on .rvp-out,  .v3-song-fav .rvp-out  { display: none; }
+/* THE BEAT (Eric, 2026-09-24): on an unliked like-button heart, the pulley
+   hole shows for a moment every five seconds and beats — in, a squeeze, and
+   gone. Only on like pills; the song's favourite mark and a liked heart
+   already carry the hole in their full path. */
+.rvp-hole { display: none; }
+.v3-up--heart:not(.is-on) .rvp-hole {
+  display: block; opacity: 0;
+  transform-box: fill-box; transform-origin: center;
+  animation: rvp-beat 5s ease-in-out infinite;
+}
+@keyframes rvp-beat {
+  0%, 100% { opacity: 0; transform: scale(.55); }
+  5%       { opacity: 1; transform: scale(1); }
+  9%       { transform: scale(.82); }
+  13%      { transform: scale(1); }
+  20%      { opacity: 0; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .v3-up--heart:not(.is-on) .rvp-hole { animation: none; opacity: 0; } }
 .v3-song-fav { display: inline-flex; align-items: center; justify-content: center; color: #ff5c8a; }
 .v3-song-fav svg { width: 11px; height: 11px; fill: currentColor; }
 /* "View all N songs" — under the eighth row of a longer album. Text, not a
@@ -5447,6 +5498,7 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
   font-family: var(--font-main); font-size: 10.5px; font-weight: 500;
   color: rgba(232,226,214,0.4);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
 }
 .v3-rev-big { grid-area: big; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 /* The like: as wide as the column (the records set it, ~53px) and squarish,
@@ -5658,8 +5710,13 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
   transition: color .14s;
 }
 /* The card's bare heart-and-number, in the byline's ink; pink when on. */
+/* The like goes LAST on the row, to the right of the time (Eric, 2026-09-24:
+   "put the like button to the right, next to the time ago"): `order` flips
+   the two, the markup (cmtNodeHtml) is unchanged. */
+.v3-cmt-ago { order: 1; }
+.v3-cmt-like { order: 2; }
 .v3-cmt-like {
-  flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; padding: 3px 0; margin-right: 4px;
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; padding: 3px 0; margin-left: 4px;
   font-family: var(--font-main); font-size: 12px; letter-spacing: 0; color: rgba(232,226,214,0.4);
 }
 .v3-cmt-like svg { width: 17px; height: 17px; }
@@ -5776,6 +5833,8 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 .s-home-v3 .v3-rev-card--feed .v3-rev-sub   { color: var(--sd-ink3); }
 .s-home-v3 .v3-rev-card--feed .v3-rev-big-n { color: var(--sd-ink); }
 .s-home-v3 .v3-rev-card--feed .v3-rev-text  { color: var(--sd-ink2); }
+/* csharpuser (2026-09-24): just the one name on the feed's cards — no @handle (Eric). */
+.s-home-v3 .v3-rev-card--feed .v3-rev-sub { display: none; }
 .s-home-v3--light .v3-rev-card--feed .v3-rev-text { color: rgba(26,18,8,0.9); }   /* 90% ink on cream (Eric, 2026-09-18) — --sd-ink2 read too faint for a paragraph */
 .s-home-v3 .v3-rev-card--feed .v3-rev-av,
 .s-home-v3 .v3-rev-card--feed .v3-rev-record-art { box-shadow: 0 0 0 1px var(--sd-line); background-color: var(--sd-card); }
@@ -6338,8 +6397,7 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
   color: rgba(26,18,8,0.85);
 }
 /* Glass console — light theme (frosted cream) */
-.s-home-v3--light .v3-nav-glass { background: rgba(255,255,255,0.5); box-shadow: 0 10px 34px rgba(30,20,10,0.16); }
-.s-home-v3--light .v3-nav-shape path { stroke: rgba(26,18,8,0.16); }
+.s-home-v3--light .v3-nav-glass { background: rgba(255,255,255,0.5); box-shadow: 0 10px 34px rgba(30,20,10,0.16); border-color: rgba(26,18,8,0.16); }
 /* Blue box - light */
 .s-home-v3--light .v3-blue {
   background: transparent;
@@ -11306,4 +11364,439 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) {
   .shop-owned, .shop-buy, .shop-pro-btn, .shop-cat, .shop-ev-art { transition: none; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   csharpuser (2026-09-22) — THE REVIEW-ONLY FORK
+   ═══════════════════════════════════════════════════════════════════════
+   User testing said the app was too complicated, so this copy strips home
+   down to the review feed. The bento is NOT deleted: it is the album page
+   (`--review` + `--album`, see "Fullscreen is the album page" in CLAUDE.md),
+   so it stays in the markup and is simply not shown until a record is
+   opened. Everything the bento carried on home — the featured album, For
+   You, the CD, the Live pill — goes with it; the feed gets the whole body.
+   ⚠ `.s-home-v3--review` is never set without `--album`, so this one test
+   covers the album page and the artist page both. */
+.s-home-v3:not(.s-home-v3--review) .v3-bento { display: none; }
+/* The feed used to start under the bento's 22px bottom margin; give it the
+   same breathing room off the header now that it is first in the body. */
+.s-home-v3:not(.s-home-v3--review) .v3-scroll-area { padding-top: 6px; }
+/* The friends deck takes the bento's place on home, so the feed goes back
+   under a 22px bottom margin there; the 6px above is only for the bare feed. */
+.s-home-v3:not(.s-home-v3--review) .v3-fb ~ .v3-scroll-area { padding-top: 10px; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   csharpuser (2026-09-23) — THE FRIENDS DECK (friendsBentoHtml · renderFriendsBento)
+   ═══════════════════════════════════════════════════════════════════════
+   Where the bento was: your friends' recent reviews as a deck of drop-shadow
+   cards, NO frame — the iPod's cover flow, centred. ORDER (Eric,
+   2026-09-23): the review box FIRST, the deck under it, the title and artist
+   under the deck — the covers sat too high on the screen to reach. The front card is the
+   bento's album slot 25% smaller, then up again (245px at the 393 frame) in the middle of
+   the screen; the cards to come fan off to the right and the dealt ones to
+   the left, all turned the same hard angle toward the centre like the iPod
+   classic's cover flow, a step further out each so a sliver shows, the
+   third faded out before the edge; each card carries its reflection
+   (fbLayout in app.js — the transforms are inline, the deck is a ring,
+   both sides always dealt). Under it, centred, the album
+   page's info box — title large + year, artist below — on the screen bg now
+   rather than the shell, so it inks off the --sd-* tokens; and under it the
+   friend's review, centred (`.v3-fbr`, below). No album score line between
+   them.
+   ⚠️ Hidden wherever the real bento shows: the album/artist page (--review)
+   and the review page (--rvp). The two are never up together. */
+.v3-fb {
+  position: relative;
+  flex-shrink: 0;
+  margin: 6px 10px 22px;
+  display: flex; flex-direction: column; gap: 4px;   /* was 8, then 14, then 5 back, then 5 more (Eric) */
+}
+.s-home-v3--review .v3-fb,
+.s-home-v3--rvp .v3-fb { display: none; }
+
+/* ── The deck ─────────────────────────────────────────────────────────── */
+.v3-fb-flow {
+  position: relative;
+  height: 259px;                 /* one card + 14px of its reflection (22 → 14: the title 8px closer, Eric) */
+  margin: 0 -10px;               /* bleeds past the inset to both screen edges; the fan runs off them */
+  /* ⚠️ The perspective and its origin are what fbLayout solves against:
+     P = 600 — SHORT, so a turned cover's far edge visibly shrinks and it
+     reads as a trapezoid splaying away — and the origin at the CENTRE,
+     where the front card is. */
+  perspective: 600px;
+  /* ⚠️ The origin is the covers' MIDDLE (half of FB_CARD, in px — not the
+     flow's middle, the flow is taller by the reflection), so a turned cover
+     slants top and bottom alike; fbPoseAt drops each side cover so its near
+     bottom corner still meets the front cover's bottom line. */
+  perspective-origin: 50% 122.5px;
+  /* ⚠️ REAL depth sorting: the covers share one 3D space, so the browser
+     orders them by their z and splits two that cross along the seam. With
+     z-index instead, a swipe had one cover popping over another the instant
+     the integers swapped — the flash. fbPaintDeck sets no z-index. */
+  transform-style: preserve-3d;
+  z-index: 1;
+  touch-action: pan-y;     /* the page still scrolls; a sideways drag is ours (fbSwipe) */
+  cursor: grab;
+  user-select: none; -webkit-user-select: none;
+}
+.v3-fb-flow:active { cursor: grabbing; }
+/* Mid-drag the deck is painted every move — no tween, or it lags the finger. */
+.v3-fb-flow.is-dragging .v3-fb-card, .v3-fb-flow.is-dragging .v3-fb-card::after { transition: none; }
+.v3-fb-card {
+  position: absolute;
+  left: calc(50% - 122.5px); top: 0;   /* centred: half of FB_CARD */
+  width: 245px; height: 245px;   /* ⚠️ = FB_CARD in app.js */
+  border-radius: 6px;            /* was 10 — less (Eric) */
+  transform-origin: 50% 50%;     /* ⚠️ fbLayout's turn is solved about the centre */
+  /* No backface-visibility: past 90° a cover shows its (mirrored) back rather
+     than vanishing — the Deck tab's turn runs the full ±180 (Eric). */
+  background: #222 center / cover no-repeat;
+  /* Two shadows: a tight one that separates a card from the one behind it,
+     and a long soft one that lifts the deck off the page. */
+  box-shadow: 0 3px 8px rgba(0,0,0,0.45), 0 16px 34px rgba(0,0,0,0.5);
+  transform-style: preserve-3d;
+  transition: transform .46s cubic-bezier(.22, 1, .36, 1), opacity .3s ease;
+  will-change: transform;
+  cursor: pointer;
+  /* THE REFLECTION (the iPod's): the card mirrored under itself, fading out
+     within ~20% of its height. The mask is painted in the card's own box
+     and flipped WITH it, so "transparent at the top, ink at the bottom"
+     comes out strongest against the card's foot. It turns with the card,
+     which is what sells the floor. */
+  -webkit-box-reflect: below 2px linear-gradient(transparent 79%, rgba(0,0,0,0.3) 100%);   /* was 60%: a shorter, faster fade (Eric) */
+}
+.v3-fb-card::after {          /* THE VEIL: the cover washed toward the screen bg, by --fb-veil (fbLayout) */
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: var(--sd-bg, #111116);
+  opacity: var(--fb-veil, 0); transition: opacity .3s ease;
+  pointer-events: none;
+}
+.v3-fb-card.is-front { box-shadow: 0 4px 10px rgba(0,0,0,0.5), 0 22px 44px rgba(0,0,0,0.55); }
+/* The FRONT cover's reflection is shorter and fainter than the sides' (Eric:
+   a busy cover's reflection was sitting under the title and fighting it):
+   gone within ~13% of its height, at 2/3 the ink. */
+.v3-fb-card.is-front { -webkit-box-reflect: below 2px linear-gradient(transparent 87%, rgba(0,0,0,0.2) 100%); }
+.s-home-v3--light .v3-fb-card { box-shadow: 0 3px 8px rgba(30,20,10,0.22), 0 16px 34px rgba(30,20,10,0.28); }
+.s-home-v3--light .v3-fb-card.is-front { box-shadow: 0 4px 10px rgba(30,20,10,0.25), 0 22px 44px rgba(30,20,10,0.32); }
+
+/* ── The strip: the bento's typography, off the shell ───────────────────── */
+.v3-fb-strip {
+  padding: 6px 4px 0;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  text-align: center;            /* under a centred cover */
+  cursor: pointer;
+  color: var(--sd-ink, #e8e2d6);
+}
+/* The title pair, as the album page sets it: the album at 22px Roboto Flex
+   with the year inline beside it at 14px light, the artist 14.5px bold on
+   its own line under — `.s-home-v3--review .v3-blue-*`'s numbers. */
+.v3-fb-title {
+  font-family: 'Roboto Flex', var(--font-main);
+  font-size: 22px; font-weight: 400; line-height: 1.12;
+  color: var(--sd-ink, #e8e2d6);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.v3-fb-album { display: inline; }
+.v3-fb-year  { display: inline; margin-left: 6px; font-size: 14px; font-weight: 300; color: var(--sd-ink2, rgba(232,226,214,0.5)); }
+.v3-fb-year:empty { display: none; }
+.v3-fb-artist {
+  margin-top: 5px;               /* 5 more under the title (Eric) */
+  font-family: 'Roboto Flex', var(--font-main);
+  font-size: 14.5px; font-weight: 700; line-height: 1.15;
+  color: var(--sd-ink, #e8e2d6);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* ── The friend's review under the info (Eric, 2026-09-23): CENTRED ────────
+   Its own shape, not the feed card's grid: the face 1.7× the feed's 36px in
+   the middle, the like pill on its left and the comment pill on its right
+   ("since we have space there"), the name over @handle · when under it, the
+   score beside the discs under that, the review beneath. The pills are the
+   feed's `.v3-up--sm` ones, unchanged. The numbers are the feed card's
+   (name 12.5/700, sub 10.5/500, number 21/800, text 12.5/1.4). */
+.v3-fb-review { padding: 0 4px; }
+/* THE SHIPPED order (`s-home-v3--fb-up`, both variants): the deck first,
+   the title under it, the review under that. Without the class the markup's
+   own order shows — the review above the deck — kept as an idea (Eric). */
+.s-home-v3--fb-up .v3-fb-flow   { order: 1; }
+.s-home-v3--fb-up .v3-fb-strip  { order: 2; }
+.s-home-v3--fb-up .v3-fb-review { order: 3; }
+.s-home-v3--fb-up .v3-fbr       { margin: 9px 0 0; }   /* 14 → 9: the face closer to the album info (Eric) */
+.v3-fbr {
+  align-self: stretch;
+  margin: 0 0 6px; padding: 2px 0 0;   /* first now, above the deck (was under the strip with 14px over it) */
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  text-align: center;
+  cursor: pointer;
+}
+.v3-fbr-head { display: flex; align-items: center; justify-content: center; margin-bottom: 5px; }   /* 5 → 10, back to 5: the name closer to the face (Eric, 2026-09-24) */
+.v3-fbr-av {
+  position: relative; overflow: hidden;
+  width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;   /* 76 → 64 (Eric, 2026-09-24: "a bit smaller") */
+  background: #333;
+  box-shadow: 0 0 0 1px var(--sd-line, rgba(255,255,255,0.08)), 0 6px 16px rgba(0,0,0,0.35);
+}
+/* The face is a STACK of layers (fbFace): the new one fades up over the old. */
+.v3-fbr-face {
+  position: absolute; inset: 0; border-radius: inherit;
+  background: #333 center / cover no-repeat;
+  opacity: 0; transition: opacity .4s ease;
+}
+.v3-fbr-face.is-in { opacity: 1; }
+/* The counts' split-flap: each digit change is a quick flip about the middle. */
+/* A real flip card (Eric, 2026-09-24): the number turns about its middle —
+   down to edge-on, where fbTick swaps the text, then the new one comes
+   back up. The duration is inline per flip (fbTick), longer as it settles. */
+.v3-fbr .v3-up { perspective: 90px; }
+.v3-fbr .v3-up-n { display: inline-block; transform-origin: 50% 50%; backface-visibility: hidden; }
+.v3-fbr .v3-up-n.is-flip { animation: fbr-flip .18s linear; }   /* the duration is overridden inline */
+@keyframes fbr-flip {
+  0%   { transform: rotateX(0deg);   opacity: 1; }
+  49%  { transform: rotateX(-90deg); opacity: .55; }
+  51%  { transform: rotateX(90deg);  opacity: .55; }
+  100% { transform: rotateX(0deg);   opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .v3-fbr-face { transition: none; }
+  .v3-fbr .v3-up-n.is-flip { animation: none; }
+}
+
+/* ── THE LEFT-ALIGNED REVIEW (Eric, 2026-09-24) — was the DARK variant for a
+   day, to compare against the centred stack; Eric picked the CENTRED one for
+   both themes (2026-09-24), so this now only shows under an opt-in
+   `s-home-v3--fb-left` on the shell — nobody adds it. Same markup, laid
+   out as a grid: on the left the face (smaller here, its belt scaled with
+   it) with the name UNDER it; to the right the score over its discs, the
+   comment and the like and when; then the text across the width. The time
+   shows in the score row here (`.v3-fbr-ago--row`), not beside the name. ── */
+.v3-fbr-ago--row { display: none; }
+.s-home-v3--fb-left .v3-fbr {
+  --belt-scale: 0.5625;                    /* a 36px face over the 64 the belt is drawn for */
+  display: grid;
+  /* Three columns: the face on the left, the SCORE centred on the screen —
+     in line with the covers above (Eric) — and the acts on the right. The
+     outer columns are equal so the middle one is the true centre. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "av score acts" "name score acts" "text text text" "more more more";
+  align-items: center; justify-items: start;
+  column-gap: 10px; row-gap: 4px;
+  text-align: left;
+  padding: 4px 2px 0;
+}
+.s-home-v3--fb-left .v3-fbr-head  { grid-area: av; margin: 0 0 0 15px; align-self: end; }   /* 15px in from the edge (Eric) */
+.s-home-v3--fb-left .v3-fbr-av-wrap, .s-home-v3--fb-left .v3-fbr-av { width: 36px; height: 36px; }   /* 60% of the 60 (Eric) */
+.s-home-v3--fb-left .v3-fbr-name  { grid-area: name; align-self: start; width: 90px; margin-left: -12px; text-align: center; font-size: 12px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }   /* centred under the face (its centre is at 15 + 18) */
+.s-home-v3--fb-left .v3-fbr-name .v3-fbr-ago { display: none; }
+.s-home-v3--fb-left .v3-fbr-score { display: contents; }   /* its two parts take their own cells */
+.s-home-v3--fb-left .v3-fbr-scorebox { grid-area: score; justify-self: center; flex-direction: column; align-items: center; gap: 4px; }
+.s-home-v3--fb-left .v3-fbr-acts { grid-area: acts; display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-left: 0; }   /* right-aligned (Eric) */
+/* A longer count must not move the icons (Eric): every count is the same
+   fixed width, in the mono it already wears, so "6" and "1.6k" take the
+   same room and the row holds still. */
+.s-home-v3--fb-left .v3-fbr .v3-up-n { display: inline-block; width: 3.4ch; text-align: left; }
+.s-home-v3--fb-left .v3-fbr-act--like { order: 2; justify-content: flex-start; }
+.s-home-v3--fb-left .v3-fbr-act--cmt  { order: 1; }
+.s-home-v3--fb-left .v3-fbr-act--like .v3-up { flex-direction: row; }   /* icon then number, like the comment */
+.s-home-v3--fb-left .v3-fbr-act { min-width: 0; }
+.s-home-v3--fb-left .v3-fbr-ago--row { display: inline; order: 3; white-space: nowrap; }
+/* Smaller, regular-weight counts and smaller glyphs in the compact layout (Eric). */
+.s-home-v3--fb-left .v3-fbr .v3-up { font-size: 12px; font-weight: 400; gap: 5px; }
+.s-home-v3--fb-left .v3-fbr .v3-up svg { width: 22px; height: 22px; }
+.s-home-v3--fb-left .v3-fbr .v3-cmt-btn svg { width: 25px; height: 25px; }
+.s-home-v3--fb-left .v3-fbr-text  { grid-area: text; width: auto; max-width: none; justify-self: stretch; margin-top: 4px; }
+.s-home-v3--fb-left .v3-fbr-more  { grid-area: more; margin-top: 0; padding-left: 0; }
+/* The like and the comment, either side of the face (Eric, 2026-09-23):
+   NO pill — bare glyphs, 26px so they read beside a 61px face — with the
+   count on the OUTSIDE of each: "12 ♥  [face]  ✎ 5". The left one runs
+   row-reverse so its number sits away from the face; the right one reads
+   as it comes. The pill's background, padding and hover fill are stripped
+   here and only here; the feed's pills below are untouched. */
+.v3-fbr .v3-up {
+  font-size: 13px; gap: 12px; padding: 0;   /* gap 7 → 12: the counts a little further out (Eric) */
+  background: none; border-radius: 0;
+}
+.v3-fbr .v3-up svg { width: 28px; height: 28px; overflow: visible; }   /* 26 → 36, then 28 beside the score (Eric) */
+/* Thinner strokes at this size (Eric: "stroke smaller"): both glyphs carry a
+   weight tuned for a 13–17px pill, which is ~3px here. A CSS stroke-width on
+   the shapes beats the presentation attribute; both glyphs share the 100-unit
+   box now, so one number — ~1.8px at 36px. */
+.v3-fbr .v3-up svg * { stroke-width: 5; }
+/* The bubble sits a touch small beside the heart at the same box size — its
+   drawing is shorter than the box. 5% up (Eric). */
+.v3-fbr .v3-cmt-btn svg { width: 31px; height: 31px; }   /* 3% off (Eric) */
+.v3-fbr .v3-up { font-size: 17px; }   /* the COUNTS larger (Eric: "larger numbers", not the score) */
+.v3-fbr-act { display: flex; align-items: center; flex: 0 0 auto; min-width: 64px; }
+.v3-fbr-act:first-child { justify-content: flex-end; }
+.v3-fbr-act:first-child .v3-up { flex-direction: row-reverse; }
+.v3-fbr-act:last-child  { justify-content: flex-start; }
+.v3-fbr-name { font-family: var(--font-main); font-size: 13px; font-weight: 700; color: var(--sd-ink, #e8e2d6); }   /* 12.5 → 14.5 → 13 (Eric, 2026-09-24: "a bit smaller") */
+/* THE BELT round a popular review's face — ONE RIBBON (Eric, 2026-09-24:
+   "one fluid ribbon, not cut into pieces"). Built by fbBeltHtml (app.js):
+   an SVG of a tilted, wavy ellipse, the band a thick stroke and the legend
+   a textPath along it, animated by SMIL. Two copies sit in the wrap — the
+   BACK one before the face in the DOM, clipped to the top half, and the
+   FRONT one after it, clipped to the bottom half — so DOM order alone puts
+   the band behind the photo and over it. No 3D any more. Each copy is
+   centred on the wrap (its margin is inline, half its box) and scaled by
+   --belt-scale for a layout with a smaller face. The band's colours are
+   here; its geometry is the FB_BELT_* block in app.js. */
+.v3-fbr-av-wrap {
+  position: relative; width: 64px; height: 64px;   /* 76 → 64 (Eric, "a bit smaller") — keep FB_BELT_FACE (app.js) in step */
+}
+.v3-fbr-belt {
+  position: absolute; left: 50%; top: 50%;
+  display: none; pointer-events: none; overflow: visible;
+  transform: scale(var(--belt-scale, 1));   /* a layout with a smaller face shrinks the belt to match */
+}
+.v3-fbr.is-popular .v3-fbr-belt { display: block; }
+.v3-fbr-belt-band { fill: none; stroke: #3b82f6; stroke-width: 8; stroke-linejoin: round; }   /* FB_BELT_H */
+.v3-fbr-belt--back .v3-fbr-belt-band { stroke: #2f6fd8; }   /* the far side a shade darker; the halves meet outside the photo, so no seam shows */
+.v3-fbr-belt-text {
+  fill: #fff; font-family: var(--font-main); font-weight: 800; font-size: 5.6px;
+  dominant-baseline: central;
+}
+.v3-fbr-belt--back .v3-fbr-belt-text { fill: rgba(255,255,255,0.8); }
+.v3-fbr-score .v3-fbr-discs { display: inline-flex; }
+.v3-fbr-ago  { margin-left: 6px; font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--sd-ink3, rgba(232,226,214,0.4)); }
+/* The score row (Eric, 2026-09-23): the like on the left, the number large
+   over its discs in the middle, the comment on the right. */
+/* The score is INDEPENDENT of the counts (Eric, 2026-09-24: "the large number
+   changes spots depending on the icon numbers"): a three-column grid whose
+   outer columns are equal, so the score sits at the true centre whatever
+   "6" or "1.6k" the like and the comment carry; they hang off it, the like
+   ending at its column's inner edge, the comment starting at its own. */
+.v3-fbr-score {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center; column-gap: 31px; margin-top: 6px;   /* 16 → 31: the icons 15px further out (Eric) */
+}
+.v3-fbr-score > .v3-fbr-act--like, .v3-fbr-acts > .v3-fbr-act--like { justify-self: end; }
+.v3-fbr-score > .v3-fbr-act--cmt,  .v3-fbr-acts > .v3-fbr-act--cmt  { justify-self: start; }
+.v3-fbr-scorebox { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.v3-fbr-acts { display: contents; }            /* the centred layout: like · score · comment, one flex row */
+.v3-fbr-act--like { order: -1; }
+.v3-fbr-n { font-family: var(--font-main); font-size: 28px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; color: var(--sd-ink, #e8e2d6); }   /* 21 → 28 (the 34 was a misread — Eric meant the counts) */
+.v3-fbr-score .hstars { display: inline-flex; gap: 2px; }
+.v3-fbr-text {
+  font-family: var(--font-main);   /* pinned: never the serif */
+  font-size: 12.5px; line-height: 1.75;   /* was 1.4, then 1.55 — taller (Eric) */
+  color: var(--sd-ink2, rgba(232,226,214,0.68));
+  width: 320px; max-width: 100%; margin-top: 8px;   /* 310 → 320: 5px wider each side (Eric, 2026-09-24) */
+  text-align: left;              /* the block is centred by its margins; the lines inside read left (Eric) */
+  white-space: pre-line;
+  display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;   /* five lines (Eric) */
+}
+/* A review that overflows FADES at the clamp instead of ending in a cut, and
+   gets a View more; `.is-long` is measured (fbGo), so a short review keeps
+   its last line at full ink. Open, the clamp and the fade come off. */
+.v3-fbr.is-long .v3-fbr-text {   /* fades sooner (Eric), like the feed's cards */
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, rgba(0,0,0,0.45) 70%, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 40%, rgba(0,0,0,0.45) 70%, transparent 100%);
+}
+.v3-fbr.is-open .v3-fbr-text { -webkit-line-clamp: unset; display: block; -webkit-mask-image: none; mask-image: none; }
+/* Two lines or fewer read better centred (Eric, 2026-09-24); `.is-short` is
+   measured (fbMarkShort), so a real paragraph keeps its left edge. */
+.v3-fbr.is-short .v3-fbr-text { text-align: center; }
+.v3-fbr-more {
+  display: none;
+  margin-top: 4px; padding: 4px 10px;
+  background: none; border: 0; cursor: pointer;
+  font-family: var(--font-main); font-size: 11.5px; font-weight: 700; letter-spacing: 0.2px;
+  color: var(--sd-ink2, rgba(232,226,214,0.55));
+}
+.v3-fbr.is-long .v3-fbr-more { display: inline-block; }
+.v3-fbr-more:hover { color: var(--sd-ink, #e8e2d6); }
+.s-home-v3--light .v3-fbr-text { color: rgba(26,18,8,0.9); }   /* the feed's light ink for a paragraph */
+/* Ink only (the feed card's pill rules paint a background; these don't). */
+.s-home-v3 .v3-fbr .v3-up { color: var(--sd-ink2); }
+.s-home-v3 .v3-fbr .v3-up:hover { background: none; color: var(--sd-ink); }
+.s-home-v3 .v3-fbr .v3-up.is-on { background: none; color: #ff5c8a; }
+.s-home-v3 .v3-fbr .v3-up.is-on svg { fill: currentColor; }
+.s-home-v3 .v3-fbr .v3-cmt-btn.is-open { background: none; color: var(--sd-ink2); }
+.s-home-v3 .v3-fbr .v3-cmt-btn.is-mine { color: #3b82f6; }   /* the count goes blue with the bubble */
+.s-home-v3--light .v3-fbr .v3-up.is-on { color: #e0396e; }
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-fb-card, .v3-fb-card::after { transition: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE REVIEW SHEET (Eric, 2026-09-24) — `.v3-rsh-ov` / `.v3-rsh`, built by
+   rshHtml (app.js). A bottom sheet inside the phone screen: the dimmed
+   backdrop fades, the sheet slides up from below the screen's bottom edge and
+   back down on close. Its top part is the deck's review block verbatim
+   (`.v3-fbr`, so the face, belt, name, score row and pills are the same
+   rules) — only the clamp comes off the text here. Under it the record line
+   and the comments, in the review page's own `.rvp-cmts` / `.v3-cmt-*`
+   clothes. It inks off the --sd-* tokens, so the light shell's sheet is
+   light. ═══════════════════════════════════════════════════════════════════ */
+.v3-rsh-ov {
+  position: absolute; inset: 0; z-index: 220;
+  background: rgba(0,0,0,0);
+  transition: background .28s ease;
+  font-family: var(--font-main);
+}
+.v3-rsh-ov.open { background: rgba(0,0,0,0.55); }
+.s-home-v3--light .v3-rsh-ov.open { background: rgba(26,18,8,0.4); }
+.v3-rsh {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  max-height: 90%;
+  display: flex; flex-direction: column;
+  background: var(--sd-bg, #111116);
+  color: var(--sd-ink, #e8e2d6);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -1px 0 var(--sd-line, rgba(232,226,214,0.09)), 0 -18px 48px rgba(0,0,0,0.45);
+  transform: translateY(104%);
+  transition: transform .34s cubic-bezier(.22,1,.36,1);
+}
+.v3-rsh-ov.open .v3-rsh { transform: translateY(0); }
+.v3-rsh.is-drag { transition: none; }       /* while it follows the finger */
+.v3-rsh-grab { flex: 0 0 auto; padding: 10px 0 4px; display: flex; justify-content: center; cursor: grab; touch-action: none; }
+.v3-rsh-grab i { display: block; width: 38px; height: 4px; border-radius: 2px; background: var(--sd-ink3, rgba(232,226,214,0.32)); }
+.v3-rsh-body {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 2px 18px 28px;
+}
+/* The deck's review block, unclamped: the whole review, no fade, no View more. */
+.v3-rsh .v3-fbr--sheet { margin: 0; padding: 4px 0 0; cursor: default; touch-action: none; }
+.v3-rsh .v3-fbr--sheet .v3-fbr-text {
+  display: block; -webkit-line-clamp: unset; overflow: visible;
+  width: auto; max-width: none; align-self: stretch;
+  -webkit-mask-image: none; mask-image: none;
+}
+.v3-rsh .v3-fbr--sheet .v3-fbr-more { display: none; }
+/* The record line: cover · album over artist · year — a tap opens the album. */
+.v3-rsh-record {
+  display: flex; align-items: center; gap: 10px;
+  margin: 14px 0 0; padding: 9px 10px;
+  border-radius: 12px; background: var(--sd-card, rgba(255,255,255,0.05));
+  cursor: pointer;
+}
+.v3-rsh-record:hover { background: var(--sd-hover, rgba(255,255,255,0.04)); }
+.v3-rsh-art { width: 40px; height: 40px; border-radius: 6px; flex: 0 0 auto; background: #222 center / cover no-repeat; box-shadow: 0 2px 6px rgba(0,0,0,0.35); }
+.v3-rsh-rec-who { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+/* The CD, hard right (margin-left auto), always turning; tap = the preview.
+   Its hole is the bento CD's own (.v3-cd-hole). Faster and lit while playing;
+   a blink when the record has no preview. */
+.v3-rsh-cd {
+  position: relative; flex: 0 0 auto; margin-left: auto; margin-right: 2px;
+  width: 40px; height: 40px; border-radius: 50%; overflow: hidden;
+  background: #222 center / cover no-repeat;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.08);
+  animation: v3spin 12s linear infinite;
+  cursor: pointer;
+  transition: box-shadow .2s ease, filter .2s ease;
+}
+.v3-rsh-cd .v3-cd-hole { width: 8px; height: 8px; background: var(--sd-bg, #111116); }
+.v3-rsh-cd:hover { filter: brightness(1.08); }
+.v3-rsh-cd.is-playing { animation-duration: 4s; box-shadow: 0 3px 10px rgba(0,0,0,0.35), 0 0 0 2px #3b82f6; }
+.v3-rsh-cd.is-none { animation-play-state: paused; filter: brightness(0.6) saturate(0.7); }
+@media (prefers-reduced-motion: reduce) { .v3-rsh-cd { animation: none; } }
+.v3-rsh-rec-album  { font-family: 'Roboto Flex', var(--font-main); font-size: 14px; font-weight: 500; color: var(--sd-ink, #e8e2d6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3-rsh-rec-artist { font-size: 11.5px; color: var(--sd-ink2, rgba(232,226,214,0.55)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3-rsh .rvp-cmts { margin-top: 6px; }
+.v3-rsh .rvp-cmts-hd { color: var(--sd-ink3, rgba(232,226,214,0.45)); }
+.v3-rsh .rvp-cmts-n { color: var(--sd-ink2, rgba(232,226,214,0.7)); }
+@media (prefers-reduced-motion: reduce) {
+  .v3-rsh, .v3-rsh-ov { transition: none; }
 }

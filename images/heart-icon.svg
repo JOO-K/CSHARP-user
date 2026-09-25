@@ -1,0 +1,10 @@
+<!-- Spindeck heart (Eric, 2026-09-23) — a heart made of two belts: each lobe and the
+     tip are a belt over two pulleys (outer tangents), and the hole is the pulley
+     in the right lobe, concentric, r = 0.622 of the lobe. Traced from
+     Heart_Icon.png (97% overlap); numbers: lobes r 27.26 at (27.26, 27.26) and
+     (72.74, 27.26), tip r 8.34 at (49.87, 86.13), hole r 16.96, box 100 × 94.47.
+     `fill-rule: evenodd` keeps the hole open however it is filled; stroke it for
+     the outline (the hole becomes a ring), fill it for the solid mark. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 94.47" fill="currentColor" fill-rule="evenodd">
+  <path d="M49.87 12.04A27.26 27.26 0 1 1 93.83 44.22L56.41 91.32A8.34 8.34 0 0 1 43.34 91.32L5.92 44.22A27.26 27.26 0 1 1 49.87 12.04ZM89.45 27.26A16.96 16.96 0 1 0 55.53 27.26A16.96 16.96 0 1 0 89.45 27.26Z"/>
+</svg>

@@ -1,0 +1,9 @@
+<!-- Spindeck comment (Eric, 2026-09-23) — a speech bubble drawn as a belt over
+     two pulleys (the body and the tail's small wheel, outer tangents), with three
+     pulleys inside for the dots. From "Comment icon.svg", scaled to a 100-wide
+     box; the dots were bezier outlines and are real circles here (r 5.92 at
+     y 46.6, x 29.79 / 46.08 / 62.37). Stroke it — the box is padded 6 units a
+     side so a stroke up to 12 wide is not clipped. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -6 112 98.80" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round">
+  <path d="M43.05 86.74L43.38 86.74C43.38 86.74 84.71 86.74 90.23 86.74C95.75 86.74 101.87 80.05 99.36 72.64C96.84 65.24 85.7 31.86 85.7 31.86C80.06 14.31 63.22 0.03 43.26 0.03C19.38 0.03 0.03 19.44 0.03 43.38C0.03 67.26 19.27 86.63 43.05 86.74Z"/><circle cx="29.79" cy="46.60" r="5.92"/><circle cx="46.08" cy="46.60" r="5.92"/><circle cx="62.37" cy="46.60" r="5.92"/>
+</svg>

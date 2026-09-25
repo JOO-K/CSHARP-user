@@ -1983,6 +1983,15 @@ window.toggleRevUp = function (btn) {
   btn.setAttribute('aria-pressed', String(on));
   const n = btn.querySelector('.v3-up-n');
   if (n) n.textContent = window.fmtRc(base + (on ? 1 : 0));
+  // Every other like pill on this key follows (the deck's under the sheet,
+  // the feed card behind it, the light shell's twin) — one like, wherever.
+  document.querySelectorAll('.v3-up[data-k]').forEach(b => {
+    if (b === btn || b.dataset.k !== k || b.classList.contains('v3-cmt-btn')) return;
+    b.classList.toggle('is-on', on);
+    b.setAttribute('aria-pressed', String(on));
+    const bn = b.querySelector('.v3-up-n');
+    if (bn) bn.textContent = window.fmtRc((+b.dataset.n || 0) + (on ? 1 : 0));
+  });
   sceneReact(on ? 'like' : 'undo');
 };
 
@@ -2120,9 +2129,21 @@ function revThread(key, total) {
       node.text = dealOpen();
       roots.push(node);
     }
+    // Half of them write properly (Eric, 2026-09-24: "proper punctuation
+    // half the time"): a capital, an I, a full stop. The other half stay
+    // lowercase, no stop — the way most people type in a thread.
+    if (rnd() < 0.5) node.text = cmtProper(node.text);
     flat.push(node);
   }
   return (CMT_CACHE[key] = roots);
+}
+function cmtProper(t) {
+  t = String(t || '').trim();
+  if (!t) return t;
+  t = t.charAt(0).toUpperCase() + t.slice(1);
+  t = t.replace(/\bi\b/g, 'I').replace(/\bi(['’])/g, 'I$1');
+  if (!/[.!?…]$/.test(t)) t += '.';
+  return t;
 }
 
 // A subtree's size — what "view n more" has to promise, since a hidden thread
@@ -2154,7 +2175,11 @@ function cmtFind(key, id) {
   return walk(CMT_MINE[key] || [], null) || walk(CMT_CACHE[key] || [], null);
 }
 
-const CMT_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8 8 0 0 1-8.6 8 9 9 0 0 1-3.2-.6L3.5 20.5l1.7-4.4a7.9 7.9 0 0 1-1.7-4.5 8 8 0 0 1 8.6-8 8 8 0 0 1 8.4 8Z"/></svg>`;
+/* csharpuser (2026-09-23): ERIC'S COMMENT GLYPH — a speech bubble that is a belt
+   over two pulleys, three pulleys inside for the dots (images/comment-icon.svg
+   has the construction). Same 100-unit box and padding as RVP_HEART; stroke
+   8.3 here is the 2-in-24 the old glyph wore. The home card thins both (app.css). */
+const CMT_SVG = `<svg viewBox="-6 -6 112 98.80" fill="none" stroke="currentColor" stroke-width="8.3" stroke-linejoin="round"><path d="M43.05 86.74L43.38 86.74C43.38 86.74 84.71 86.74 90.23 86.74C95.75 86.74 101.87 80.05 99.36 72.64C96.84 65.24 85.7 31.86 85.7 31.86C80.06 14.31 63.22 0.03 43.26 0.03C19.38 0.03 0.03 19.44 0.03 43.38C0.03 67.26 19.27 86.63 43.05 86.74Z"/><circle class="cmt-dot" cx="29.79" cy="46.60" r="5.92"/><circle class="cmt-dot" cx="46.08" cy="46.60" r="5.92"/><circle class="cmt-dot" cx="62.37" cy="46.60" r="5.92"/></svg>`;
 
 /* The comment pill. Same object as the upvote pill (`.v3-up`) so the pair reads
    as one control.
@@ -2162,9 +2187,17 @@ const CMT_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
    them, tapping this pill starts WRITING one. The pill used to toggle, which
    made "comment" the button you pressed to hide the comments — and pressing it
    mid-sentence threw away what you'd typed. */
+/* Have YOU commented on this review — at the base or as a reply anywhere in
+   the tree? Drives `.is-mine` on the comment button: the bubble turns blue
+   and its dots go solid (Eric, 2026-09-23). */
+function cmtHasMine(key) {
+  if ((CMT_MINE[key] || []).length) return true;
+  const deep = n => !!n && (n.mine || (n.kids || []).some(deep));
+  return (CMT_CACHE[key] || []).some(deep);
+}
 function cmtBtnHtml(key, total, extraClass = '') {
   const open = !!CMT_OPEN[key];
-  return `<button class="v3-up v3-cmt-btn${extraClass ? ' ' + extraClass : ''}${open ? ' is-open' : ''}"
+  return `<button class="v3-up v3-cmt-btn${extraClass ? ' ' + extraClass : ''}${open ? ' is-open' : ''}${cmtHasMine(key) ? ' is-mine' : ''}"
     type="button" data-k="${_revAttr(key)}" data-n="${Math.max(0, Number(total) || 0)}"
     aria-expanded="${open}" aria-label="Write a comment"
     onclick="event.stopPropagation(); cmtCompose(this)">${CMT_SVG}<span class="v3-up-n">${cmtCount(key, total)}</span></button>`;
@@ -2245,7 +2278,7 @@ function cmtThreadHtml(key, total) {
 const CMT_SHOWN = Object.create(null);
 const CMT_PAGE = 5;
 function cmtAutoMore(body) {
-  const page = body.closest('.s-rvp, .s-home-v3--rvp'); if (!page) return;
+  const page = body.closest('.s-rvp, .s-home-v3--rvp, .v3-rsh'); if (!page) return;
   const more = page.querySelector('.v3-cmt-more'); if (!more) return;
   if (body.scrollTop + body.clientHeight < body.scrollHeight - 140) return;
   const key = more.dataset.k;
@@ -2256,13 +2289,13 @@ function cmtAutoMore(body) {
 }
 document.addEventListener('scroll', e => {
   const t = e.target;
-  if (t && t.classList && t.classList.contains('v3-body')) cmtAutoMore(t);
+  if (t && t.classList && (t.classList.contains('v3-body') || t.classList.contains('v3-rsh-body'))) cmtAutoMore(t);
 }, true);
 /* ⚠️ A thread that does not overflow the screen can never BE scrolled, so the
    first page would be the last. After any thread paint, keep paging while the
    body still fits (bounded: it stops when the list runs out or overflows). */
 function cmtFill() {
-  document.querySelectorAll('.s-rvp .v3-body, .s-home-v3--rvp .v3-body').forEach(b => {
+  document.querySelectorAll('.s-rvp .v3-body, .s-home-v3--rvp .v3-body, .v3-rsh-body').forEach(b => {
     if (b.scrollHeight <= b.clientHeight + 140) cmtAutoMore(b);
   });
 }
@@ -2295,6 +2328,7 @@ function cmtRender(key) {
     if (b.dataset.k !== key) return;
     const open = !!CMT_OPEN[key];
     b.classList.toggle('is-open', open);
+    b.classList.toggle('is-mine', cmtHasMine(key));
     b.setAttribute('aria-expanded', String(open));
     const n = b.querySelector('.v3-up-n');
     if (n) n.textContent = cmtCount(key, +b.dataset.n || 0);
@@ -2408,9 +2442,10 @@ window.revCardArt = function (el) {
 };
 window.cmtCardTap = function (card) {
   if (card.classList.contains('v3-rev-card--hero')) return;   // already the page
-  // A feed card: the album page with this review pinned (the review page has
-  // no record line of its own yet, so it would lose the album on the way).
-  if (card.dataset.feed) return feedOpen(+card.dataset.feed);
+  // A feed card: the REVIEW SHEET (Eric, 2026-09-24) — the same popup the
+  // deck's review opens, so every review on home reads the same way. The
+  // record line on the card still goes to the album (feedOpenArt).
+  if (card.dataset.feed) return feedOpenReview(+card.dataset.feed, false, card);
   const k = card.dataset.k;
   if (k) openReviewPage(k, false, card);
 };
@@ -2425,9 +2460,9 @@ window.cmtCompose = function (btn) {
   const k = btn.dataset.k;
   // On a card: the conversation lives on the review page — go there with the
   // composer aimed. On the page itself: just put the cursor in it.
-  const page = btn.closest('.s-rvp, .s-home-v3--rvp');
+  const page = btn.closest('.s-rvp, .s-home-v3--rvp, .v3-rsh');
   const feedCard = btn.closest('.v3-rev-card[data-feed]');
-  if (feedCard) return feedOpenReview(+feedCard.dataset.feed);   // home feed → the REVIEW page (Eric, 2026-09-18; the card tap keeps the album page)
+  if (feedCard) return feedOpenReview(+feedCard.dataset.feed, true, btn);   // home feed → the review SHEET with the composer aimed (2026-09-24)
   if (!page) { if (REV_INDEX[k]) openReviewPage(k, true, btn); return; }
   if (!CMT_OPEN[k]) { CMT_OPEN[k] = true; cmtRender(k); }
   const input = page.querySelector('.v3-cmt-input');
@@ -2830,8 +2865,11 @@ const FEED_N = 9;
    The verbs deliberately mirror the log sheet's own toggles — reviewed, rated,
    favourited, logged, saved for later — so the feed shows friends doing exactly
    the things you can do. */
-const FEED_RHYTHM = ['review', 'review', 'fav',    'review', 'playlist',
-                     'review', 'follow', 'listened', 'review', 'rating', 'later'];
+/* csharpuser (2026-09-22): the feed is REVIEWS ONLY. The other verbs
+   (favourited · logged · saved for later · playlisted · followed) still render
+   if they ever land here, but the rhythm no longer deals them — the whole
+   point of this fork is one thing on screen. */
+const FEED_RHYTHM = ['review', 'review', 'rating', 'review', 'review', 'review', 'rating'];
 
 // One photo per handle so a person looks like themselves wherever they appear.
 // ntfPeople() pins the community accounts by hand; the feed cast is generated,
@@ -2867,7 +2905,9 @@ function feedEvents() {
   // idiom as before.
   // Sorted newest-first after the shuffle so the time buckets below come out
   // contiguous and in order, the way the inbox's hand-authored list already is.
-  const order = src.map((_, i) => i)
+  // No popular reviews down here (Eric, 2026-09-24): the feed is friends only;
+  // the popular ones live in the deck.
+  const order = src.map((_, i) => i).filter(i => !src[i].popular)
     .sort(() => Math.random() - 0.5)
     .slice(0, FEED_N)
     .sort((a, b) => agoMins(src[a].ago) - agoMins(src[b].ago));
@@ -2882,7 +2922,7 @@ function feedEvents() {
     if (type === 'playlist' && !list) type = 'rating';
 
     return {
-      type, idx,
+      type, idx, popular: !!f.popular,
       user: f.user, face: feedFace(f.user),
       album: f.album, artist: f.artist, image: f.image,
       // A follow row is about the artist, so its trailing slot wants the artist
@@ -2920,7 +2960,7 @@ function feedEvents() {
    it renders), so the entry is written here from the feed event, under the
    SAME key the album page's card would use (feedRevKey) — one thread, one
    like, wherever you came in. */
-window.feedOpenReview = function (n) {
+window.feedOpenReview = function (n, compose, trigger) {
   const e = feedEvents()[n];
   if (!e) return;
   if (!(e.type === 'review' || e.type === 'rating')) return feedOpen(n);
@@ -2932,8 +2972,11 @@ window.feedOpenReview = function (n) {
     key, album, name: f.user, init: f.init, grad: f.grad,
     rating: f.rating || 0, text: e.type === 'review' ? feedUnquote(f.quote) : '',
     ago: f.ago, likes: f.likes || 0, comments: f.comments || 0,
+    face: f.face, popular: !!f.popular,
   };
-  openReviewPage(key, false);
+  // The REVIEW SHEET (Eric, 2026-09-24), not the page: it slides up over the
+  // feed and drops back down, so the feed is still where you left it.
+  openReviewSheet(key, !!compose, trigger || null);
 };
 window.feedOpen = function (n) {
   const e = feedEvents()[n];
@@ -3041,6 +3084,7 @@ function renderFriendFeed(screenEl) {
   const card = (e, n) => revCardHtml({
     key: feedRevKey(e), cls: 'v3-rev-card--feed', feed: n,
     name: e.user, face: e.face, ago: e.ago, timeRight: true, actsTop: true,
+    chip: e.popular ? 'popular review' : undefined,   // the community leaking in (see FB_POPULAR_PER_DEAL)
     /* No quote marks on the feed (Eric, 2026-09-15): the card's shape already
        says "this is what they wrote". The data carries them for the inbox's
        one-line rows, so they come off here. */
@@ -3061,6 +3105,675 @@ function renderFriendFeed(screenEl) {
   setTimeout(() => markLongReviews(container), 80);
   setTimeout(() => markLongReviews(container), 600);
   tintFeedRecords(container);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   csharpuser (2026-09-23) — THE FRIENDS DECK (markup: friendsBentoHtml)
+   ═══════════════════════════════════════════════════════════════════════
+   Your friends' recent album reviews, dealt as a deck of drop-shadow cards
+   where the bento was. ONE list per page load (`fbReviews`), ONE cursor per
+   shell (`screenEl._fbCur`): the card at the cursor is the FRONT, and the
+   strip and the shell's colour follow it.
+   ⚠️ The front card's album becomes the shell's MAIN ALBUM (setMainAlbum) —
+   that tints the shell and keeps the hidden hero in step, so a cold colour
+   extraction on it can never land the wrong palette. It does NOT touch
+   `_albumIdx`: the hero's own sequence is left alone for the album page.
+   ⚠️ Taps: a card behind deals itself to the front; the FRONT card (and the
+   strip) open that review on the album page — openFriendReview, the same
+   door the feed's cards use. A horizontal drag over the deck steps it; the
+   click that lands after a drag is swallowed (`flow._swiped`). */
+function fbReviews() {
+  if (window._FB_LIST) return window._FB_LIST;
+  const src = window.FRIEND_ACTIVITY || [];
+  const list = src.map((f, idx) => Object.assign({ idx }, f))
+    .filter(f => f.quote)                                   // a review, not a bare rating
+    .sort((a, b) => agoMins(a.ago) - agoMins(b.ago))        // newest first
+    // Every review a friend wrote — only three or four SHOW at once (fbLayout
+    // fades the rest), but you can keep flicking through all of them (Eric).
+    .map(f => Object.assign(f, { face: feedFace(f.user) }));
+  // FOR NOW (Eric, 2026-09-24): a popular review leads the deck, so the
+  // ribbon is the first thing on screen. Flip FB_POPULAR_FIRST off to let
+  // the newest lead again.
+  if (FB_POPULAR_FIRST) { const i = list.findIndex(f => f.popular); if (i > 0) list.unshift(list.splice(i, 1)[0]); }
+  return (window._FB_LIST = list);
+}
+const FB_POPULAR_FIRST = true;
+// The album object the front review is about — the archive's record when it
+// has one (so the album page gets the real thing), else the review's own
+// fields, which carry everything the shell reads.
+function fbAlbumOf(f) {
+  return friendAlbumFor(f) || { album: f.album, artist: f.artist, year: f.year, image: f.image, reviewCount: 0 };
+}
+
+function renderFriendsBento(screenEl) {
+  const fb = screenEl.querySelector('.v3-fb');
+  if (!fb) return;
+  const list = fbReviews();
+  if (!list.length) { fb.hidden = true; return; }
+  const flow = fb.querySelector('.v3-fb-flow');
+  if (flow && !flow._built) {
+    flow._built = true;
+    flow.innerHTML = list.map((f, i) => `
+              <div class="v3-fb-card" data-i="${i}" style="background-image:url('${f.image}')" onclick="fbCardTap(this, event)"></div>`).join('');
+    fbSwipe(screenEl, flow);
+    // Warm the palettes the deck will step through, like the hero's preload.
+    list.forEach(f => { if (f.image && typeof computeAlbumColors === 'function') computeAlbumColors(f.image); });
+  }
+  if (screenEl._fbCur == null) screenEl._fbCur = 0;
+  fbGo(screenEl, screenEl._fbCur);
+}
+
+/* THE DECK'S GEOMETRY — COVER FLOW, the iPod classic's (Eric, 2026-09-23,
+   with the photo). The FRONT card sits in the middle facing you. The covers
+   either side FACE THE CENTRE: each is turned hard so its OUTER edge swings
+   toward you — the outer top corner is the highest point of the card — while
+   its inner edge tucks away behind the cover in front of it. Cards to come
+   on the right, dealt ones on the left, mirror images.
+   ONE RULE FOR THE WALL (Eric, 2026-09-23: "consistently spaced and arced,
+   three albums a side"): the side covers' turn, edge position, depth and
+   opacity per step live in FB_TUNE (below) — set from the dev box's Deck
+   tab. Out of the box: the same turn for all, edges 23px apart, ONE depth
+   (Eric: "not progressively further back"), so they are the same size and
+   stand in a row; three show a side (the third fading), the fourth is out.
+   ⚠️ THE CORNERS LINE UP, THE EDGES STAY SHARP (Eric): the perspective
+   origin is the covers' middle, so a turned cover is a symmetric trapezoid
+   — top AND bottom edges slant, the outer corners pointed. Pushed back, it
+   draws smaller about that middle, so its bottom would float above the
+   front cover's. Each side cover is therefore DROPPED (`y`, solved below)
+   by exactly what its near edge lost, so the near edge's bottom corner
+   lands on the front cover's bottom line; the far edge's bottom rises from
+   there — the slant. The lower corner you see, on every side cover, is on
+   the floor. (A vanishing point at floor level would flatten the bottoms
+   into one line — tried, Eric: "don't make them flat".) Because a hard turn is narrow, the cards are placed by their
+   OUTER edge, which is what has to step evenly; the inner edge falls behind
+   the card in front. Checked (245 / P600 / 75° / z160): outer edges at +148,
+   +171, +194 from centre (screen 345 / 368 / 391); every near edge 229 tall
+   off the floor, far edge 167; each inner edge (65 / 82 / 98) sits behind
+   the card before it.
+   ⚠️ DEPTH ORDER IS REAL 3D, not z-index: `.v3-fb-flow` is preserve-3d, so
+   the browser sorts the covers by their actual z and, mid-swipe, two covers
+   crossing are split along their intersection rather than one popping over
+   the other on an integer swap — the "flash" Eric saw. fbPaintDeck sets no
+   z-index. */
+const FB_CARD = 245;
+/* THE TUNE TABLE (Eric, 2026-09-23: "give me controls to adjust the
+   translation and rotation of the cards … describing it is incredibly
+   hard"). Per step back (index 1–3; 0 is the front): the turn, where the
+   near edge lands from the centre, the push-back, a Y nudge, the opacity.
+   Past step 3 the 2→3 deltas carry on. `p` is the flow's perspective, which
+   the dev box also writes onto `.v3-fb-flow` inline. The DEV BOX's "Deck"
+   tab drives this live and prints it back as this block — paste it here.
+   ⚠️ Keep `p` in step with `.v3-fb-flow { perspective }` (app.css). */
+const FB_TUNE = {
+  p: 600,
+  a: [0, 75, 94, 101],        // rotateY toward the centre, deg (Eric's tune, 2026-09-23)
+  o: [0, 158, 184, 206],      // near (outer) edge from the centre, px (Eric's tune, 2026-09-24)
+  z: [0, 160, 160, 160],      // push-back, px
+  y: [0, 0, 0, 0],            // extra Y nudge, px (the floor drop is solved on top)
+  fade: [1, 1, 0.85, 0.55],   // opacity
+};
+function fbDist(k, cur, n) {
+  let d = k - cur;
+  if (d > n / 2) d -= n;
+  else if (d < -n / 2) d += n;
+  return d;
+}
+// The pose for a card `a` steps from the front (a ≥ 0, integer), unsigned.
+function fbPoseAt(a) {
+  if (!a) return { x: 0, y: 0, z: 0, rot: 0, o: 1 };
+  const T = FB_TUNE, i = Math.min(a, 3), ext = Math.max(0, a - 3);
+  const at = arr => arr[i] + (arr[3] - arr[2]) * ext;
+  const rot = at(T.a), z = at(T.z), outer = at(T.o), ny = at(T.y);
+  const rad = rot * Math.PI / 180, h = FB_CARD / 2;
+  const near = (T.p + z - h * Math.sin(rad)) / T.p;            // 1 / the near edge's projection scale
+  const x = outer * near - h * Math.cos(rad);
+  const y = h * near - h + ny;                                  // drop, so the near edge's bottom corner meets the floor
+  const o = ext ? 0 : (T.fade[i] != null ? T.fade[i] : 0);
+  return { x, y, z, rot, o };
+}
+/* The pose for ANY distance, fractional included — a drag puts every card
+   part-way between two integer poses, so this lerps x, z, turn and opacity
+   between the poses either side. The sign flips the side (and the turn:
+   rotateY(−θ) on the right turns its right edge toward you, mirrored on the
+   left), so a card crossing the middle swings from one turn to the other
+   through flat, which is the iPod's flip. */
+function fbLayout(d) {
+  const a = Math.abs(d), sg = d < 0 ? -1 : 1;
+  const i0 = Math.floor(a), t = a - i0;
+  const A = fbPoseAt(i0), B = t ? fbPoseAt(i0 + 1) : A;
+  const L = (p, q) => p + (q - p) * t;
+  const x = L(A.x, B.x), y = L(A.y, B.y), z = L(A.z, B.z), rot = L(A.rot, B.rot), o = L(A.o, B.o);
+  /* THE VEIL (Eric, 2026-09-23: "instead of opacity, a slight fade into the
+     bg with the same colour"): a card stays opaque and is washed toward the
+     screen's background by `--fb-veil` (its `::after`, app.css) — the
+     table's fade value, inverted, over a 10% base shade for any card that
+     is not the front. Only a card faded all the way out goes transparent. */
+  const veil = a < 0.5 ? 0 : 1 - o * 0.9;
+  return { t: `translate3d(${(sg * x).toFixed(1)}px, ${y.toFixed(1)}px, ${(-z).toFixed(1)}px) rotateY(${(-sg * rot).toFixed(2)}deg)`, o, veil };
+}
+
+// Paint the deck at a cursor position, which may be fractional mid-drag.
+function fbPaintDeck(screenEl, curF) {
+  const list = fbReviews(); if (!list.length) return;
+  const n = list.length, ci = Math.round(curF), frac = curF - ci;
+  screenEl.querySelectorAll('.v3-fb-card').forEach(card => {
+    const k = Number(card.dataset.i);
+    const L = fbLayout(fbDist(k, ((ci % n) + n) % n, n) - frac);
+    card.style.transform = L.t;
+    card.style.opacity = L.o > 0 ? 1 : 0;
+    card.style.setProperty('--fb-veil', L.veil.toFixed(3));
+    card.style.pointerEvents = L.o ? '' : 'none';
+    card.classList.toggle('is-front', !frac && fbDist(k, ((ci % n) + n) % n, n) === 0);
+  });
+}
+
+function fbGo(screenEl, i) {
+  const list = fbReviews();
+  if (!list.length) return;
+  const cur = ((i % list.length) + list.length) % list.length;
+  screenEl._fbCur = cur;
+  const f = list[cur];
+  const album = fbAlbumOf(f);
+  screenEl._fbAlbum = album;
+
+  // The deck.
+  fbPaintDeck(screenEl, cur);
+
+  /* The strip: the ALBUM PAGE's info box — the title large with the year
+     beside it, the artist below (Eric: "larger, like the album year and then
+     artist below like we had it") — and under it THE FRIEND'S REVIEW (Eric,
+     2026-09-23), CENTRED, its own shape (`.v3-fbr`, not the feed card's
+     grid): the face large in the middle with the like on its left and the
+     comment count on its right ("since we have space there"), the name with
+     when beside it under that (one name, no @handle — Eric), the score
+     beside the discs under that, and the
+     review beneath. The pills are the feed's own (upvoteHtml / cmtBtnHtml)
+     with the feed's key (feedRevKey), so a like here and a like on the same
+     review in the feed or on the album page are the same act. No record
+     line — the album is right above it. The card's tap, and the comment
+     pill's, go where the front card's does: the album page with this review
+     pinned and its thread open (fbOpenFront), not the review page.
+     ⚠️ NO album score line between them (Eric): the bento's score · discs ·
+     count row was here for an hour and read as a second rating over the
+     friend's — one rating on screen, and it is the friend's. */
+  const strip = screenEl.querySelector('.v3-fb-strip');
+  if (strip) {
+    const key = feedRevKey(f);
+    REV_INDEX[key] = { key, album, name: f.user, init: f.init, grad: f.grad, rating: f.rating || 0,
+      text: feedUnquote(f.quote), ago: f.ago, likes: f.likes || 0, comments: f.comments || 0,
+      face: f.face, popular: !!f.popular };
+    const like = upvoteHtml(key, f.likes || 0, 'v3-up--sm v3-up--like v3-up--heart')
+      .replace(/<svg[\s\S]*?<\/svg>/, typeof RVP_HEART !== 'undefined' ? RVP_HEART : '');
+    const cmt = cmtBtnHtml(key, f.comments || 0, 'v3-up--sm v3-up--cmtcol')
+      .replace('cmtCompose(this)', 'fbOpenFront(this, event)');
+    const rating = Number(f.rating) || 0;
+    const text = revNoWidow(feedUnquote(f.quote));
+    /* BUILT ONCE, UPDATED IN PLACE (Eric, 2026-09-23): rebuilding the card's
+       markup on every deal replaced the face outright and reset the counts.
+       Now the info lines are written in, the face CROSSFADES (fbFace) and the
+       like / comment counts ROLL from the old number to the new (fbTick).
+       Only the pills' markup is re-rendered, for their keys; their counts are
+       then animated from what was showing. */
+    // The review lives in its own box ABOVE the deck (Eric, 2026-09-23); the
+    // title and artist stay in the strip UNDER it.
+    const revBox = screenEl.querySelector('.v3-fb-review') || strip;
+    let rev = revBox.querySelector('.v3-fbr');
+    if (!rev) {
+      strip.innerHTML = `
+              <div class="v3-fb-title"><span class="v3-fb-album"></span><span class="v3-fb-year"></span></div>
+              <div class="v3-fb-artist"></div>`;
+      revBox.insertAdjacentHTML('beforeend', `
+              <div class="v3-fbr" onclick="fbOpenFront(this, event)">
+                <div class="v3-fbr-head">
+                  <!-- THE RIBBON (Eric, 2026-09-24): on a popular review a belt runs
+                       round the face — a band 8px off the photo's edge with
+                       POPULAR REVIEW along it, turning slowly. It is the app's
+                       own picture: a belt on a pulley. Shown by .is-popular. -->
+                  <div class="v3-fbr-av-wrap">
+                    <!-- One ribbon, two halves: the back one is painted before the
+                         face and the front one after it (fbBeltHtml). -->
+                    ${fbBeltHtml('back')}
+                    <div class="v3-fbr-av"></div>
+                    ${fbBeltHtml('front')}
+                  </div>
+                </div>
+                <div class="v3-fbr-name"><span class="v3-fbr-who"></span><span class="v3-fbr-ago"></span></div>
+                <!-- The like and the comment flank the SCORE now, not the face (Eric, 2026-09-23). -->
+                <!-- .v3-fbr-acts groups the comment · like · when for the compact layout
+                     (one grid cell); the centred layout sets it display:contents and
+                     orders the like back to the score's left. -->
+                <div class="v3-fbr-score">
+                  <span class="v3-fbr-scorebox"><span class="v3-fbr-n"></span><span class="v3-fbr-discs"></span></span>
+                  <span class="v3-fbr-acts">
+                    <span class="v3-fbr-act v3-fbr-act--like"></span>
+                    <span class="v3-fbr-act v3-fbr-act--cmt"></span>
+                    <span class="v3-fbr-ago v3-fbr-ago--row"></span>
+                  </span>
+                </div>
+                <div class="v3-fbr-text"></div>
+                <button class="v3-fbr-more" type="button" onclick="fbMore(this, event)">View more</button>
+              </div>`);
+      rev = revBox.querySelector('.v3-fbr');
+    }
+    rev.dataset.k = _revAttr(key);
+    strip.querySelector('.v3-fb-album').textContent = album.album;
+    strip.querySelector('.v3-fb-year').textContent = album.year || '';
+    strip.querySelector('.v3-fb-artist').textContent = album.artist;
+    fbFace(rev.querySelector('.v3-fbr-av'), f.face);
+    rev.classList.toggle('is-popular', !!f.popular);   // the ribbon round the face (no chip, no genre — Eric)
+    rev.querySelector('.v3-fbr-who').textContent = f.user;
+    rev.querySelectorAll('.v3-fbr-ago').forEach(el => { el.textContent = f.ago; });   // the name's and the score row's (one shows per layout)
+    rev.querySelector('.v3-fbr-n').textContent = rating.toFixed(1);
+    rev.querySelector('.v3-fbr-discs').innerHTML = halfStars(rating, 13);
+    const likeSlot = rev.querySelector('.v3-fbr-act--like'), cmtSlot = rev.querySelector('.v3-fbr-act--cmt');
+    const prevLike = fbShown(likeSlot), prevCmt = fbShown(cmtSlot);
+    likeSlot.innerHTML = like; cmtSlot.innerHTML = cmt;
+    fbTick(likeSlot.querySelector('.v3-up-n'), prevLike, (f.likes || 0) + (REV_VOTES[key] ? 1 : 0));
+    fbTick(cmtSlot.querySelector('.v3-up-n'), prevCmt, cmtCount(key, f.comments || 0));
+    const t = rev.querySelector('.v3-fbr-text');
+    t.innerHTML = text;
+    rev.classList.remove('is-open');
+    rev.querySelector('.v3-fbr-more').textContent = 'View more';
+    /* Four lines, then a fade and "View more" (Eric, 2026-09-23) — the fade
+       only on a review that really overflows (`.is-long`, measured after
+       layout and again a beat later for a cold font). The text block is a
+       FIXED four lines tall and the button row is always there (hidden when
+       there is nothing more), so the deck under it sits at one distance
+       whatever the review's length. */
+    const mark = () => { if (t.clientHeight) { rev.classList.toggle('is-long', t.scrollHeight > t.clientHeight + 2); fbMarkShort(rev, t); } };
+    requestAnimationFrame(mark); setTimeout(mark, 120);
+  }
+
+  // The shell takes the front review's album.
+  setMainAlbum(screenEl, album, false);
+  applyAlbumColorsUrl(screenEl, album.image);
+}
+
+/* A TAP ON A SIDE (Eric, 2026-09-23: "if I click on the left or right can I
+   go one album next or prev"): anything tapped left of the middle steps
+   back one, right of it steps on one — whichever cover was under the finger,
+   or none. Only the FRONT cover opens its review. Same rule for a tap on the
+   flow's empty floor (fbFlowTap, on the flow itself). */
+function fbSideStep(scr, flow, e) {
+  const r = flow.getBoundingClientRect();
+  const x = e && e.clientX != null ? e.clientX : r.left + r.width / 2;
+  fbGo(scr, (scr._fbCur || 0) + (x < r.left + r.width / 2 ? -1 : 1));
+}
+window.fbCardTap = function (el, e) {
+  if (e) e.stopPropagation();
+  const scr = el.closest('.s-home-v3');
+  const flow = el.closest('.v3-fb-flow');
+  if (!scr || (flow && flow._swiped)) return;
+  const i = Number(el.dataset.i);
+  if (i === scr._fbCur) { const f = fbReviews()[i]; if (f) openFriendReview(f.idx); }
+  else fbSideStep(scr, flow, e);
+};
+window.fbFlowTap = function (flow, e) {
+  if (e) e.stopPropagation();
+  const scr = flow.closest('.s-home-v3');
+  if (!scr || flow._swiped) return;
+  fbSideStep(scr, flow, e);
+};
+/* THE FACE CROSSFADES (Eric): the avatar is a stack of face layers. A new
+   face is laid on top at 0 and faded up over the one showing; once it has
+   landed the layers under it are dropped. A fast run of deals just stacks
+   and drops — nothing waits on the fade. */
+function fbFace(av, url) {
+  if (!av) return;
+  const cur = av.lastElementChild;
+  if (cur && cur.dataset.url === url) return;
+  const layer = document.createElement('span');
+  layer.className = 'v3-fbr-face';
+  layer.dataset.url = url;
+  layer.style.backgroundImage = `url('${url}')`;
+  if (!cur) { layer.classList.add('is-in'); av.appendChild(layer); return; }
+  av.appendChild(layer);
+  requestAnimationFrame(() => requestAnimationFrame(() => layer.classList.add('is-in')));
+  setTimeout(() => { while (av.firstElementChild && av.firstElementChild !== layer) av.firstElementChild.remove(); }, 480);
+}
+// What a count slot is showing right now (the pill is about to be re-rendered).
+function fbShown(slot) {
+  const n = slot && slot.querySelector('.v3-up-n');
+  if (!n) return 0;
+  if (n._tickTo != null) return n._tickTo;
+  const txt = String(n.textContent).trim();
+  const v = parseFloat(txt) * (/k$/i.test(txt) ? 1000 : 1);
+  return isFinite(v) ? v : 0;
+}
+/* THE TICKER (Eric: "like an airport ticker — it counts up"): a count rolls
+   from the number that was showing to the new one, fast at first and
+   settling, each change of digit a little split-flap flip (the `.is-flip`
+   pulse, app.css). Rolls DOWN too when the new review has fewer. A deal
+   mid-roll retargets from wherever the roll had got to. */
+const FB_TICK_STEPS = 5;
+/* SPLIT-FLAP (Eric, 2026-09-24: "actually flip like flip cards … so fast,
+   and when it's close to the number it slows down slightly"): the count
+   turns over one card at a time — a real flip about its middle (`fbr-flip`,
+   app.css: down to edge-on, the new number rides back up) — and each flip
+   takes a little longer than the last, most of the slowing at the end, so
+   it clatters in and settles. At most FB_TICK_STEPS cards on the way (fewer
+   when the numbers are that close), FB_FLIP_FAST ms for the first and
+   FB_FLIP_SLOW for the last. */
+const FB_FLIP_FAST = 110, FB_FLIP_SLOW = 300;
+function fbTick(el, from, to) {
+  if (!el) return;
+  if (el._tickTimer) clearTimeout(el._tickTimer);
+  if (el._tickSwap) clearTimeout(el._tickSwap);
+  const a = Number(from) || 0, b = Number(to) || 0;
+  el._tickTo = b;
+  if (a === b) { el.textContent = window.fmtRc(b); return; }
+  const steps = Math.min(FB_TICK_STEPS, Math.abs(b - a));
+  let k = 0;
+  const flip = () => {
+    k++;
+    const v = k >= steps ? b : a + Math.round((b - a) * k / steps);
+    const t = k / steps;
+    const dur = Math.round(FB_FLIP_FAST + (FB_FLIP_SLOW - FB_FLIP_FAST) * t * t);
+    el.style.animationDuration = dur + 'ms';
+    el.classList.remove('is-flip'); void el.offsetWidth; el.classList.add('is-flip');
+    el._tickSwap = setTimeout(() => { el.textContent = window.fmtRc(v); }, dur / 2);   // swapped while edge-on
+    el._tickTimer = k < steps ? setTimeout(flip, dur) : null;
+  };
+  flip();
+}
+
+/* THE BELT — ONE FLUID RIBBON (Eric, 2026-09-24: "no way to get it to be
+   one fluid ribbon, not cut into pieces?"). It was forty flat segments
+   standing in a 3D ring; now it is ONE SVG PATH — a tilted ellipse round
+   the face with a sine wave built into it — drawn twice: a thick blue
+   stroke is the band, and the legend rides it as a <textPath>, so the
+   letters flow round the bend as one piece. The front/back split is done
+   by clipping, not 3D: the wrap holds two copies of the same SVG, the
+   BACK one (the top half of the ellipse) painted before the face and the
+   FRONT one (the bottom half) after it, so the band passes behind the
+   photo and back over it, like a belt on a pulley. The halves meet outside
+   the photo, where nothing overlaps, so the seam is invisible.
+   Motion is SMIL, so it needs no JS after the build: the text's
+   startOffset slides one legend length (negative, so the run-in is
+   already on the path — that is what keeps the loop seamless), and the
+   wave rolls round by morphing `d` through FB_BELT_PHASES phases at the
+   same speed, so crests and letters travel together. textLength pins the
+   lettering to exactly three laps whatever font loads, so the period is a
+   known fraction of the path. Sizes are in the SVG's own units (1 = 1px
+   at --belt-scale 1): the face is FB_BELT_FACE across, the band FB_BELT_GAP
+   off its edge and FB_BELT_H thick, wave ±FB_BELT_WAVE with FB_BELT_WAVES
+   crests, tilt FB_BELT_TILT (the ellipse's vertical squash). Built once
+   per card; ids are per instance so several cards on a page don't clash. */
+const FB_BELT_FACE = 64, FB_BELT_GAP = 5, FB_BELT_H = 8, FB_BELT_WAVE = 2, FB_BELT_WAVES = 3, FB_BELT_TILT = 0.31;
+const FB_BELT_PTS = 72, FB_BELT_PHASES = 8, FB_BELT_SPIN_S = 18;
+const FB_BELT_LEGEND = 'POPULAR REVIEW  ·   ';   // one period; six of them cover three laps
+let fbBeltSeq = 0;
+function fbBeltHtml(half) {
+  const R = FB_BELT_FACE / 2 + FB_BELT_GAP + FB_BELT_H / 2;     // the band's centre line, out from the face's centre
+  const box = Math.ceil(2 * (R + FB_BELT_H / 2 + FB_BELT_WAVE) + 2);
+  const c = box / 2, b = R * FB_BELT_TILT;
+  // The ring runs COUNTER-clockwise on screen (t: 0 right, 90° top, 270° bottom),
+  // so along the front — the bottom — the path heads right and the legend reads upright.
+  const pt = (t, phase) => [c + R * Math.cos(t), c - b * Math.sin(t) + FB_BELT_WAVE * Math.sin(FB_BELT_WAVES * t + phase)];
+  const pathD = (phase) => {
+    let d = '';
+    for (let i = 0; i <= FB_BELT_PTS; i++) {
+      const [x, y] = pt(i / FB_BELT_PTS * 2 * Math.PI, phase);
+      d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }
+    return d + 'Z';
+  };
+  let len = 0, prev = pt(0, 0);
+  for (let i = 1; i <= FB_BELT_PTS; i++) { const q = pt(i / FB_BELT_PTS * 2 * Math.PI, 0); len += Math.hypot(q[0] - prev[0], q[1] - prev[1]); prev = q; }
+  const period = len / 2;                                     // two legends a lap, as before
+  const phases = [];
+  for (let k = 0; k <= FB_BELT_PHASES; k++) phases.push(pathD((k % FB_BELT_PHASES) / FB_BELT_PHASES * 2 * Math.PI));
+  const id = 'fbb' + (++fbBeltSeq);
+  const clipY = half === 'back' ? 0 : c, clipH = c;           // back: the top half; front: the bottom half
+  // One crest spacing (a lap / FB_BELT_WAVES) must pass in the time the text moves one period (a lap / 2).
+  const waveS = (FB_BELT_SPIN_S * 2 / FB_BELT_WAVES).toFixed(2);
+  return `<svg class="v3-fbr-belt v3-fbr-belt--${half}" viewBox="0 0 ${box} ${box}" width="${box}" height="${box}" style="margin:${-c}px 0 0 ${-c}px" aria-hidden="true">
+    <defs>
+      <path id="${id}p" d="${phases[0]}"><animate attributeName="d" values="${phases.join(';')}" dur="${waveS}s" repeatCount="indefinite" calcMode="linear"/></path>
+      <clipPath id="${id}c"><rect x="0" y="${clipY}" width="${box}" height="${clipH}"/></clipPath>
+    </defs>
+    <g clip-path="url(#${id}c)">
+      <use href="#${id}p" class="v3-fbr-belt-band"/>
+      <text class="v3-fbr-belt-text" textLength="${(3 * len).toFixed(1)}" lengthAdjust="spacing"><textPath href="#${id}p" startOffset="0">${FB_BELT_LEGEND.repeat(6).replace(/ /g, '\u00a0')}<animate attributeName="startOffset" from="0" to="${(-period).toFixed(1)}" dur="${FB_BELT_SPIN_S}s" repeatCount="indefinite"/></textPath></text>
+    </g>
+  </svg>`;
+}
+
+// "View more" opens the whole review in place; again to fold it back.
+window.fbMore = function (btn, e) {
+  if (e) e.stopPropagation();
+  const rev = btn.closest('.v3-fbr');
+  if (!rev) return;
+  const open = rev.classList.toggle('is-open');
+  btn.textContent = open ? 'View less' : 'View more';
+};
+window.fbOpenFront = function (el, e) {
+  if (e) e.stopPropagation();
+  const scr = el.closest('.s-home-v3');
+  const f = scr && fbReviews()[scr._fbCur || 0];
+  if (!f) return;
+  // The REVIEW SHEET (Eric, 2026-09-24): the review, its comments and the
+  // composer slide up over the deck. From the comment pill, the composer is
+  // aimed. The entry was written by fbGo under the feed's key.
+  openReviewSheet(feedRevKey(f), el.classList.contains('v3-cmt-btn'), el);
+};
+
+/* A review of two lines or fewer under the deck reads better CENTRED (Eric,
+   2026-09-24: "when there is only two lines, centre that"); a longer one
+   keeps its left edge. Measured against the line-height, so it follows the
+   font. Shared with the sheet's copy of the same block. */
+function fbMarkShort(rev, t) {
+  if (!t || !t.clientHeight) return;
+  const lh = parseFloat(getComputedStyle(t).lineHeight) || 22;
+  rev.classList.toggle('is-short', t.scrollHeight <= lh * 2 + 2);
+}
+
+/* ── THE REVIEW SHEET (Eric, 2026-09-24) ───────────────────────────────────
+   "A consistent review screen … a popup instead of a whole page … goes from
+   the bottom up and then goes down when you close it … the similar elements
+   to the homepage review's top part." One popup for every review on home:
+   the deck's review and the feed's cards both open it (fbOpenFront,
+   cmtCardTap, cmtCompose). It mounts INSIDE the phone screen that was tapped
+   (like the search overlay), so the light shell gets a light sheet and the
+   dark a dark one off the --sd-* tokens, and the two viewer shells never
+   share one.
+   TOP PART = the deck's review block, the SAME markup and classes (`.v3-fbr`:
+   face with the POPULAR belt, name · when, the score flanked by the like and
+   the comment), so the two cannot drift — the sheet only unclamps the text.
+   Under it a record line (cover · album · artist, tap → the album page),
+   then the comments: the composer first, the thread under it, paging as you
+   scroll (cmtAutoMore knows `.v3-rsh-body`). The pills carry the feed's key,
+   so a like or a comment here IS the one on the card and in the deck.
+   CLOSE: tap the dimmed backdrop, Escape, or pull the sheet down by its
+   handle or head past RSH_CLOSE_PX — it follows the finger, then either
+   drops away or springs back. The album page's in-place review and the
+   profile's standalone page are untouched (Eric wants to rethink that
+   system; this is home's). */
+const RSH_CLOSE_PX = 90;
+function rshHtml(R) {
+  const key = R.key;
+  const P = window.PROFILE || {};
+  const face = R.mine ? (P.pic || 'images/rp-01.jpg') : (R.face || R.pic || (typeof feedFace === 'function' ? feedFace(R.name) : ''));
+  const rating = Number(R.rating) || 0;
+  const like = R.mine ? '' : upvoteHtml(key, R.likes || 0, 'v3-up--sm v3-up--like v3-up--heart')
+    .replace(/<svg[\s\S]*?<\/svg>/, typeof RVP_HEART !== 'undefined' ? RVP_HEART : '');
+  const cmt = cmtBtnHtml(key, R.comments || 0, 'v3-up--sm v3-up--cmtcol');
+  const a = R.album || {};
+  const text = R.text ? (typeof revNoWidow === 'function' ? revNoWidow(R.text) : R.text) : '';
+  return `
+    <div class="v3-rsh" role="dialog" aria-modal="true" aria-label="Review" onclick="event.stopPropagation()">
+      <div class="v3-rsh-grab" aria-hidden="true"><i></i></div>
+      <div class="v3-rsh-body">
+        <div class="v3-fbr v3-fbr--sheet${R.popular ? ' is-popular' : ''}" data-k="${_revAttr(key)}">
+          <div class="v3-fbr-head">
+            <div class="v3-fbr-av-wrap">
+              ${fbBeltHtml('back')}
+              <div class="v3-fbr-av"><span class="v3-fbr-face is-in" style="background-image:url('${face}')"></span></div>
+              ${fbBeltHtml('front')}
+            </div>
+          </div>
+          <div class="v3-fbr-name"><span class="v3-fbr-who">${R.name || 'Listener'}</span><span class="v3-fbr-ago">${R.ago || ''}</span></div>
+          <div class="v3-fbr-score">
+            <span class="v3-fbr-scorebox"><span class="v3-fbr-n">${rating.toFixed(1)}</span><span class="v3-fbr-discs">${halfStars(rating, 13)}</span></span>
+            <span class="v3-fbr-acts">
+              <span class="v3-fbr-act v3-fbr-act--like">${like}</span>
+              <span class="v3-fbr-act v3-fbr-act--cmt">${cmt}</span>
+              <span class="v3-fbr-ago v3-fbr-ago--row">${R.ago || ''}</span>
+            </span>
+          </div>
+          ${text ? `<div class="v3-fbr-text">${text}</div>` : ''}
+        </div>
+        <!-- The record line: the whole box goes to the album — except the CD
+             pushed hard right, which plays the 30s preview (Eric, 2026-09-24). -->
+        <div class="v3-rsh-record" onclick="rshRecordTap(this)" title="Open the album">
+          <div class="v3-rsh-art" style="background-image:url('${a.image || ''}')"></div>
+          <div class="v3-rsh-rec-who">
+            <span class="v3-rsh-rec-album">${a.album || ''}</span>
+            <span class="v3-rsh-rec-artist">${a.artist || ''}${a.year ? ` · ${a.year}` : ''}</span>
+          </div>
+          <div class="v3-rsh-cd" style="background-image:url('${a.image || ''}')" title="Play / pause preview" onclick="rshCdTap(this, event)"><div class="v3-cd-hole"></div></div>
+        </div>
+        <div class="rvp-cmts">
+          <div class="rvp-cmts-hd">Comments <span class="rvp-cmts-n" data-k="${_revAttr(key)}" data-n="${R.comments || 0}">${cmtCount(key, R.comments || 0)}</span></div>
+          ${cmtWrapHtml(key, R.comments || 0)}
+        </div>
+      </div>
+    </div>`;
+}
+window.openReviewSheet = function (key, compose, triggerEl) {
+  const R = REV_INDEX[key];
+  if (!R) return;
+  closeReviewSheet(true);
+  CMT_OPEN[key] = true;                       // the thread IS the sheet — always open here
+  const host = (triggerEl && triggerEl.closest && triggerEl.closest('.app-screen'))
+             || document.querySelector('.app-screen.s-home-v3') || document.body;
+  const ov = document.createElement('div');
+  ov.className = 'v3-rsh-ov';
+  ov.innerHTML = rshHtml(R);
+  ov.addEventListener('click', () => closeReviewSheet());
+  host.appendChild(ov);
+  const sheet = ov.querySelector('.v3-rsh');
+  const body = ov.querySelector('.v3-rsh-body');
+  window._rsh = ov;
+  // Pull it down to close: the handle and the head follow the pointer.
+  let y0 = null, dy = 0;
+  const grabs = [ov.querySelector('.v3-rsh-grab'), ov.querySelector('.v3-fbr--sheet')];
+  grabs.forEach(g => g && g.addEventListener('pointerdown', e => {
+    if (e.target.closest('button, input, a')) return;
+    y0 = e.clientY; dy = 0;
+    sheet.classList.add('is-drag');
+    try { g.setPointerCapture(e.pointerId); } catch (_) {}
+  }));
+  const move = e => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); sheet.style.transform = `translateY(${dy}px)`; };
+  const up = () => {
+    if (y0 == null) return;
+    y0 = null; sheet.classList.remove('is-drag'); sheet.style.transform = '';
+    if (dy > RSH_CLOSE_PX) closeReviewSheet();
+  };
+  ov.addEventListener('pointermove', move);
+  ov.addEventListener('pointerup', up); ov.addEventListener('pointercancel', up);
+  ov._esc = e => { if (e.key === 'Escape') closeReviewSheet(); };
+  document.addEventListener('keydown', ov._esc);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    ov.classList.add('open');
+    const rev = ov.querySelector('.v3-fbr--sheet'), t = rev && rev.querySelector('.v3-fbr-text');
+    fbMarkShort(rev, t); setTimeout(() => fbMarkShort(rev, t), 150);
+  }));
+  setTimeout(cmtFill, 80); setTimeout(cmtFill, 420);
+  if (compose) setTimeout(() => { const inp = ov.querySelector('.v3-cmt-input'); if (inp) inp.focus(); }, 380);
+  if (body) body.scrollTop = 0;
+};
+/* The CD on the record line: tap to play the album's 30s preview, tap again
+   to pause — the same audio element and Deezer lookup as the bento's CD
+   (playPreview), but for THIS review's album, not the shell's. It always
+   turns; while it plays it turns faster and lights up (`.is-playing`).
+   Closing the sheet stops what it started. */
+window.rshCdTap = function (el, e) {
+  if (e) e.stopPropagation();
+  const rev = el.closest('.v3-rsh').querySelector('.v3-fbr--sheet');
+  const R = rev && REV_INDEX[rev.dataset.k];
+  const album = R && R.album;
+  if (!album) return;
+  const a = previewAudioEl();
+  unlockAudio(a);
+  if (el.classList.contains('is-playing')) { a.pause(); el.classList.remove('is-playing'); return; }
+  a.onended = () => el.classList.remove('is-playing');
+  const start = (url) => {
+    if (!url) { el.classList.add('is-none'); setTimeout(() => el.classList.remove('is-none'), 1400); return; }
+    if (a.src !== url) { a.src = url; a.currentTime = 0; }
+    a.play().then(() => { PREVIEW.unlocked = true; el.classList.add('is-playing'); }).catch(() => {});
+  };
+  const cached = PREVIEW_CACHE.get(albumKey(album).toLowerCase());
+  if (cached !== undefined) start(cached);
+  else fetchPreviewUrl(album).then(start);
+};
+window.closeReviewSheet = function (now) {
+  const ov = window._rsh; if (!ov) return;
+  window._rsh = null;
+  const cd = ov.querySelector('.v3-rsh-cd.is-playing');
+  if (cd) { try { previewAudioEl().pause(); } catch (_) {} cd.classList.remove('is-playing'); }
+  document.removeEventListener('keydown', ov._esc);
+  if (now) { ov.remove(); return; }
+  ov.classList.remove('open');
+  setTimeout(() => ov.remove(), 340);
+};
+// The record line: close the sheet, open the album.
+window.rshRecordTap = function (el) {
+  const rev = el.closest('.v3-rsh').querySelector('.v3-fbr--sheet');
+  const R = rev && REV_INDEX[rev.dataset.k];
+  closeReviewSheet();
+  if (R && R.album && typeof openAlbumPage === 'function') openAlbumPage(R.album);
+};
+
+/* THE SWIPE IS TACTILE (Eric, 2026-09-23: "follows the swipe amount … a
+   point where it just goes when you let go"). While the finger is down the
+   deck RIDES it: FB_DRAG_PX of travel is one card, and every card is painted
+   at that fractional position (fbPaintDeck), transitions off. On release it
+   decides: past FB_COMMIT of a card, or flicked faster than FB_FLICK, it
+   goes on to the next (or previous); otherwise it springs back. Either way
+   the transitions come back on for the settle, and only then is the strip
+   repainted (fbGo) — the review under the deck changes when the cover has
+   landed, not while you're dragging it. One card per gesture: the travel is
+   clamped to ±1, with a little give past it so a long pull still answers.
+   `touch-action: pan-y` (app.css) keeps the page's vertical scroll; the
+   gesture claims the horizontal once it is clearly sideways. */
+const FB_DRAG_PX = 150, FB_COMMIT = 0.37, FB_FLICK = 0.5;    // px per card · fraction · px/ms (commit 0.32 → 0.37, Eric: "a little less sensitive")
+function fbSwipe(screenEl, flow) {
+  let x0 = 0, y0 = 0, on = false, claimed = false, p = 0, lastX = 0, lastT = 0, vx = 0;
+  const clampP = v => { const m = Math.abs(v); return Math.sign(v) * (m <= 1 ? m : 1 + (m - 1) * 0.25); };
+  flow.addEventListener('pointerdown', e => {
+    x0 = lastX = e.clientX; y0 = e.clientY; lastT = performance.now();
+    on = true; claimed = false; p = 0; vx = 0;
+    flow._swiped = false;
+  });
+  flow.addEventListener('pointermove', e => {
+    if (!on) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+    if (!claimed) {
+      if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      claimed = true; flow._swiped = true;
+      flow.classList.add('is-dragging');
+      try { flow.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+    const now = performance.now(), dt = now - lastT;
+    if (dt > 0) { vx = 0.6 * vx + 0.4 * ((e.clientX - lastX) / dt); lastX = e.clientX; lastT = now; }
+    p = clampP(-dx / FB_DRAG_PX);                   // drag left → the next card comes
+    fbPaintDeck(screenEl, (screenEl._fbCur || 0) + p);
+  });
+  const end = e => {
+    if (!on) return;
+    on = false;
+    if (!claimed) return;
+    flow.classList.remove('is-dragging');
+    const cur = screenEl._fbCur || 0;
+    let step = 0;
+    if (Math.abs(p) >= FB_COMMIT) step = Math.sign(p);
+    else if (Math.abs(vx) >= FB_FLICK) step = vx < 0 ? 1 : -1;
+    fbGo(screenEl, cur + step);                     // settles with the transition on
+    setTimeout(() => { flow._swiped = false; }, 60);   // let the click after a drag see the flag
+  };
+  flow.addEventListener('pointerup', end);
+  flow.addEventListener('pointercancel', end);
 }
 
 /* Each card's discs take the colour of ITS OWN cover (Eric, 2026-09-18), not
@@ -4337,6 +5050,7 @@ function populateHomeData(screenEl) {
   // because this runs on every render — so it follows a persona switch.
   const handleEl = screenEl.querySelector('.v3-header-handle');
   if (handleEl) handleEl.textContent = '@' + ((window.PROFILE && window.PROFILE.handle) || 'you');
+  sdScrollWatch(screenEl);   // csharpuser: the header's logo goes and "back 2 top" comes as you scroll
 
   const seq = albumSeq();
   if (!seq.length) return;
@@ -4355,6 +5069,7 @@ function populateHomeData(screenEl) {
   setMainAlbum(screenEl, seq[idx], false);
   renderFriendFeed(screenEl);
   renderNowBar(screenEl);
+  renderFriendsBento(screenEl);   // csharpuser: the friends bento, painted AFTER the hero so its album wins
 
   const forSingle = screenEl.querySelector('.v3-for-single');
   if (forSingle) {
@@ -4372,6 +5087,31 @@ function populateHomeData(screenEl) {
   if (screenEl.classList.contains('s-shop')) shopProInit(screenEl);
   else                                       homeProInit(screenEl);
 }
+
+/* SCROLLED STATE (Eric, 2026-09-24): as the body scrolls past SD_SCROLLED_AT
+   the shell gets `.is-scrolled` — the header's wordmark and handle fade out
+   while the notification and settings bubbles stay put, and the nav's
+   "back 2 top" tab rises out of the pill. One listener per body; a re-render
+   makes a new body, so the flag on the element is the guard. */
+const SD_SCROLLED_AT = 60;
+function sdScrollWatch(screenEl) {
+  const body = screenEl.querySelector('.v3-body');
+  if (!body || body._sdScroll) return;
+  body._sdScroll = true;
+  let on = false;
+  const check = () => {
+    const now = body.scrollTop > SD_SCROLLED_AT;
+    if (now !== on) { on = now; screenEl.classList.toggle('is-scrolled', on); }
+  };
+  body.addEventListener('scroll', check, { passive: true });
+  check();
+}
+window.sdBackToTop = function (el, e) {
+  if (e) e.stopPropagation();
+  const scr = el.closest('.s-home-v3');
+  const body = scr && scr.querySelector('.v3-body');
+  if (body) body.scrollTo({ top: 0, behavior: 'smooth' });
+};
 
 // Swipe the album art to move through albums: drag-left = next, drag-right = previous.
 // The image follows the finger; past 45% of the album width it commits, else snaps back.
@@ -5481,9 +6221,6 @@ const NAV_PAGES = [
   // would just be a second button for Album Page.
   { id: 'profile',      label: 'Profile'       },
   { id: 'profile-edit', label: 'Edit Profile'  },
-  { id: 'playlists',    label: 'Playlists'     },
-  { id: 'playlist-new', label: 'New Playlist'  },
-  { id: 'playlist',     label: 'Playlist Page' },
   { id: 'review-page',  label: 'Review Page'   },
   { id: 'notifications',label: 'Notifications' },
   { id: 'settings',     label: 'Settings'      },
@@ -5579,7 +6316,7 @@ window.toggleMulti = function() {
 };
 
 // ── Zoom ─────────────────────────────────────────────────────
-let zoomLevel = 1;
+let zoomLevel = 1.35;   // csharpuser (2026-09-24): opens at 135% (Eric) — ± still steps by a quarter
 const ZOOM_STEP = 0.25;
 const ZOOM_MIN  = 0.25;
 const ZOOM_MAX  = 4;
@@ -5608,6 +6345,7 @@ function bindViewerEvents() {
     e.preventDefault();
     setZoom(zoomLevel + (e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP));
   }, { passive: false });
+  setZoom(zoomLevel);   // the opening zoom is applied, not just labelled
 }
 
 // ── PNG Export ───────────────────────────────────────────────
@@ -8710,10 +9448,74 @@ function reshuffleHome() {
    this deals a new one: people from the demo's cast, albums drawn at random
    from the persona's own shelf, and the QUOTE taken from that album's own
    generated reviews, so the card and the album page agree with each other. */
+/* LONG REVIEWS (Eric, 2026-09-23: "let's have some longer reviews"). The
+   album pools top out around 250 characters — four lines on the home card —
+   so the five-line fade and its View more never fired. These are dealt in
+   every fourth card, and PUSHED INTO THAT ALBUM'S OWN LIST so the album page
+   shows the same review the card did. Album-agnostic on purpose: the album
+   is drawn at random, so nothing here names a record or a track. */
+const FB_LONG_REVIEWS = [
+  { name: 'drumkid', init: 'DK', grad: 'linear-gradient(135deg,#7c2d12,#ea580c)', rating: 5,
+    text: "i put this on for the first time on a train with a dead phone battery and nothing else to do, which turned out to be the only correct way to hear it. it does not want you half listening. the first two tracks are a slow dare, the third is where it turns, and by the middle of the record i had stopped looking out the window. every listen since has found something new: a bass line buried under a verse, a sample i missed, a lyric that lands differently now that i know how the album ends. i have had it on rotation for months and i am still not at the top" },
+  { name: 'vxblank', init: 'VB', grad: 'linear-gradient(135deg,#4c0519,#be123c)', rating: 4.5,
+    text: "the rare album that gets quieter as it goes and somehow bigger at the same time. the front half is all hooks, big and generous, the kind you can play at a party. then it thins out, the drums drop away, and the back half is basically one long exhale. i docked half a star because there is a track in the middle that i skip every single time, but the last three songs are among the best sequencing i have heard on a record this decade. listen front to back or do not bother" },
+  { name: 'nova_wr', init: 'NW', grad: 'linear-gradient(135deg,#064e3b,#059669)', rating: 5,
+    text: "i went in expecting a competent album and came out needing to text four people about it. what gets me is the restraint. every song has a moment where a lesser producer would have added a layer, and instead it just sits there and lets the space do the work. the vocals are recorded close enough that you can hear the breath before each line. it is a headphones record, a late record, a walk home record. i keep trying to describe it to people and i keep landing on the same word, which is patient" },
+  { name: 'marshmist', init: 'MM', grad: 'linear-gradient(135deg,#500724,#db2777)', rating: 4,
+    text: "small quiet verses and then a wall. the whole record is built on that trick and it works every single time, which should be annoying and somehow is not. the lyrics are plain, almost conversational, and then one line in each song is a knife. it is short, under forty minutes, and it knows exactly how long it needs to be, which almost nobody gets right. four stars only because the production is a little thin in places and i wanted the low end to hit harder on the big moments. otherwise, no notes" },
+  { name: 'echoplex', init: 'E', grad: 'linear-gradient(135deg,#1c1c3e,#3b1fa8)', rating: 4.5,
+    text: "first heard this on a night bus with a broken window and it has never sounded better than that, the rain getting in and the opener looping. every voice on it sounds like somebody you half remember. the crackle is not a gimmick, it is the room. people file it under one genre and it is technically true and completely useless as a description. it is a record about being awake when you should not be, and it is one of the only ones that gets the feeling exactly right" },
+];
+/* THE CAST (Eric, 2026-09-23: "a larger variety of usernames"). The demo's
+   FRIEND_ACTIVITY has eight people; a feed dealt from eight names repeats
+   fast. These forty follow the onboarding's own handle rule — 4–18 chars,
+   a–z 0–9 _ (checked below) — and get initials and a gradient off the name,
+   so each looks like themselves everywhere (feedFace hashes the handle for
+   the photo the same way). The demo's eight stay in, deduplicated. */
+const FB_CAST_EXTRA = ['tapehiss_', 'lowpass99', 'static_kid', 'b_side_b', 'ninetiesgirl', 'reverb_tank', 'dustyneedle', 'hifi_hana', 'moss_and_wire', 'sub_bass_sam', 'night_bus_', 'latch_key', 'koto_dreams', 'ferris_wheel7', 'paper_crane', 'chrome_heart', 'glassbeach', 'moonpie_44', 'deep_cuts', 'sidechain', 'offbeat_ollie', 'vinylvicky', 'warmtape', 'quietstorm_', 'loop_de_loop', 'halfspeed', 'crate_digger', 'bedroomtapes', 'monotone_m', 'shoegazer_x', 'pulsewidth', 'tremolo_tess', 'saltwater_', 'blue_note_bo', 'riff_raff01', 'cassette_cat', 'echo_park', 'slowdive_sue', 'freq_out', 'wavetable'];
+const FB_GRADS = [
+  'linear-gradient(135deg,#1c1c3e,#3b1fa8)', 'linear-gradient(135deg,#164e63,#0284c7)', 'linear-gradient(135deg,#3b0764,#9333ea)',
+  'linear-gradient(135deg,#064e3b,#059669)', 'linear-gradient(135deg,#7c2d12,#ea580c)', 'linear-gradient(135deg,#134e4a,#0d9488)',
+  'linear-gradient(135deg,#4c0519,#be123c)', 'linear-gradient(135deg,#500724,#db2777)', 'linear-gradient(135deg,#3f3f46,#a1a1aa)',
+  'linear-gradient(135deg,#713f12,#ca8a04)', 'linear-gradient(135deg,#1e3a8a,#60a5fa)', 'linear-gradient(135deg,#365314,#84cc16)',
+];
+const FB_HANDLE_RE = /^[a-z0-9_]{4,18}$/;
+let _fbCast = null;
+function fbCast() {
+  if (_fbCast) return _fbCast;
+  const out = [], seen = new Set();
+  BASE_FRIEND_ACTIVITY.forEach(f => { if (!seen.has(f.user)) { seen.add(f.user); out.push({ user: f.user, init: f.init, grad: f.grad }); } });
+  FB_CAST_EXTRA.forEach(u => {
+    if (seen.has(u) || !FB_HANDLE_RE.test(u)) return;
+    seen.add(u);
+    let h = 7; for (const c of u) h = (h * 31 + c.charCodeAt(0)) | 0;
+    const parts = u.replace(/[0-9_]+/g, ' ').trim().split(/\s+/);
+    const init = (parts.length > 1 ? parts[0][0] + parts[1][0] : u.slice(0, 1)).toUpperCase();
+    out.push({ user: u, init, grad: FB_GRADS[Math.abs(h) % FB_GRADS.length] });
+  });
+  return (_fbCast = out);
+}
+/* POPULAR REVIEWS (Eric, 2026-09-24): every deal carries a couple of cards
+   that are NOT a friend's — a review that went round, by someone you don't
+   follow, on a record in a genre you listen to. They read as the community
+   leaking in: big like and comment counts, a longer write-up, and a
+   "Popular review · <genre>" chip on the card. FB_POPULAR_PER_DEAL of them
+   in sixteen cards (Eric: "mostly friends, like *:1"), slotted in at fixed
+   spots so they never lead the deck. The names are their own pool — never a
+   friend's — and the write-ups are album-agnostic like FB_LONG_REVIEWS. */
+const FB_POPULAR_PER_DEAL = 2;
+const FB_COMMUNITY = ['hi_fi_hollow', 'lastfm_lifer', 'analog_ana', 'the_needle_drop_', 'liner_notes', 'octave_oscar',
+  'tape_deck_tina', 'rym_refugee', 'basement_show', 'crate_club', 'sleeve_notes', 'deep_listen'];
+const FB_VIRAL_REVIEWS = [
+  { rating: 5, text: "ok i need everyone to stop what they are doing and put this on. not in the background, not while you cook. sit down. the opener is a slow build that most bands would have made the closer, and it is only track one. the middle stretch is where it becomes a different record, three songs that feel like one long thought, and then the last two pull the whole thing back to earth. i have been listening to music seriously for twenty years and i do not say this lightly: this is the one from this year that people will still be arguing about in ten. it is not perfect. it does not need to be. it knows exactly what it is" },
+  { rating: 4.5, text: "the thing nobody is saying about this record is how FUNNY it is. everyone is treating it like a monument, and it is, but the lyrics are full of little jokes at its own expense, the kind you only catch on the fourth listen when you have stopped being impressed and started actually paying attention. the production is enormous, all low end and room, and then it drops out for one verse and the voice is just there, cracked and close. the second half sags a little. i do not care. the high points are higher than anything else i have heard this year and the low points are still better than most people's best" },
+  { rating: 5, text: "i have written and deleted this review four times because every version sounded like i was selling something. so, plainly: this album made me call my brother, who i had not spoken to in a year. that is not a metaphor. there is a song near the end about exactly that, and it is written so plainly and so without self-pity that it went straight through the part of me that usually manages these things. the rest of the record earns that moment. it is patient and strange and it never once asks you to like it. i am going to be recommending this to people for the rest of my life and most of them are going to think i am overselling it. i am not" },
+  { rating: 4.5, text: "a record that sounds like it cost nothing and feels like it cost everything. the whole thing was apparently made in a spare room over a winter and you can hear the room, the radiator, the way the vocal sits too close to the mic on the quiet songs. that closeness is the point. it is a small album about small things and by the end the small things are the only things. two of the songs in the middle blur together for me and i think one of them should have been cut, which is the only reason this is not five. everything else is the best version of itself. the last song is a hymn" },
+];
 function personaFeed(p) {
   const A = window.ARCHIVE;
   if (!A.length) return [];
-  const cast = BASE_FRIEND_ACTIVITY;
+  const cast = fbCast();
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
   const ago = () => {
     const h = 1 + Math.floor(Math.random() * 47);
@@ -8722,10 +9524,20 @@ function personaFeed(p) {
   // No quote twice on one feed: the pool is 36 lines across ~100 albums, so
   // two cards saying "review pending. still crying." was a regular sight.
   const used = new Set();
-  return shuffled(A).slice(0, Math.min(cast.length, A.length)).map(a => {
-    const who = pick(cast);
+  // Sixteen cards a deal (the demo list's size), each a different person where the cast allows.
+  const people = shuffled(cast);
+  const deck = shuffled(A);
+  const cards = deck.slice(0, Math.min(16, A.length)).map((a, i) => {
+    let who = people[i % people.length];
     const fresh = (a.reviews || []).filter(r => !used.has(r.text));
-    const rev = fresh.length ? pick(fresh) : ((a.reviews && a.reviews.length) ? pick(a.reviews) : null);
+    let rev = fresh.length ? pick(fresh) : ((a.reviews && a.reviews.length) ? pick(a.reviews) : null);
+    // Every fourth card: a LONG one, from the pool above, written into the album too.
+    if (i % 4 === 1) {
+      const L = FB_LONG_REVIEWS[Math.floor(i / 4) % FB_LONG_REVIEWS.length];
+      if (!(a.reviews || []).some(r => r.text === L.text)) a.reviews = [...(a.reviews || []), L];
+      rev = L;
+      who = cast.find(c => c.user === L.name) || who;
+    }
     if (rev) used.add(rev.text);
     return {
       user: who.user, init: who.init, grad: who.grad,
@@ -8737,6 +9549,37 @@ function personaFeed(p) {
       ago: ago(),
     };
   });
+
+  /* The popular ones: records NOT in the friends' deal, in a genre this
+     persona's shelf is heavy on (the top three genres by count), reviewed
+     by someone from the community pool with a viral write-up and the counts
+     to match. Written into the album's own list like the long reviews are,
+     so the album page shows the same review. Slotted at cards 4 and 11. */
+  const byGenre = {};
+  A.forEach(x => { const g = String(x.genre || '').trim(); if (g) byGenre[g] = (byGenre[g] || 0) + 1; });
+  const top = Object.keys(byGenre).sort((x, y) => byGenre[y] - byGenre[x]).slice(0, 3);
+  const dealt = new Set(cards.map(c => c.album));
+  const pool = deck.filter(x => !dealt.has(x.album) && (!top.length || top.includes(String(x.genre || '').trim())));
+  const rest = deck.filter(x => !dealt.has(x.album) && !pool.includes(x));
+  const names = shuffled(FB_COMMUNITY), virals = shuffled(FB_VIRAL_REVIEWS);
+  const slots = [4, 11];
+  for (let k = 0; k < FB_POPULAR_PER_DEAL; k++) {
+    const a = pool[k] || rest[k];
+    if (!a) break;
+    const V = virals[k % virals.length], user = names[k % names.length];
+    let h = 7; for (const c of user) h = (h * 31 + c.charCodeAt(0)) | 0;
+    const rev = { name: user, init: user.replace(/[^a-z]/g, '').slice(0, 2).toUpperCase(), grad: FB_GRADS[Math.abs(h) % FB_GRADS.length], rating: V.rating, text: V.text };
+    if (!(a.reviews || []).some(r => r.text === V.text)) a.reviews = [...(a.reviews || []), rev];
+    cards.splice(Math.min(slots[k] || cards.length, cards.length), 0, {
+      user, init: rev.init, grad: rev.grad, popular: true, genre: String(a.genre || '').trim(),
+      album: a.album, artist: a.artist, year: a.year, image: a.image,
+      rating: V.rating, quote: `"${V.text}"`,
+      likes: 400 + Math.floor(Math.random() * 2000),
+      comments: 40 + Math.floor(Math.random() * 220),
+      ago: ago(),
+    });
+  }
+  return cards;
 }
 
 // The persona's profile: authored identity from the CSV, taste from their
@@ -8892,6 +9735,57 @@ const DEVBOX_TABS = [
 ];
 
 const DEVBOX = {};
+/* THE DECK TAB (Eric, 2026-09-23). Not CSS: it drives FB_TUNE (the home
+   deck's geometry) live and prints the table back as JS to paste over the
+   `const FB_TUNE` block in app.js. `js: true` keeps it out of the injected
+   <style>; `apply` is what makes it live. Keys are `fb*` — one flat DEVBOX. */
+DEVBOX_TABS.push({
+  id: 'deck', label: 'Deck', js: true,
+  fields: [
+    { grp: 'Camera' },
+    { k: 'fbP',  label: 'Perspective', min: 80, max: 1600, step: 10, def: 600 },
+    { grp: '1st card back' },
+    { k: 'fbA1', label: 'Turn °', min: -180, max: 180, step: 1, def: 75 },
+    { k: 'fbO1', label: 'Edge X', min: 100, max: 260, step: 1, def: 158 },
+    { k: 'fbZ1', label: 'Depth', min: -300, max: 800, step: 5, def: 160 },
+    { k: 'fbY1', label: 'Y nudge', min: -60, max: 60, step: 1, def: 0 },
+    { grp: '2nd card back' },
+    { k: 'fbA2', label: 'Turn °', min: -180, max: 180, step: 1, def: 94 },
+    { k: 'fbO2', label: 'Edge X', min: 100, max: 300, step: 1, def: 184 },
+    { k: 'fbZ2', label: 'Depth', min: -300, max: 800, step: 5, def: 160 },
+    { k: 'fbY2', label: 'Y nudge', min: -60, max: 60, step: 1, def: 0 },
+    { k: 'fbF2', label: 'Opacity', min: 0, max: 1, step: 0.05, def: 0.85 },
+    { grp: '3rd card back' },
+    { k: 'fbA3', label: 'Turn °', min: -180, max: 180, step: 1, def: 101 },
+    { k: 'fbO3', label: 'Edge X', min: 100, max: 340, step: 1, def: 206 },
+    { k: 'fbZ3', label: 'Depth', min: -300, max: 800, step: 5, def: 160 },
+    { k: 'fbY3', label: 'Y nudge', min: -60, max: 60, step: 1, def: 0 },
+    { k: 'fbF3', label: 'Opacity', min: 0, max: 1, step: 0.05, def: 0.55 },
+  ],
+  apply: d => {
+    FB_TUNE.p = d.fbP;
+    FB_TUNE.a = [0, d.fbA1, d.fbA2, d.fbA3];
+    FB_TUNE.o = [0, d.fbO1, d.fbO2, d.fbO3];
+    FB_TUNE.z = [0, d.fbZ1, d.fbZ2, d.fbZ3];
+    FB_TUNE.y = [0, d.fbY1, d.fbY2, d.fbY3];
+    FB_TUNE.fade = [1, 1, d.fbF2, d.fbF3];
+    document.querySelectorAll('.s-home-v3').forEach(scr => {
+      const flow = scr.querySelector('.v3-fb-flow');
+      if (!flow) return;
+      flow.style.perspective = d.fbP + 'px';
+      if (typeof fbPaintDeck === 'function') fbPaintDeck(scr, scr._fbCur || 0);
+    });
+  },
+  css: d => `const FB_TUNE = {
+  p: ${d.fbP},
+  a: [0, ${d.fbA1}, ${d.fbA2}, ${d.fbA3}],         // rotateY toward the centre, deg
+  o: [0, ${d.fbO1}, ${d.fbO2}, ${d.fbO3}],      // near (outer) edge from the centre, px
+  z: [0, ${d.fbZ1}, ${d.fbZ2}, ${d.fbZ3}],      // push-back, px
+  y: [0, ${d.fbY1}, ${d.fbY2}, ${d.fbY3}],            // extra Y nudge, px (the floor drop is solved on top)
+  fade: [1, 1, ${d.fbF2}, ${d.fbF3}],   // opacity
+};
+/* and in app.css: .v3-fb-flow { perspective: ${d.fbP}px; } */`,
+});
 DEVBOX_TABS.forEach(t => t.fields.forEach(f => { if (f.k) DEVBOX[f.k] = f.def; }));
 let DEVBOX_TAB = DEVBOX_TABS[0].id;
 
@@ -8910,7 +9804,7 @@ function devBoxVals() {
    once — you can't tune the album score with the bento's block switched off. */
 function devBoxCss() {
   const d = devBoxVals();
-  return DEVBOX_TABS.map(t =>
+  return DEVBOX_TABS.filter(t => !t.js).map(t =>
     `/* ${t.label} — tuned in the dev box */\n${t.css(d)}`).join('\n\n');
 }
 
@@ -8931,6 +9825,8 @@ function devBoxApply() {
   // Injected: every tab. Shown/copied: the active one — that's the block you
   // paste into app.css, and it keeps "what you see is what you paste" per tab.
   el.textContent = devBoxCss();
+  // A tab that drives JS rather than CSS (the deck) applies itself here.
+  DEVBOX_TABS.forEach(t => { if (t.apply) t.apply(devBoxVals()); });
   const out = document.getElementById('db-out');
   if (out) out.value = devBoxTabCss();
   document.querySelectorAll('#db-body input[type=range]').forEach(inp => {
@@ -9168,12 +10064,8 @@ function profTagGrid(grid) {
   const worn = T.tags || [];
   const rows = (window.SD_TAGS || []).map(t => {
     const on = worn.indexOf(t.id) >= 0;
-    if (!sdOwnsTag(t.id)) {
-      return `<button class="pp-tag pp-tag--locked${sdTagTex(t)}" style="--tint:${t.tint}"
-              onclick="closeProfPicker(); navigate('shop')" title="Get it in the shop">
-        <span class="pp-tag-l">${obEsc(t.label)}</span><span class="pp-tag-p">${t.price}</span>
-      </button>`;
-    }
+    // csharpuser: no shop, so a tag you don't own simply isn't offered.
+    if (!sdOwnsTag(t.id)) return '';
     // Full and not one of yours → dimmed, and it says so by not lighting up.
     const full = !on && worn.length >= SD_TAG_MAX;
     return `<button class="pp-tag${on ? ' pp-tag--on' : ''}${full ? ' pp-tag--full' : ''}${sdTagTex(t)}"
@@ -9182,7 +10074,7 @@ function profTagGrid(grid) {
     </button>`;
   }).join('');
   grid.className = 'pp-grid pp-grid--tag';
-  grid.innerHTML = `<div class="pp-tag-hint">Wear up to ${SD_TAG_MAX}. The plain ones are yours; the rest are in the shop.</div>${rows}`;
+  grid.innerHTML = `<div class="pp-tag-hint">Wear up to ${SD_TAG_MAX}.</div>${rows}`;
 }
 
 window.profPickTag = function (id) {
