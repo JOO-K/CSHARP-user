@@ -166,7 +166,7 @@ const REC_CFG = {
         <div class="rec-title">Before you start</div>
         <label class="rec-lbl" for="rec-name">What's your name?</label>
         <input class="rec-input" id="rec-name" type="text" autocomplete="name" maxlength="40" placeholder="Your name" required>
-        <p class="rec-note">Your taps and the screens you visit are recorded (no camera, no mic) so we can see how the app gets used and improve it.</p>
+        <p class="rec-note">Your taps and the screens you visit are recorded (no camera, no mic) so we can see how the app gets used and improve it. By pressing Start you approve of this recording.</p>
         <button class="rec-go" type="submit">Start</button>
       </form>`;
     document.body.appendChild(ov);
