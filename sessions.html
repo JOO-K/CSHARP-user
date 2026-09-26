@@ -33,6 +33,8 @@
     .btn { background: none; border: 1px solid #333; color: var(--text); border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
     .btn:hover { border-color: #555; }
     .btn--go { background: rgba(255,255,255,.06); }
+    .btn--quiet { border: 0; color: #555; padding: 6px 4px; }
+    .btn--quiet:hover { color: #aaa; }
     input[type=file] { display: none; }
     .status { width: 100%; font-size: 11px; color: var(--dim); min-height: 14px; line-height: 1.3; }
     .status.err { color: #e06060; }
@@ -78,11 +80,13 @@
   </style>
 </head>
 <body>
+  <!-- One box: the password. Enter signs in and lists the sessions; once
+       signed in the page opens straight to the list and the box is gone. -->
   <div class="panel" id="auth">
-    <input id="sb-pass" type="password" placeholder="password" autocomplete="current-password">
-    <button class="btn btn--go" id="sb-load">Sign in &amp; load</button>
-    <button class="btn" id="sb-out" hidden>Sign out</button>
-    <label class="btn" title="Open session files saved on disk">files<input type="file" id="files" multiple accept=".gz,.json"></label>
+    <input id="sb-pass" type="password" placeholder="password, then Enter" autocomplete="current-password">
+    <button class="btn" id="sb-load" hidden>Reload</button>
+    <button class="btn btn--quiet" id="sb-out" hidden title="Forget the password on this computer">sign out</button>
+    <input type="file" id="files" multiple accept=".gz,.json">
     <div class="status" id="status"></div>
   </div>
 
@@ -122,8 +126,7 @@
     const saveAuth = a => { AUTH = a; try { a ? localStorage.setItem('sb-auth', JSON.stringify(a)) : localStorage.removeItem('sb-auth'); } catch (e) {} paintAuth(); };
     function paintAuth() {
       const on = !!AUTH;
-      $('sb-pass').hidden = on; $('sb-out').hidden = !on;
-      $('sb-load').textContent = on ? 'Load sessions' : 'Sign in & load';
+      $('sb-pass').hidden = on; $('sb-out').hidden = !on; $('sb-load').hidden = !on;
     }
     async function authCall(grant, body) {
       const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=${grant}`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -161,14 +164,16 @@
       const name = m[5].split('-').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
       return { startedAt, name };
     }
-    $('sb-out').addEventListener('click', () => { saveAuth(null); status('Signed out.'); });
-    $('sb-pass').addEventListener('keydown', e => { if (e.key === 'Enter') $('sb-load').click(); });
-    $('sb-load').addEventListener('click', async () => {
+    $('sb-out').addEventListener('click', () => { saveAuth(null); status(''); $('sb-pass').focus(); });
+    $('sb-pass').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
+    $('sb-load').addEventListener('click', load);
+    if (AUTH) load(); else setTimeout(() => $('sb-pass').focus(), 50);
+    async function load() {
       if (!AUTH) {
         const pass = $('sb-pass').value;
-        if (!pass) { status('Password first.', true); return; }
-        try { status('Signing in…'); saveAuth(await authCall('password', { email: SB_LOGIN, password: pass })); $('sb-pass').value = ''; }
-        catch (e) { status('Sign-in failed: ' + e.message, true); return; }
+        if (!pass) { status('Type the password.', true); return; }
+        try { status('Checking…'); saveAuth(await authCall('password', { email: SB_LOGIN, password: pass })); $('sb-pass').value = ''; }
+        catch (e) { status('Wrong password.', true); return; }
       }
       try {
         status('Listing sessions…');
@@ -189,7 +194,7 @@
         status(folders.length ? `${folders.length} session${folders.length === 1 ? '' : 's'}. Nothing is downloaded until you open one.`
                               : 'Signed in, but the bucket lists nothing for this account — run tools/supabase-login.sql, or nothing has been recorded yet.');
       } catch (e) { status('Could not list: ' + e.message, true); }
-    });
+    }
 
     /* ── Reading chunks ────────────────────────────────────── */
     function ingest(buf, name) {
