@@ -592,6 +592,7 @@ function bentoGesturesOn(screenEl) {
 
 // Drop straight into the album page for `album`, all classes set at once (no review flash).
 function enterAlbumPageState(scr, album) {
+  if (window._sdMorph) { scr.classList.add('sd-morphing'); setTimeout(() => scr.classList.remove('sd-morphing'), 900); }   // morph.js glides the cover; the page's own slide stays out of its way
   setMainAlbum(scr, album, false);
   scr.classList.remove('s-home-v3--artist');
   scr.classList.add('s-home-v3--review', 's-home-v3--album');
@@ -1657,7 +1658,17 @@ window.onLivePill = function (btn) {
     if (MIX.at) mixGoto(null); else closeMixDial();
     return;
   }
-  if (scr.classList.contains('s-home-v3--review')) { goBack(); return; }
+  if (scr.classList.contains('s-home-v3--review')) {
+    // Back from the album page: the cover shrinks back onto the deck's front
+    // card or the wall tile it came from (morph.js) — when Back leaves the
+    // review state, i.e. the snapshot underneath is a plain screen.
+    const top = backStack[backStack.length - 1];
+    const cover = scr.querySelector('.v3-album'), album = scr._album;
+    if (cover && typeof sdMorph === 'function' && scr.classList.contains('s-home-v3--album') && !scr.classList.contains('s-home-v3--artist') && (!top || !top.review)) {
+      sdMorph(cover, () => sdFindCoverHome(album), () => goBack(), { destImage: false });
+    } else goBack();
+    return;
+  }
   toggleHand();   // regular bento state: the pill is the hand-layout switch
 };
 // Tap a star to set your own rating — left half = .5, right half = whole
@@ -2872,7 +2883,10 @@ window.sdAlbumData = a => `data-alb="${sdAttr(a.album)}" data-art="${sdAttr(a.ar
 window.openAlbumByData = function (el, e) {
   if (e) e.stopPropagation();
   const a = albumByTitle(el.dataset.alb, el.dataset.art);
-  if (a) openAlbumPage(a);
+  if (!a) return;
+  const art = el.querySelector('.wall2-art') || el;
+  if (typeof sdMorph === 'function') sdMorph(art, sdFindAlbumCover, () => openAlbumPage(a));   // the tile grows into the cover
+  else openAlbumPage(a);
 };
 function friendAlbumFor(f) {
   return (window.ARCHIVE || []).find(x => x.album === f.album && x.artist === f.artist)
@@ -3065,7 +3079,12 @@ window.feedOpenArt = function (n) {
   const e = feedEvents()[n];
   if (!e) return;
   if (e.type === 'follow') return window.openArtistPageFor && window.openArtistPageFor(e.artist);
-  openFriendAlbum(e.idx);
+  // The record's art grows into the album page's cover (morph.js). The inline
+  // onclick has no `this`; the dispatching element is window.event's target.
+  const host = window.event && window.event.currentTarget instanceof Element ? window.event.currentTarget : null;
+  const art = host && host.querySelector('.v3-rev-record-art');
+  if (art && typeof sdMorph === 'function') sdMorph(art, sdFindAlbumCover, () => openFriendAlbum(e.idx));
+  else openFriendAlbum(e.idx);
 };
 
 // Strip one pair of wrapping quote marks (straight or curly) off a feed quote.
@@ -3528,8 +3547,11 @@ window.fbCardTap = function (el, e) {
     // record resolved from the deck's own entry, never by index into a list
     // that may have been rebuilt — with no review pinned and no glide down
     // to the comments. The review block under the deck is what opens the review.
-    if (f && f._dd) openAlbumPage(f.rec);
-    else if (f) openAlbumPage(fbAlbumOf(f));
+    const album = f && (f._dd ? f.rec : fbAlbumOf(f));
+    if (!album) return;
+    // The cover GROWS into the album page's cover (morph.js, 2026-09-26).
+    if (typeof sdMorph === 'function') sdMorph(el, sdFindAlbumCover, () => openAlbumPage(album));
+    else openAlbumPage(album);
   }
   else fbSideStep(scr, flow, e);
 };
@@ -9445,17 +9467,36 @@ window.sdPerson = function (el, e) {
   const blk = el.closest('.v3-fbr');
   const name = (el.dataset.user || (blk && blk.querySelector('.v3-fbr-who') && blk.querySelector('.v3-fbr-who').textContent) || el.textContent || '').trim();
   if (!name) return;
-  if (el.closest('.v3-rsh-ov') && typeof closeReviewSheet === 'function') closeReviewSheet(true);
   const P = window.PROFILE || {};
   const mine = name === 'You' || (!window.PROFILE_GUEST && (name === P.name || name === P.handle));
-  if (mine) { if (currentScreen().id !== 'profile') navigate('profile'); return; }
   if (window.PROFILE_GUEST === name && currentScreen().id === 'profile') return;   // already on their page
-  openFriendProfile(name);
+  if (mine && currentScreen().id === 'profile') return;
+  // The face glides into the profile card's picture (morph.js, 2026-09-26) —
+  // the tapped face, or the one beside the tapped name.
+  const face = el.matches('.v3-rev-av, .v3-fbr-av, .v3-cmt-av') ? el
+    : (el.closest('.v3-rev-card-top, .v3-fbr, .v3-cmt-top') || el).querySelector('.v3-rev-av, .v3-fbr-av, .v3-cmt-av');
+  const go = () => {
+    if (el.closest('.v3-rsh-ov') && typeof closeReviewSheet === 'function') closeReviewSheet(true);
+    if (mine) navigate('profile'); else openFriendProfile(name);
+  };
+  if (face && typeof sdMorph === 'function') sdMorph(face, sdFindProfilePic, go, { destImage: !mine });
+  else go();
 };
 window.openFriendProfile = function (name) {
   if (!name) return;
   if (!PROFILE_OWNER) PROFILE_OWNER = Object.assign({}, window.PROFILE);
   randomizeProfile(name);
+  /* ⚠️ THE PERSON YOU TAPPED (2026-09-26). randomizeProfile seeds everything
+     off the name but still deals a random nick, handle and photo — so
+     "rym_refugee"'s page opened as somebody called Juno with a stranger's
+     face. The name is theirs, the handle is the name, and the picture is
+     the SAME `feedFace` every review and comment shows for them, which is
+     also what lets the morph's face land on an identical picture. */
+  const P = window.PROFILE;
+  P.name = name;
+  P.handle = String(name).toLowerCase().replace(/[^a-z0-9_.]/g, '') || String(name);
+  if (typeof feedFace === 'function') P.pic = feedFace(name);
+  P.socials = { instagram: P.handle, x: P.handle, soundcloud: P.handle };
   window.PROFILE_GUEST = name;
   /* 'guest' is what keeps `navigate` from re-rolling the profile we just dealt
      and from restoring the one we just stashed. */

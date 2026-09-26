@@ -268,6 +268,20 @@
 >   the deck's review block, the review sheet, `revCardInner` (feed, album
 >   page, profile pins, hero), the activity cards and the comments. "You" /
 >   the signed-in profile → your own profile; a sheet closes first.
+>   - **2026-09-26 — MORPH transitions (`morph.js`).** Eric: "when you click on
+>   the album it grows larger, when you click on the profile it fills where
+>   it's supposed to go". `sdMorph(src, findDest, go)` glides a body-level
+>   clone of the tapped element's box into the destination's box after the
+>   navigation. Hooked: the deck's front cover (`fbCardTap`), wall / artist /
+>   notification tiles (`openAlbumByData`), a feed card's record
+>   (`feedOpenArt`) → the album page's cover; a face or name (`sdPerson`) →
+>   the profile card's `.prof-pic`; Back from the album page (`onLivePill`)
+>   → the deck's front card or the wall tile. `enterAlbumPageState` puts
+>   `.sd-morphing` on the shell so the cover's own slide (app.css) holds
+>   still under the morph. Same day: `openFriendProfile` now shows THE
+>   PERSON TAPPED — their name as name and handle, `feedFace(name)` as the
+>   picture (randomizeProfile dealt a random nick and photo before), so the
+>   face that glides in lands on the identical picture.
 > Everything below this box is the ORIGINAL's documentation and still describes
 > the code that is here — read it with the list above in mind.
 

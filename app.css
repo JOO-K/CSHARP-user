@@ -12216,6 +12216,11 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 /* A name or a face opens that person's profile (sdPerson, app.js, 2026-09-26). */
 .v3-rev-av, .v3-rev-name, .v3-fbr-av, .v3-fbr-who, .v3-cmt-av, .v3-cmt-user { cursor: pointer; }
 
+/* MORPH (morph.js, 2026-09-26): while the tapped thing glides into its place
+   on the next screen, the shell's own cover/bento slides stay still so the
+   destination box is not a moving target. */
+.sd-morphing .v3-album, .sd-morphing .v3-bento, .sd-morphing .v3-blue, .sd-morphing .v3-for-single, .sd-morphing .v3-review-panel { transition: none !important; animation: none !important; }
+
 /* ============================================================
    MINIMAL MOTION — csharpuser (2026-09-25). Eric: "reduce the interactions
    like the animations to a minimum". At-rest loops are off for everyone
