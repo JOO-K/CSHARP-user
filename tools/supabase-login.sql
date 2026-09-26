@@ -16,3 +16,12 @@ drop policy if exists "sessions: signed-in viewers may read" on storage.objects;
 create policy "sessions: signed-in viewers may read"
   on storage.objects for select to authenticated
   using (bucket_id = 'sessions');
+
+-- DELETING (2026-09-26, Eric: "i have so many sessions from me testing"):
+-- a signed-in viewer may also delete recordings — the × on a session in
+-- sessions.html, and "delete by name". Same reasoning as reading: the only
+-- signed-in accounts are the ones you made. The public key still only adds.
+drop policy if exists "sessions: signed-in viewers may delete" on storage.objects;
+create policy "sessions: signed-in viewers may delete"
+  on storage.objects for delete to authenticated
+  using (bucket_id = 'sessions');

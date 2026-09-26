@@ -44,7 +44,11 @@
     .hd { position: sticky; top: 0; padding: 10px 14px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--dim); background: var(--panel); border-bottom: 1px solid var(--border); }
     .drop { margin: 14px; padding: 24px 14px; border: 1px dashed #333; border-radius: 10px; color: var(--dim); text-align: center; font-size: 12px; }
     .drop.is-over { border-color: var(--hi); color: var(--text); }
-    .row { display: grid; grid-template-columns: 38px 1fr auto; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #202020; cursor: pointer; align-items: center; }
+    .row { display: grid; grid-template-columns: 38px 1fr auto auto; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #202020; cursor: pointer; align-items: center; }
+    /* DELETE (Eric, 2026-09-26): a × on every row, shown on hover, one session at a time — and "delete by name" in the sign-in row for a whole tester. Both ask first. */
+    .row .x { opacity: 0; width: 22px; height: 22px; border: 0; border-radius: 6px; background: none; color: #777; font: inherit; font-size: 15px; line-height: 1; cursor: pointer; }
+    .row:hover .x { opacity: 1; }
+    .row .x:hover { background: rgba(255,80,80,.18); color: #ff8a8a; }
     .row:hover { background: rgba(255,255,255,.03); }
     .row.is-on { background: rgba(59,130,246,.14); }
     .row .n { font-family: ui-monospace, Menlo, monospace; color: var(--dim); font-size: 11.5px; }
@@ -115,6 +119,7 @@
     <input id="sb-pass" type="password" placeholder="password, then Enter" autocomplete="current-password">
     <button class="btn" id="sb-load" hidden>Reload</button>
     <button class="btn btn--quiet" id="sb-out" hidden title="Forget the password on this computer">sign out</button>
+    <button class="btn btn--quiet" id="sb-delname" hidden title="Delete every session by one tester (asks first)">delete by name…</button>
     <input type="file" id="files" multiple accept=".gz,.json">
     <div class="status" id="status"></div>
     </div>
@@ -142,7 +147,7 @@
     const saveAuth = a => { AUTH = a; try { a ? localStorage.setItem('sb-auth', JSON.stringify(a)) : localStorage.removeItem('sb-auth'); } catch (e) {} paintAuth(); };
     function paintAuth() {
       const on = !!AUTH;
-      $('sb-email').hidden = on; $('sb-pass').hidden = on; $('sb-out').hidden = !on; $('sb-load').hidden = !on;
+      $('sb-email').hidden = on; $('sb-pass').hidden = on; $('sb-out').hidden = !on; $('sb-load').hidden = !on; $('sb-delname').hidden = !on;
     }
     async function authCall(grant, body) {
       const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=${grant}`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -282,9 +287,46 @@
           <span class="n">#${s.n}</span>
           <span><span class="who">${esc(s.name)}</span><br><span class="meta">${s.startedAt.getTime() ? s.startedAt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '?'}${s.local ? ' · from disk' : ''}</span></span>
           <span class="dur">${fmt(s.ms)}<small>${s.bytes ? kb(s.bytes) : ''}</small></span>
+          ${s.local ? '<span></span>' : `<button class="x" title="Delete this session" data-x="${s.sid}">×</button>`}
         </div>`).join('') : `<div class="drop" id="drop">Sign in on the right to list the sessions,<br>or drop session files here.</div>`);
       el.querySelectorAll('.row').forEach(r => r.addEventListener('click', () => open(r.dataset.sid)));
+      el.querySelectorAll('.row .x').forEach(x => x.addEventListener('click', e => {
+        e.stopPropagation();
+        const s = INDEX[x.dataset.x]; if (!s) return;
+        if (!confirm(`Delete ${s.name}'s session from ${s.startedAt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} for good?\nThis cannot be undone.`)) return;
+        deleteSessions([s.sid]);
+      }));
     }
+
+    /* ── Deleting ──────────────────────────────────────────── */
+    /* Every file under the session's folder, in one call; the folder is gone
+       with its last file. Needs the delete rule in tools/supabase-login.sql —
+       without it the call "succeeds" and removes nothing, so the folder is
+       listed again afterwards and the status says so. */
+    async function deleteSessions(sids) {
+      let done = 0;
+      for (const sid of sids) {
+        try {
+          status(`Deleting ${++done} of ${sids.length}…`);
+          const files = (INDEX[sid] && INDEX[sid].files) || (await listDir(sid + '/')).filter(o => o.id).map(o => o.name);
+          if (files.length) await sb(`/storage/v1/object/${BUCKET}`, { method: 'DELETE', body: JSON.stringify({ prefixes: files.map(f => sid + '/' + f) }) });
+          const left = (await listDir(sid + '/')).filter(o => o.id);
+          if (left.length) { status('Nothing was deleted — run the DELETING part of tools/supabase-login.sql in Supabase first.', true); return; }
+          delete INDEX[sid]; delete LOADED[sid];
+          if (current === sid) { current = null; if (player) { try { player.pause(); } catch (e) {} player = null; } $('player').innerHTML = '<div class="empty">Pick a session on the left.</div>'; $('head').innerHTML = ''; $('tl-body').innerHTML = '<div class="hd">Transcript</div>'; }
+        } catch (e) { status('Could not delete: ' + e.message, true); renderList(); return; }
+      }
+      renderList();
+      status(`Deleted ${sids.length} session${sids.length === 1 ? '' : 's'}.`);
+    }
+    $('sb-delname').addEventListener('click', () => {
+      const name = prompt('Delete every session by which tester? Type the name exactly as the list shows it.');
+      if (!name) return;
+      const hits = Object.values(INDEX).filter(s => !s.local && s.name.toLowerCase() === name.trim().toLowerCase());
+      if (!hits.length) { status(`No sessions by "${name.trim()}".`, true); return; }
+      if (!confirm(`Delete ${hits.length} session${hits.length === 1 ? '' : 's'} by ${hits[0].name} for good?\nThis cannot be undone.`)) return;
+      deleteSessions(hits.map(s => s.sid));
+    });
 
     /* ── One session ───────────────────────────────────────── */
     function assemble(s) {
