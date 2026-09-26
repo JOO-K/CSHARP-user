@@ -1,0 +1,14 @@
+{
+  "name": "Spindeck",
+  "short_name": "Spindeck",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#030412",
+  "theme_color": "#111116",
+  "icons": [
+    { "src": "images/spindeck-appicon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "images/spindeck-appicon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

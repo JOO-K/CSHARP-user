@@ -8,6 +8,16 @@
   <link rel="icon" type="image/png" sizes="512x512" href="images/spindeck-appicon.png?v=1">
   <link rel="apple-touch-icon" sizes="180x180" href="images/spindeck-appicon-180.png?v=1">
   <meta name="theme-color" content="#111116">
+  <!-- HOME-SCREEN APP (Eric, 2026-09-26: "on their phone it should be like the
+       app, nothing else"): added to the home screen, the site opens standalone —
+       no address bar, no browser toolbar — so the app gets the whole screen and
+       a session records the whole screen (in Safari the bars leave it ~660px
+       tall, and that short viewport is what a replay showed). -->
+  <link rel="manifest" href="manifest.json?v=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Spindeck">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,400&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..900&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=SUSE+Mono:wght@400;500&display=swap" rel="stylesheet">

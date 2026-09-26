@@ -67,6 +67,7 @@
     .tl-row.k-screen .v { font-weight: 700; }
     .tl-row .v small { color: var(--dim); }
     /* the player, repainted dark (its own rules are (0,3,0) svelte-scoped, so these carry !important) */
+    #player .replayer-wrapper iframe { zoom: var(--zoom, 1); }   /* phone recordings, blown up to fill the stage (see open) */
     #player .rr-player { background: #0f0f0f; box-shadow: none; border: 1px solid var(--border); border-radius: 10px; float: none; }
     #player .rr-controller { background: #161616 !important; border-radius: 0 0 10px 10px !important; }
     #player .rr-timeline__time { color: #bdbdbd !important; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
@@ -294,7 +295,16 @@
         try {
           const box = $('stage').getBoundingClientRect();
           const w = Math.max(320, box.width - 24), h = Math.max(240, box.height - 24 - 80 - 28);   // 80: the controller; 28: the head line
-          player = new rrwebPlayer({ target: host, props: { events: a.events, width: w, height: h, autoPlay: true, showController: true, skipInactive: true, speedOption: [1, 2, 4, 8] } });
+          /* A phone recording is small (390×660-ish) and the player only ever
+             shrinks a frame to fit, never grows it — so a phone sat at 1:1 in
+             a big empty box. Blow it up to fill the stage height instead
+             (CSS zoom on the frame, capped at 2×); a desktop recording is
+             bigger than the stage and still shrinks the usual way. */
+          const vp = a.events.find(e => e.type === 4);
+          const rw = (vp && vp.data.width) || (m.w || 0), rh = (vp && vp.data.height) || (m.h || 0);
+          const k = rw && rh ? Math.min(2, Math.floor(Math.min(h / rh, w / rw) * 100) / 100) : 1;
+          host.style.setProperty('--zoom', k > 1 ? k : 1);
+          player = new rrwebPlayer({ target: host, props: { events: a.events, width: k > 1 ? Math.round(rw * k) : w, height: k > 1 ? Math.round(rh * k) : h, autoPlay: true, showController: true, skipInactive: true, speedOption: [1, 2, 4, 8] } });
           player.addEventListener('ui-update-current-time', ev => markNow(ev.payload));
         } catch (e) { console.error(e); host.innerHTML = '<div class="empty">Could not build the replay: ' + esc(e.message || e) + '</div>'; player = null; }
       }
