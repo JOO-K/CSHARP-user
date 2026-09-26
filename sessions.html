@@ -45,10 +45,14 @@
     .drop { margin: 14px; padding: 24px 14px; border: 1px dashed #333; border-radius: 10px; color: var(--dim); text-align: center; font-size: 12px; }
     .drop.is-over { border-color: var(--hi); color: var(--text); }
     .row { display: grid; grid-template-columns: 38px 1fr auto auto; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #202020; cursor: pointer; align-items: center; }
-    /* DELETE (Eric, 2026-09-26): a × on every row, shown on hover, one session at a time — and "delete by name" in the sign-in row for a whole tester. Both ask first. */
-    .row .x { opacity: 0; width: 22px; height: 22px; border: 0; border-radius: 6px; background: none; color: #777; font: inherit; font-size: 15px; line-height: 1; cursor: pointer; }
+    /* DELETE (Eric, 2026-09-26: "one at a time, not batch … a 2 step delete"):
+       a × on every row, shown on hover. The first press ARMS it — it turns
+       into a red "sure?" — and only a second press on that deletes. A click
+       anywhere else, or four seconds, disarms it. */
+    .row .x { opacity: 0; min-width: 22px; height: 22px; padding: 0 6px; border: 0; border-radius: 6px; background: none; color: #777; font: inherit; font-size: 15px; line-height: 1; cursor: pointer; white-space: nowrap; }
     .row:hover .x { opacity: 1; }
     .row .x:hover { background: rgba(255,80,80,.18); color: #ff8a8a; }
+    .row .x.is-armed { opacity: 1; background: #b91c1c; color: #fff; font-size: 11px; font-weight: 700; }
     .row:hover { background: rgba(255,255,255,.03); }
     .row.is-on { background: rgba(59,130,246,.14); }
     .row .n { font-family: ui-monospace, Menlo, monospace; color: var(--dim); font-size: 11.5px; }
@@ -119,7 +123,6 @@
     <input id="sb-pass" type="password" placeholder="password, then Enter" autocomplete="current-password">
     <button class="btn" id="sb-load" hidden>Reload</button>
     <button class="btn btn--quiet" id="sb-out" hidden title="Forget the password on this computer">sign out</button>
-    <button class="btn btn--quiet" id="sb-delname" hidden title="Delete every session by one tester (asks first)">delete by name…</button>
     <input type="file" id="files" multiple accept=".gz,.json">
     <div class="status" id="status"></div>
     </div>
@@ -147,7 +150,7 @@
     const saveAuth = a => { AUTH = a; try { a ? localStorage.setItem('sb-auth', JSON.stringify(a)) : localStorage.removeItem('sb-auth'); } catch (e) {} paintAuth(); };
     function paintAuth() {
       const on = !!AUTH;
-      $('sb-email').hidden = on; $('sb-pass').hidden = on; $('sb-out').hidden = !on; $('sb-load').hidden = !on; $('sb-delname').hidden = !on;
+      $('sb-email').hidden = on; $('sb-pass').hidden = on; $('sb-out').hidden = !on; $('sb-load').hidden = !on;
     }
     async function authCall(grant, body) {
       const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=${grant}`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -293,10 +296,15 @@
       el.querySelectorAll('.row .x').forEach(x => x.addEventListener('click', e => {
         e.stopPropagation();
         const s = INDEX[x.dataset.x]; if (!s) return;
-        if (!confirm(`Delete ${s.name}'s session from ${s.startedAt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} for good?\nThis cannot be undone.`)) return;
+        if (!x.classList.contains('is-armed')) { disarm(); x.classList.add('is-armed'); x.textContent = 'sure?'; x.title = 'Press again to delete for good'; armed = x; armT = setTimeout(disarm, 4000); return; }
+        disarm();
         deleteSessions([s.sid]);
       }));
     }
+    let armed = null, armT = 0;
+    function disarm() { clearTimeout(armT); if (armed) { armed.classList.remove('is-armed'); armed.textContent = '×'; armed.title = 'Delete this session'; armed = null; } }
+    document.addEventListener('click', e => { if (armed && !e.target.closest('.row .x')) disarm(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') disarm(); });
 
     /* ── Deleting ──────────────────────────────────────────── */
     /* Every file under the session's folder, in one call; the folder is gone
@@ -319,14 +327,6 @@
       renderList();
       status(`Deleted ${sids.length} session${sids.length === 1 ? '' : 's'}.`);
     }
-    $('sb-delname').addEventListener('click', () => {
-      const name = prompt('Delete every session by which tester? Type the name exactly as the list shows it.');
-      if (!name) return;
-      const hits = Object.values(INDEX).filter(s => !s.local && s.name.toLowerCase() === name.trim().toLowerCase());
-      if (!hits.length) { status(`No sessions by "${name.trim()}".`, true); return; }
-      if (!confirm(`Delete ${hits.length} session${hits.length === 1 ? '' : 's'} by ${hits[0].name} for good?\nThis cannot be undone.`)) return;
-      deleteSessions(hits.map(s => s.sid));
-    });
 
     /* ── One session ───────────────────────────────────────── */
     function assemble(s) {

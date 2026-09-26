@@ -19,7 +19,7 @@ create policy "sessions: signed-in viewers may read"
 
 -- DELETING (2026-09-26, Eric: "i have so many sessions from me testing"):
 -- a signed-in viewer may also delete recordings — the × on a session in
--- sessions.html, and "delete by name". Same reasoning as reading: the only
+-- sessions.html, one at a time, pressed twice. Same reasoning as reading: the only
 -- signed-in accounts are the ones you made. The public key still only adds.
 drop policy if exists "sessions: signed-in viewers may delete" on storage.objects;
 create policy "sessions: signed-in viewers may delete"
