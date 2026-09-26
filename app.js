@@ -2264,9 +2264,9 @@ function cmtNodeHtml(key, c) {
   return `
         <div class="v3-cmt${c.mine ? ' v3-cmt--mine' : ''}">
           <div class="v3-cmt-top">
-            <div class="v3-cmt-av" style="background-image:url('${c.face || feedFace(c.user)}')"></div>
+            <div class="v3-cmt-av" style="background-image:url('${c.face || feedFace(c.user)}')" data-user="${c.mine ? 'You' : sdAttr(c.user)}" onclick="sdPerson(this, event)"></div>
             <div class="v3-cmt-who">
-              <span class="v3-cmt-user">${c.user}</span>
+              <span class="v3-cmt-user" data-user="${c.mine ? 'You' : sdAttr(c.user)}" onclick="sdPerson(this, event)">${c.user}</span>
             </div>
             <button class="v3-cmt-like${lk ? ' is-on' : ''}" type="button"
               data-k="${_revAttr(key)}" data-i="${c.id}" data-n="${c.likes}"
@@ -2695,9 +2695,9 @@ function revCardInner(o) {
     : cmtBtnHtml(o.key, o.comments || 0, 'v3-up--sm v3-up--cmtcol');
   return `
       <div class="v3-rev-card-top">
-        <div class="v3-rev-av" style="background-image:url('${o.face}')"></div>
+        <div class="v3-rev-av" style="background-image:url('${o.face}')" data-user="${o.mine ? 'You' : sdAttr(o.name)}" onclick="sdPerson(this, event)"></div>
         <div class="v3-rev-who">
-          <span class="v3-rev-name-row"><span class="v3-rev-name">${o.name}</span>${o.chip ? `<span class="v3-rev-pin-chip">${o.chip}</span>` : ''}</span>
+          <span class="v3-rev-name-row"><span class="v3-rev-name" data-user="${o.mine ? 'You' : sdAttr(o.name)}" onclick="sdPerson(this, event)">${o.name}</span>${o.chip ? `<span class="v3-rev-pin-chip">${o.chip}</span>` : ''}</span>
           <span class="v3-rev-sub">@${handle}${o.ago && !timeRight ? ` · ${o.ago}` : ''}</span>
         </div>${o.actsTop ? `<span class="v3-rev-top-acts">${o.big ? cmtHtml : cmtHtml + likeHtml}</span>` : ''}${timeRight ? `<span class="v3-rev-time">${o.ago}</span>` : ''}
       </div>
@@ -3129,11 +3129,11 @@ function renderFriendFeed(screenEl) {
     return `
               <div class="v3-rev-card v3-rev-card--feed v3-rev-card--act" data-feed="${n}" onclick="event.stopPropagation(); feedOpen(${n})">
                 <div class="v3-rev-card-top">
-                  <div class="v3-rev-av" style="background-image:url('${e.face}')">
+                  <div class="v3-rev-av" style="background-image:url('${e.face}')" data-user="${sdAttr(e.user)}" onclick="sdPerson(this, event)">
                     <span class="ntf-badge ntf-badge--${e.type}">${glyph}</span>
                   </div>
                   <div class="v3-rev-who">
-                    <span class="v3-rev-name-row"><span class="v3-rev-name">${e.user}</span></span>
+                    <span class="v3-rev-name-row"><span class="v3-rev-name" data-user="${sdAttr(e.user)}" onclick="sdPerson(this, event)">${e.user}</span></span>
                     <span class="v3-rev-sub">${sub}</span>
                   </div><span class="v3-rev-top-acts">${like}</span><span class="v3-rev-time">${e.ago}</span>
                 </div>
@@ -3451,10 +3451,10 @@ function fbGo(screenEl, i) {
                        the flat tag that briefly replaced it — a popular review
                        looks like any other; .is-popular is data only. -->
                   <div class="v3-fbr-av-wrap">
-                    <div class="v3-fbr-av"></div>
+                    <div class="v3-fbr-av" onclick="sdPerson(this, event)"></div>
                   </div>
                 </div>
-                <div class="v3-fbr-name"><span class="v3-fbr-who"></span><span class="v3-fbr-ago"></span></div>
+                <div class="v3-fbr-name"><span class="v3-fbr-who" onclick="sdPerson(this, event)"></span><span class="v3-fbr-ago"></span></div>
                 <!-- The like and the comment flank the SCORE now, not the face (Eric, 2026-09-23). -->
                 <!-- .v3-fbr-acts groups the comment · like · when for the compact layout
                      (one grid cell); the centred layout sets it display:contents and
@@ -3726,10 +3726,10 @@ function rshBodyHtml(R) {
         <div class="v3-fbr v3-fbr--sheet${R.popular ? ' is-popular' : ''}" data-k="${_revAttr(key)}">
           <div class="v3-fbr-head">
             <div class="v3-fbr-av-wrap">
-              <div class="v3-fbr-av"><span class="v3-fbr-face is-in" style="background-image:url('${face}')"></span></div>
+              <div class="v3-fbr-av" data-user="${R.mine ? 'You' : sdAttr(R.name || '')}" onclick="sdPerson(this, event)"><span class="v3-fbr-face is-in" style="background-image:url('${face}')"></span></div>
             </div>
           </div>
-          <div class="v3-fbr-name"><span class="v3-fbr-who">${R.name || 'Listener'}</span><span class="v3-fbr-ago">${R.ago || ''}</span></div>
+          <div class="v3-fbr-name"><span class="v3-fbr-who" data-user="${R.mine ? 'You' : sdAttr(R.name || '')}" onclick="sdPerson(this, event)">${R.name || 'Listener'}</span><span class="v3-fbr-ago">${R.ago || ''}</span></div>
           <div class="v3-fbr-score">
             <span class="v3-fbr-scorebox"><span class="v3-fbr-n">${rating.toFixed(1)}</span><span class="v3-fbr-discs">${halfStars(rating, 13)}</span></span>
             <span class="v3-fbr-acts">
@@ -9432,6 +9432,26 @@ randomizeProfile();
 let PROFILE_OWNER = null;             // your profile, parked while a guest is up
 window.PROFILE_GUEST = null;          // the name being viewed, or null
 
+/* A NAME OR A FACE IS A DOOR TO THAT PERSON (Eric, 2026-09-26: "when you
+   click someone's profile name or picture it should take you to their
+   profile"). Every byline — the deck's review, the review sheet, the feed
+   and album-page cards, the activity cards, the comments — carries
+   `onclick="sdPerson(this, event)"` on the face and the name. The name is
+   `data-user`, or, on the deck's block (filled at runtime), the `.v3-fbr-who`
+   beside it. Your own name ("You", or the profile on screen) goes to your
+   profile; a sheet closes first so the page underneath can navigate. */
+window.sdPerson = function (el, e) {
+  if (e) e.stopPropagation();
+  const blk = el.closest('.v3-fbr');
+  const name = (el.dataset.user || (blk && blk.querySelector('.v3-fbr-who') && blk.querySelector('.v3-fbr-who').textContent) || el.textContent || '').trim();
+  if (!name) return;
+  if (el.closest('.v3-rsh-ov') && typeof closeReviewSheet === 'function') closeReviewSheet(true);
+  const P = window.PROFILE || {};
+  const mine = name === 'You' || (!window.PROFILE_GUEST && (name === P.name || name === P.handle));
+  if (mine) { if (currentScreen().id !== 'profile') navigate('profile'); return; }
+  if (window.PROFILE_GUEST === name && currentScreen().id === 'profile') return;   // already on their page
+  openFriendProfile(name);
+};
 window.openFriendProfile = function (name) {
   if (!name) return;
   if (!PROFILE_OWNER) PROFILE_OWNER = Object.assign({}, window.PROFILE);

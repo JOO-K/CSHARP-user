@@ -263,6 +263,11 @@
 >   opened" report was most likely (1): the review tap doing nothing, or the
 >   sheet with the wrong review. No path focuses the composer except the
 >   comment pill itself.
+>   - **2026-09-26 — a name or a face opens that person's profile.** `sdPerson`
+>   (app.js, beside `openFriendProfile`) is on every byline's face and name:
+>   the deck's review block, the review sheet, `revCardInner` (feed, album
+>   page, profile pins, hero), the activity cards and the comments. "You" /
+>   the signed-in profile → your own profile; a sheet closes first.
 > Everything below this box is the ORIGINAL's documentation and still describes
 > the code that is here — read it with the list above in mind.
 

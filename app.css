@@ -12213,6 +12213,9 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 /* The dock sits on the band; its own bottom air is the band's top padding now. */
 .ob-has-dock .ob-picks-dock { padding-bottom: 6px; }
 
+/* A name or a face opens that person's profile (sdPerson, app.js, 2026-09-26). */
+.v3-rev-av, .v3-rev-name, .v3-fbr-av, .v3-fbr-who, .v3-cmt-av, .v3-cmt-user { cursor: pointer; }
+
 /* ============================================================
    MINIMAL MOTION — csharpuser (2026-09-25). Eric: "reduce the interactions
    like the animations to a minimum". At-rest loops are off for everyone
