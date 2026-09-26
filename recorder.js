@@ -133,6 +133,11 @@ const REC_CFG = {
     S.meta = {
       name, sid: S.sid, startedAt: new Date(S.startedAt).toISOString(),
       ua: navigator.userAgent, w: innerWidth, h: innerHeight, dpr: devicePixelRatio || 1,
+      // the SCREEN too (sessions.html draws the phone's real outline round the
+      // recorded viewport, so a Safari session still reads as a phone), and
+      // whether the app was opened from the home screen (no browser bars).
+      sw: (screen && screen.width) || 0, sh: (screen && screen.height) || 0,
+      standalone: !!(navigator.standalone || (matchMedia('(display-mode: standalone)').matches)),
       mobile: matchMedia('(max-width: 767px)').matches, href: location.href,
       build: (window.PATCH_NOTES && PATCH_NOTES[0]) ? PATCH_NOTES[0].date : '',
       persona: window.ACTIVE_PERSONA || '',
