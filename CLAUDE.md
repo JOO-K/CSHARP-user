@@ -217,7 +217,17 @@
 >   gives that one account SELECT on the bucket;
 >   the token sits in that browser's localStorage and refreshes itself.
 >   (The service_role-key path is gone: the new sb_secret_ keys are blocked
->   in browsers anyway.) Files can be dropped from disk too. It lists
+>   in browsers anyway.) Files can be dropped from disk too. **2026-09-26
+>   (Eric): NO BARS, and NOTHING DOWNLOADED UNTIL OPENED** — three floating
+>   panels over a dark stage (sessions left, newest first; replay middle;
+>   transcript right; sign-in top-right); the list is built from folder
+>   names + the chunks' `created_at` and sizes only (`parseSid` reads the
+>   date and name slug out of the session id; length = last chunk's
+>   created_at − start), and a session's chunks are fetched when its row is
+>   clicked. rrweb-player's white controller is repainted dark (`#player
+>   .rr-*` with !important — its rules are svelte-scoped (0,3,0)). A
+>   transcript line does `player.goto(t, true)`: jump AND play. A grid view
+>   is wanted later, once there are many sessions. It lists
 >   sessions as use
 >   case #N (name · date · device · taps · screens · length), replays one in
 >   rrweb-player with the log as a seekable timeline. Libraries come from

@@ -4,112 +4,132 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spindeck — Sessions</title>
-  <!-- THE SESSION VIEWER (csharpuser, 2026-09-25). Every recording
-       recorder.js uploaded, listed as a use case: who, when, how long, on
-       what. Open one and it replays in rrweb's player with the semantic log
-       beside it; a row in the log seeks the player.
-       LOADING: one password. The page signs in to Supabase as a fixed
-       account (SB_LOGIN below, made once in Authentication → Users with
-       whatever password Eric likes; tools/supabase-login.sql gives that
-       account, and only it, the right to read the bucket). The site holds
-       only the public key; the sign-in token is kept in this browser's
-       localStorage and refreshed when it expires. Files on disk can be
-       dropped on the page too. Everything runs in this page; nothing is
-       uploaded. -->
-  <!-- rrweb-player 0.7.x is the player for rrweb 1.x recordings (recorder.js records with rrweb 1.1.3). -->
+  <!-- THE SESSION VIEWER (csharpuser, 2026-09-26). No bars: a dark stage with
+       three floating panels — the session list on the left (newest first), the
+       replay in the middle, the transcript on the right — and the sign-in in
+       the top-right corner.
+       LISTING IS CHEAP: it reads only the bucket's folder names and the
+       chunks' sizes and timestamps (name · when · length · size come from
+       those), and downloads a session only when you open it (Eric: "we only
+       download the one we press").
+       SIGN-IN: one password. The page signs in to Supabase as a fixed account
+       (SB_LOGIN, made once in Authentication → Users with that password;
+       tools/supabase-login.sql gives that account, and only it, the right to
+       read the bucket). The site holds only the public key; the token is kept
+       in this browser's localStorage and refreshes itself.
+       rrweb-player 0.7.x is the player for rrweb 1.x recordings (recorder.js
+       records with rrweb 1.1.3); its white controller is repainted dark below.
+       Files from disk can still be dropped anywhere on the page. -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@0.7.14/dist/style.css">
   <style>
-    :root { --bg: #0c0c0c; --surface: #161616; --border: #262626; --text: #e8e8e8; --dim: #8a8a8a; --accent: #8892a4; --hi: #3b82f6; }
+    :root { --bg: #0c0c0c; --panel: rgba(22,22,22,0.9); --border: #2a2a2a; --text: #e8e8e8; --dim: #8a8a8a; --accent: #8892a4; --hi: #3b82f6; }
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.5 'DM Sans', system-ui, sans-serif; }
-    header { display: flex; align-items: center; gap: 14px; padding: 10px 18px; border-bottom: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; }
-    header h1 { font-size: 14px; margin: 0; font-weight: 700; letter-spacing: .2px; }
-    header .sub { color: var(--dim); font-size: 12px; }
-    .src { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .src input { background: #0c0c0c; border: 1px solid #333; color: var(--text); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
-    .src input.key { width: 170px; }
-    .btn { background: none; border: 1px solid #333; color: var(--text); border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 12px; cursor: pointer; }
+    html, body { height: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.5 'DM Sans', system-ui, sans-serif; overflow: hidden; }
+    .panel { position: fixed; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 16px 48px rgba(0,0,0,0.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    /* top-right: sign-in + status */
+    #auth { top: 16px; right: 16px; z-index: 30; padding: 8px 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; max-width: 340px; }
+    #auth input { width: 150px; background: #0c0c0c; border: 1px solid #333; color: var(--text); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 12px; }
+    .btn { background: none; border: 1px solid #333; color: var(--text); border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
     .btn:hover { border-color: #555; }
     .btn--go { background: rgba(255,255,255,.06); }
     input[type=file] { display: none; }
-    .status { width: 100%; font-size: 11.5px; color: var(--dim); min-height: 14px; }
+    .status { width: 100%; font-size: 11px; color: var(--dim); min-height: 14px; line-height: 1.3; }
     .status.err { color: #e06060; }
-    main { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 74px); }
-    #list { border-right: 1px solid var(--border); overflow-y: auto; }
-    .drop { margin: 18px; padding: 28px 18px; border: 1px dashed #333; border-radius: 10px; color: var(--dim); text-align: center; font-size: 12.5px; }
+    /* left: the sessions */
+    #list { top: 16px; left: 16px; bottom: 16px; width: 330px; z-index: 20; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+    .hd { position: sticky; top: 0; padding: 10px 14px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--dim); background: var(--panel); border-bottom: 1px solid var(--border); }
+    .drop { margin: 14px; padding: 24px 14px; border: 1px dashed #333; border-radius: 10px; color: var(--dim); text-align: center; font-size: 12px; }
     .drop.is-over { border-color: var(--hi); color: var(--text); }
-    .row { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; align-items: center; }
+    .row { display: grid; grid-template-columns: 38px 1fr auto; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #202020; cursor: pointer; align-items: center; }
     .row:hover { background: rgba(255,255,255,.03); }
-    .row.is-on { background: rgba(59,130,246,.12); }
-    .row .n { font-family: ui-monospace, Menlo, monospace; color: var(--dim); font-size: 12px; }
+    .row.is-on { background: rgba(59,130,246,.14); }
+    .row .n { font-family: ui-monospace, Menlo, monospace; color: var(--dim); font-size: 11.5px; }
     .row .who { font-weight: 700; }
-    .row .meta { color: var(--dim); font-size: 11.5px; }
-    .row .dur { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--dim); }
-    #view { display: grid; grid-template-rows: auto 1fr; min-height: 0; }
-    #head { padding: 10px 18px; border-bottom: 1px solid var(--border); display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; }
-    #head .who { font-size: 15px; font-weight: 700; }
-    #head .meta { color: var(--dim); font-size: 12px; }
-    #body { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
-    #player { padding: 14px; overflow: auto; display: flex; align-items: flex-start; justify-content: center; }
-    #tl { border-left: 1px solid var(--border); overflow-y: auto; }
-    .tl-row { display: grid; grid-template-columns: 52px 60px 1fr; gap: 8px; padding: 6px 12px; border-bottom: 1px solid #1c1c1c; font-size: 12px; cursor: pointer; }
+    .row .meta { color: var(--dim); font-size: 11px; }
+    .row .dur { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--dim); text-align: right; }
+    .row .dur small { display: block; font-size: 10px; color: #555; }
+    /* middle: the replay */
+    #stage { position: fixed; left: 362px; right: 352px; top: 16px; bottom: 16px; display: flex; align-items: center; justify-content: center; }
+    #head { position: absolute; left: 0; top: 0; padding: 4px 8px; font-size: 11.5px; color: var(--dim); }
+    #head b { color: var(--text); font-size: 13px; margin-right: 8px; }
+    #player { display: flex; align-items: center; justify-content: center; }
+    .empty { padding: 40px; color: var(--dim); text-align: center; }
+    /* right: the transcript */
+    #tl { top: 76px; right: 16px; bottom: 16px; width: 320px; z-index: 20; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+    .tl-row { display: grid; grid-template-columns: 46px 52px 1fr; gap: 8px; padding: 6px 12px; border-bottom: 1px solid #1c1c1c; font-size: 12px; cursor: pointer; }
     .tl-row:hover { background: rgba(255,255,255,.03); }
-    .tl-row.is-now { background: rgba(59,130,246,.14); }
+    .tl-row.is-now { background: rgba(59,130,246,.16); }
     .tl-row .t { font-family: ui-monospace, Menlo, monospace; color: var(--dim); }
-    .tl-row .k { color: var(--accent); font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; padding-top: 2px; }
+    .tl-row .k { color: var(--accent); font-size: 10px; text-transform: uppercase; letter-spacing: .4px; padding-top: 2px; }
     .tl-row.k-screen .v { font-weight: 700; }
     .tl-row .v small { color: var(--dim); }
-    .empty { padding: 40px; color: var(--dim); text-align: center; }
-    .rr-player { background: #000; box-shadow: none !important; border: 1px solid var(--border); }
+    /* the player, repainted dark (its own rules are (0,3,0) svelte-scoped, so these carry !important) */
+    #player .rr-player { background: #0f0f0f; box-shadow: none; border: 1px solid var(--border); border-radius: 10px; float: none; }
+    #player .rr-controller { background: #161616 !important; border-radius: 0 0 10px 10px !important; }
+    #player .rr-timeline__time { color: #bdbdbd !important; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+    #player .rr-progress { background: #2a2a2a !important; border-top-color: #161616 !important; border-bottom-color: #161616 !important; }
+    #player .rr-progress__step { background: var(--hi) !important; }
+    #player .rr-progress__handler { background: #e8e8e8 !important; }
+    #player .rr-controller__btns button { color: #cfcfcf !important; }
+    #player .rr-controller__btns button:active { background: #2a2a2a !important; }
+    #player .rr-controller__btns button.active { background: var(--hi) !important; color: #fff !important; }
+    #player .rr-controller__btns { color: #cfcfcf; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Spindeck — Sessions</h1>
-    <span class="sub" id="count">no sessions loaded</span>
-    <div class="src">
-      <input class="key" id="sb-pass" type="password" placeholder="password" autocomplete="current-password">
-      <button class="btn btn--go" id="sb-load">Sign in &amp; load</button>
-      <button class="btn" id="sb-out" hidden>Sign out</button>
-      <label class="btn">…or files from disk<input type="file" id="files" multiple accept=".gz,.json"></label>
-    </div>
+  <div class="panel" id="auth">
+    <input id="sb-pass" type="password" placeholder="password" autocomplete="current-password">
+    <button class="btn btn--go" id="sb-load">Sign in &amp; load</button>
+    <button class="btn" id="sb-out" hidden>Sign out</button>
+    <label class="btn" title="Open session files saved on disk">files<input type="file" id="files" multiple accept=".gz,.json"></label>
     <div class="status" id="status"></div>
-  </header>
-  <main>
-    <aside id="list">
-      <div class="drop" id="drop">Load from Supabase above,<br>or drop downloaded session files here.</div>
-    </aside>
-    <section id="view">
-      <div id="head"><span class="meta">Pick a session on the left.</span></div>
-      <div id="body">
-        <div id="player"><div class="empty">The replay appears here.</div></div>
-        <div id="tl"></div>
-      </div>
-    </section>
-  </main>
+  </div>
+
+  <aside class="panel" id="list">
+    <div class="hd">Sessions</div>
+    <div class="drop" id="drop">Sign in above to list the sessions,<br>or drop session files here.</div>
+  </aside>
+
+  <section id="stage">
+    <div id="head"></div>
+    <div id="player"><div class="empty">Pick a session on the left.</div></div>
+  </section>
+
+  <aside class="panel" id="tl">
+    <div class="hd">Transcript</div>
+  </aside>
 
   <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/rrweb-player@0.7.14/dist/index.js"></script>
   <script>
     const $ = id => document.getElementById(id);
-    const SESSIONS = {};   // sid → { meta, chunks: {seq: body} }
     const BUCKET = 'sessions';
     const SB_URL = 'https://msxbtpnpioqtypkfyzhm.supabase.co';   // the project; it never changes
     const SB_KEY = 'sb_publishable_jPR6r7DVZTNMv_KPesf8uw_urETvpwt';   // the PUBLIC key, same as recorder.js
-    const SB_LOGIN = 'sessions@spindeck.app';   // the one account that may read (made once in Supabase → Authentication → Users); only its password is asked
-    let AUTH = null;   // { access_token, refresh_token, exp, email }
+    const SB_LOGIN = 'sessions@spindeck.app';   // the one account that may read; only its password is asked
+    const INDEX = {};      // sid → { sid, name, startedAt, ms, bytes, files: [names] | null, local }
+    const LOADED = {};     // sid → { meta, chunks: {seq: body} }  (only once opened)
+    let player = null, current = null;
+    const status = (s, err) => { const el = $('status'); el.textContent = s; el.classList.toggle('err', !!err); };
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const fmt = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+    const kb = b => b > 900000 ? (b / 1048576).toFixed(1) + ' MB' : Math.round(b / 1024) + ' KB';
+
+    /* ── Sign-in ───────────────────────────────────────────── */
+    let AUTH = null;
     try { AUTH = JSON.parse(localStorage.getItem('sb-auth') || 'null'); } catch (e) {}
     const saveAuth = a => { AUTH = a; try { a ? localStorage.setItem('sb-auth', JSON.stringify(a)) : localStorage.removeItem('sb-auth'); } catch (e) {} paintAuth(); };
     function paintAuth() {
       const on = !!AUTH;
       $('sb-pass').hidden = on; $('sb-out').hidden = !on;
-      $('sb-load').textContent = on ? 'Load' : 'Sign in & load';
+      $('sb-load').textContent = on ? 'Load sessions' : 'Sign in & load';
     }
     async function authCall(grant, body) {
       const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=${grant}`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error_description || j.msg || j.message || ('sign-in failed (' + r.status + ')'));
-      return { access_token: j.access_token, refresh_token: j.refresh_token, exp: Date.now() + ((j.expires_in || 3600) - 60) * 1000, email: (j.user && j.user.email) || '' };
+      return { access_token: j.access_token, refresh_token: j.refresh_token, exp: Date.now() + ((j.expires_in || 3600) - 60) * 1000 };
     }
     async function token() {
       if (!AUTH) throw new Error('not signed in');
@@ -117,21 +137,6 @@
       saveAuth(await authCall('refresh_token', { refresh_token: AUTH.refresh_token }));
       return AUTH.access_token;
     }
-    let player = null, current = null;
-    const status = (s, err) => { const el = $('status'); el.textContent = s; el.classList.toggle('err', !!err); };
-
-    /* ── Decoding a chunk ──────────────────────────────────── */
-    function ingest(buf, name) {
-      let txt;
-      try { txt = /\.gz$/i.test(name) ? fflate.strFromU8(fflate.gunzipSync(buf)) : fflate.strFromU8(buf); } catch (e) { console.warn('skip', name, e); return; }
-      let body; try { body = JSON.parse(txt); } catch (e) { console.warn('bad json', name); return; }
-      if (!body || !body.sid) return;
-      const s = SESSIONS[body.sid] || (SESSIONS[body.sid] = { sid: body.sid, meta: null, chunks: {} });
-      if (body.meta) s.meta = body.meta;
-      s.chunks[body.seq] = body;
-    }
-
-    /* ── Supabase ──────────────────────────────────────────── */
     paintAuth();
     async function sb(path, opts) {
       const t = await token();
@@ -147,7 +152,17 @@
       }
       return out;
     }
+
+    /* ── The index: name, when, length, size — no downloads ── */
+    function parseSid(sid) {
+      const m = /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})_(.+)_[a-z0-9]{4}$/.exec(sid);
+      if (!m) return null;
+      const startedAt = new Date(`${m[1]}T${m[2]}:${m[3]}:${m[4]}Z`);
+      const name = m[5].split('-').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+      return { startedAt, name };
+    }
     $('sb-out').addEventListener('click', () => { saveAuth(null); status('Signed out.'); });
+    $('sb-pass').addEventListener('keydown', e => { if (e.key === 'Enter') $('sb-load').click(); });
     $('sb-load').addEventListener('click', async () => {
       if (!AUTH) {
         const pass = $('sb-pass').value;
@@ -157,28 +172,55 @@
       }
       try {
         status('Listing sessions…');
-        const folders = (await listDir('')).filter(o => !o.id);          // a folder comes back with no id
-        let n = 0, total = 0;
+        const folders = (await listDir('')).filter(o => !o.id && !o.name.startsWith('_'));   // a folder comes back with no id; _x are setup checks
+        let n = 0;
         const jobs = folders.map(f => async () => {
-          const files = (await listDir(f.name + '/')).filter(o => o.id);
-          total += files.length;
-          for (const file of files) {
-            const r = await sb(`/storage/v1/object/${BUCKET}/${f.name}/${file.name}`);
-            ingest(new Uint8Array(await r.arrayBuffer()), file.name);
-            status(`Loaded ${++n} chunk${n === 1 ? '' : 's'} from ${folders.length} session${folders.length === 1 ? '' : 's'}…`);
-          }
+          const files = (await listDir(f.name + '/')).filter(o => o.id).sort((a, b) => a.name.localeCompare(b.name));
+          const p = parseSid(f.name) || { startedAt: new Date(files[0] ? files[0].created_at : 0), name: f.name };
+          const last = files.length ? new Date(files[files.length - 1].created_at) : p.startedAt;
+          INDEX[f.name] = Object.assign(INDEX[f.name] || {}, {
+            sid: f.name, name: p.name, startedAt: p.startedAt, ms: last - p.startedAt,
+            bytes: files.reduce((s, o) => s + ((o.metadata && o.metadata.size) || 0), 0), files: files.map(o => o.name),
+          });
+          status(`Listed ${++n} of ${folders.length}…`);
         });
-        // four folders at a time
-        for (let i = 0; i < jobs.length; i += 4) await Promise.all(jobs.slice(i, i + 4).map(j => j()));
+        for (let i = 0; i < jobs.length; i += 6) await Promise.all(jobs.slice(i, i + 6).map(j => j()));
         renderList();
-        status(folders.length ? `${folders.length} session${folders.length === 1 ? '' : 's'}, ${total} chunks.`
-                              : 'Signed in, but the bucket lists nothing for this account — run tools/supabase-login.sql with this email, or nothing has been recorded yet.');
-      } catch (e) { status('Could not load: ' + e.message, true); }
+        status(folders.length ? `${folders.length} session${folders.length === 1 ? '' : 's'}. Nothing is downloaded until you open one.`
+                              : 'Signed in, but the bucket lists nothing for this account — run tools/supabase-login.sql, or nothing has been recorded yet.');
+      } catch (e) { status('Could not list: ' + e.message, true); }
     });
 
-    /* ── Files from disk ───────────────────────────────────── */
+    /* ── Reading chunks ────────────────────────────────────── */
+    function ingest(buf, name) {
+      let txt;
+      try { txt = /\.gz$/i.test(name) ? fflate.strFromU8(fflate.gunzipSync(buf)) : fflate.strFromU8(buf); } catch (e) { console.warn('skip', name, e); return null; }
+      let body; try { body = JSON.parse(txt); } catch (e) { console.warn('bad json', name); return null; }
+      if (!body || !body.sid) return null;
+      const s = LOADED[body.sid] || (LOADED[body.sid] = { sid: body.sid, meta: null, chunks: {} });
+      if (body.meta) s.meta = body.meta;
+      s.chunks[body.seq] = body;
+      return body.sid;
+    }
+    async function fetchSession(sid) {
+      const ix = INDEX[sid]; if (!ix || !ix.files) return;
+      let n = 0;
+      const jobs = ix.files.map(f => async () => {
+        const r = await sb(`/storage/v1/object/${BUCKET}/${sid}/${f}`);
+        ingest(new Uint8Array(await r.arrayBuffer()), f);
+        status(`Downloading ${ix.name}: ${++n} of ${ix.files.length}…`);
+      });
+      for (let i = 0; i < jobs.length; i += 4) await Promise.all(jobs.slice(i, i + 4).map(j => j()));
+      status(`${ix.name}: ${ix.files.length} chunk${ix.files.length === 1 ? '' : 's'}, ${kb(ix.bytes)}.`);
+    }
+    // Files from disk: read them, and index whatever sessions they hold.
     async function readFiles(files) {
-      for (const f of files) if (/\.json(\.gz)?$/i.test(f.name)) ingest(new Uint8Array(await f.arrayBuffer()), f.name);
+      const sids = new Set();
+      for (const f of files) if (/\.json(\.gz)?$/i.test(f.name)) { const sid = ingest(new Uint8Array(await f.arrayBuffer()), f.name); if (sid) sids.add(sid); }
+      sids.forEach(sid => {
+        const a = assemble(LOADED[sid]), m = LOADED[sid].meta || {}, p = parseSid(sid) || {};
+        INDEX[sid] = { sid, name: m.name || p.name || sid, startedAt: m.startedAt ? new Date(m.startedAt) : (p.startedAt || new Date(0)), ms: a.ms, bytes: 0, files: null, local: true };
+      });
       renderList();
     }
     function walk(entry, out) {
@@ -206,7 +248,22 @@
       readFiles(out);
     });
 
-    /* ── The list ──────────────────────────────────────────── */
+    /* ── The list (newest first) ───────────────────────────── */
+    function renderList() {
+      const list = Object.values(INDEX).sort((x, y) => x.startedAt - y.startedAt);
+      list.forEach((s, i) => s.n = i + 1);
+      list.reverse();
+      const el = $('list');
+      el.innerHTML = `<div class="hd">${list.length ? `${list.length} session${list.length === 1 ? '' : 's'}` : 'Sessions'}</div>` +
+        (list.length ? list.map(s => `<div class="row${current === s.sid ? ' is-on' : ''}" data-sid="${s.sid}">
+          <span class="n">#${s.n}</span>
+          <span><span class="who">${esc(s.name)}</span><br><span class="meta">${s.startedAt.getTime() ? s.startedAt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '?'}${s.local ? ' · from disk' : ''}</span></span>
+          <span class="dur">${fmt(s.ms)}<small>${s.bytes ? kb(s.bytes) : ''}</small></span>
+        </div>`).join('') : `<div class="drop" id="drop">Sign in above to list the sessions,<br>or drop session files here.</div>`);
+      el.querySelectorAll('.row').forEach(r => r.addEventListener('click', () => open(r.dataset.sid)));
+    }
+
+    /* ── One session ───────────────────────────────────────── */
     function assemble(s) {
       const seqs = Object.keys(s.chunks).map(Number).sort((a, b) => a - b);
       const events = [], log = [];
@@ -214,51 +271,33 @@
       const t0 = events.length ? events[0].timestamp : 0, t1 = events.length ? events[events.length - 1].timestamp : 0;
       return { events, log, ms: Math.max(0, t1 - t0), t0, seqs };
     }
-    const fmt = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
-    const device = m => !m ? '?' : (m.mobile ? 'phone' : 'desktop') + ' · ' + (/(iPhone|iPad|Android|Windows|Mac OS)/.exec(m.ua || '') || ['?'])[0] + ` · ${m.w}×${m.h}`;
-    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-    function renderList() {
-      const list = Object.values(SESSIONS).map(s => Object.assign({ a: assemble(s) }, s));
-      list.sort((x, y) => (x.meta ? x.meta.startedAt : x.sid).localeCompare(y.meta ? y.meta.startedAt : y.sid));
-      list.forEach((s, i) => s.n = i + 1);
-      list.reverse();
-      $('count').textContent = list.length ? `${list.length} session${list.length === 1 ? '' : 's'}` : 'no sessions loaded';
-      const el = $('list');
-      el.innerHTML = list.length ? list.map(s => {
-        const m = s.meta || {}; const d = m.startedAt ? new Date(m.startedAt) : null;
-        const taps = s.a.log.filter(l => l.k === 'tap').length, screens = new Set(s.a.log.filter(l => l.k === 'screen').map(l => l.v.split(/[/+]/)[0])).size;
-        return `<div class="row${current === s.sid ? ' is-on' : ''}" data-sid="${s.sid}">
-          <span class="n">#${s.n}</span>
-          <span><span class="who">${esc(m.name || '?')}</span><br><span class="meta">${d ? d.toLocaleString() : s.sid} · ${device(m)} · ${taps} taps · ${screens} screens</span></span>
-          <span class="dur">${fmt(s.a.ms)}</span>
-        </div>`; }).join('') : `<div class="drop" id="drop">Load from Supabase above,<br>or drop downloaded session files here.</div>`;
-      el.querySelectorAll('.row').forEach(r => r.addEventListener('click', () => open(r.dataset.sid)));
-    }
-
-    /* ── One session ───────────────────────────────────────── */
-    function open(sid) {
-      const s = SESSIONS[sid]; if (!s) return;
+    const device = m => !m ? '' : (m.mobile ? 'phone' : 'desktop') + ' · ' + (/(iPhone|iPad|Android|Windows|Mac OS)/.exec(m.ua || '') || ['?'])[0] + ` · ${m.w}×${m.h}`;
+    async function open(sid) {
       current = sid; renderList();
-      const a = assemble(s), m = s.meta || {};
-      $('head').innerHTML = `<span class="who">${esc(m.name || '?')}</span>
-        <span class="meta">${m.startedAt ? new Date(m.startedAt).toLocaleString() : ''} · ${device(m)} · ${fmt(a.ms)} · build ${esc(m.build || '?')}${m.persona ? ' · persona ' + esc(m.persona) : ''} · ${a.seqs.length} chunk${a.seqs.length === 1 ? '' : 's'}</span>`;
+      if (!LOADED[sid]) { try { await fetchSession(sid); } catch (e) { status('Could not download: ' + e.message, true); return; } }
+      const s = LOADED[sid]; if (!s) return;
+      const a = assemble(s), m = s.meta || {}, ix = INDEX[sid] || {};
+      if (ix.files) { ix.ms = a.ms; renderList(); }   // the real length, now that we have the frames
+      $('head').innerHTML = `<b>${esc(m.name || ix.name || '?')}</b>${m.startedAt ? new Date(m.startedAt).toLocaleString() : ''} · ${device(m)} · ${fmt(a.ms)}${m.build ? ' · build ' + esc(m.build) : ''}${m.persona ? ' · persona ' + esc(m.persona) : ''}`;
       const host = $('player'); host.innerHTML = '';
       if (player) { try { player.pause(); } catch (e) {} player = null; }
       if (a.events.length < 2) { host.innerHTML = '<div class="empty">Not enough recorded frames to replay.</div>'; }
       else if (typeof rrwebPlayer === 'undefined') { host.innerHTML = '<div class="empty">The player library did not load (offline?). The transcript on the right still works.</div>'; }
       else {
         try {
-          const w = Math.min(host.clientWidth - 28, 1100), h = Math.max(320, Math.min(innerHeight - 200, Math.round(w * 0.62)));
-          player = new rrwebPlayer({ target: host, props: { events: a.events, width: w, height: h, autoPlay: false, showController: true, skipInactive: true, speedOption: [1, 2, 4, 8] } });
+          const box = $('stage').getBoundingClientRect();
+          const w = Math.max(320, box.width - 24), h = Math.max(240, box.height - 24 - 80 - 28);   // 80: the controller; 28: the head line
+          player = new rrwebPlayer({ target: host, props: { events: a.events, width: w, height: h, autoPlay: true, showController: true, skipInactive: true, speedOption: [1, 2, 4, 8] } });
           player.addEventListener('ui-update-current-time', ev => markNow(ev.payload));
         } catch (e) { console.error(e); host.innerHTML = '<div class="empty">Could not build the replay: ' + esc(e.message || e) + '</div>'; player = null; }
       }
       const tl = $('tl');
-      tl.innerHTML = a.log.map((l, i) => {
+      tl.innerHTML = '<div class="hd">Transcript</div>' + (a.log.map((l, i) => {
         const v = l.k === 'input' ? `${esc(l.v)} <small>“${esc(l.val || '')}”</small>` : esc(l.v);
         return `<div class="tl-row k-${l.k}" data-t="${l.t}" data-i="${i}"><span class="t">${fmt(l.t)}</span><span class="k">${l.k}</span><span class="v">${v}</span></div>`;
-      }).join('') || '<div class="empty">No log.</div>';
-      tl.querySelectorAll('.tl-row').forEach(r => r.addEventListener('click', () => { if (player) { player.goto(+r.dataset.t); player.play(); } }));
+      }).join('') || '<div class="empty">No log.</div>');
+      // A tap on a line jumps there AND plays, paused or not (Eric).
+      tl.querySelectorAll('.tl-row').forEach(r => r.addEventListener('click', () => { if (player) player.goto(+r.dataset.t, true); }));
     }
     function markNow(ms) {
       const rows = [...document.querySelectorAll('.tl-row')]; let hit = null;
