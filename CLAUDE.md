@@ -212,7 +212,7 @@
 >   public). The project URL and public key are baked in; you type ONE
 >   PASSWORD (2026-09-26, Eric: "just add a password to the website … like
 >   123abc") — the page signs in to Supabase Auth as the fixed account
->   `sessions@spindeck.app` (`SB_LOGIN`; a name, not a mailbox), made once
+>   `me@sd.app` (`SB_LOGIN`; a name, not a mailbox), made once
 >   in the dashboard with that password, and `tools/supabase-login.sql`
 >   gives that one account SELECT on the bucket;
 >   the token sits in that browser's localStorage and refreshes itself.

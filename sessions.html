@@ -111,7 +111,7 @@
     const BUCKET = 'sessions';
     const SB_URL = 'https://msxbtpnpioqtypkfyzhm.supabase.co';   // the project; it never changes
     const SB_KEY = 'sb_publishable_jPR6r7DVZTNMv_KPesf8uw_urETvpwt';   // the PUBLIC key, same as recorder.js
-    const SB_LOGIN = 'sessions@spindeck.app';   // the one account that may read; only its password is asked
+    const SB_LOGIN = 'me@sd.app';   // the one account that may read; only its password is asked
     const INDEX = {};      // sid → { sid, name, startedAt, ms, bytes, files: [names] | null, local }
     const LOADED = {};     // sid → { meta, chunks: {seq: body} }  (only once opened)
     let player = null, current = null;

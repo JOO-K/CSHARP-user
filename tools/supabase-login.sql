@@ -1,7 +1,7 @@
 -- SESSION VIEWER · sign in with a password (csharpuser, 2026-09-26). Run once
 -- in the SQL editor, AFTER supabase-setup.sql. Then, in the dashboard:
 --   Authentication → Users → Add user → Create new user: the email
---   sessions@spindeck.app (it is a name, not a mailbox — nothing is sent to
+--   me@sd.app (it is a name, not a mailbox — nothing is sent to
 --   it) + whatever password you want to type into the sessions page, tick
 --   "Auto Confirm User".
 --   Authentication → Sign In / Providers → Email: turn OFF "Allow new users
@@ -13,4 +13,4 @@
 drop policy if exists "sessions: the owner may read" on storage.objects;
 create policy "sessions: the owner may read"
   on storage.objects for select to authenticated
-  using (bucket_id = 'sessions' and auth.jwt() ->> 'email' = 'sessions@spindeck.app');
+  using (bucket_id = 'sessions' and auth.jwt() ->> 'email' = 'me@sd.app');
