@@ -8,8 +8,9 @@
        recorder.js uploaded, listed as a use case: who, when, how long, on
        what. Open one and it replays in rrweb's player with the semantic log
        beside it; a row in the log seeks the player.
-       LOADING: sign in with the email + password of the account made in
-       Supabase → Authentication → Users (tools/supabase-login.sql gives that
+       LOADING: one password. The page signs in to Supabase as a fixed
+       account (SB_LOGIN below, made once in Authentication → Users with
+       whatever password Eric likes; tools/supabase-login.sql gives that
        account, and only it, the right to read the bucket). The site holds
        only the public key; the sign-in token is kept in this browser's
        localStorage and refreshed when it expires. Files on disk can be
@@ -67,7 +68,6 @@
     <h1>Spindeck — Sessions</h1>
     <span class="sub" id="count">no sessions loaded</span>
     <div class="src">
-      <input class="key" id="sb-email" type="email" placeholder="email" autocomplete="username" title="The account you made in Supabase → Authentication → Users">
       <input class="key" id="sb-pass" type="password" placeholder="password" autocomplete="current-password">
       <button class="btn btn--go" id="sb-load">Sign in &amp; load</button>
       <button class="btn" id="sb-out" hidden>Sign out</button>
@@ -96,13 +96,14 @@
     const BUCKET = 'sessions';
     const SB_URL = 'https://msxbtpnpioqtypkfyzhm.supabase.co';   // the project; it never changes
     const SB_KEY = 'sb_publishable_jPR6r7DVZTNMv_KPesf8uw_urETvpwt';   // the PUBLIC key, same as recorder.js
+    const SB_LOGIN = 'sessions@spindeck.app';   // the one account that may read (made once in Supabase → Authentication → Users); only its password is asked
     let AUTH = null;   // { access_token, refresh_token, exp, email }
     try { AUTH = JSON.parse(localStorage.getItem('sb-auth') || 'null'); } catch (e) {}
     const saveAuth = a => { AUTH = a; try { a ? localStorage.setItem('sb-auth', JSON.stringify(a)) : localStorage.removeItem('sb-auth'); } catch (e) {} paintAuth(); };
     function paintAuth() {
       const on = !!AUTH;
-      $('sb-email').hidden = on; $('sb-pass').hidden = on; $('sb-out').hidden = !on;
-      $('sb-load').textContent = on ? `Load (${AUTH.email})` : 'Sign in & load';
+      $('sb-pass').hidden = on; $('sb-out').hidden = !on;
+      $('sb-load').textContent = on ? 'Load' : 'Sign in & load';
     }
     async function authCall(grant, body) {
       const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=${grant}`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -149,9 +150,9 @@
     $('sb-out').addEventListener('click', () => { saveAuth(null); status('Signed out.'); });
     $('sb-load').addEventListener('click', async () => {
       if (!AUTH) {
-        const email = $('sb-email').value.trim(), pass = $('sb-pass').value;
-        if (!email || !pass) { status('Email and password first.', true); return; }
-        try { status('Signing in…'); saveAuth(await authCall('password', { email, password: pass })); $('sb-pass').value = ''; }
+        const pass = $('sb-pass').value;
+        if (!pass) { status('Password first.', true); return; }
+        try { status('Signing in…'); saveAuth(await authCall('password', { email: SB_LOGIN, password: pass })); $('sb-pass').value = ''; }
         catch (e) { status('Sign-in failed: ' + e.message, true); return; }
       }
       try {

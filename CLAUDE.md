@@ -209,10 +209,12 @@
 >   nothing. **`sessions.html`** is the viewer, reached by a faint
 >   "sessions" link in the viewer's bottom-right corner (`.sd-sessions-link`,
 >   index.html / style.css; it shows nothing without the key, so it can be
->   public). The project URL and public key are baked in; you SIGN IN with
->   an email + password (2026-09-26, Eric: "a normal password instead of an
->   api key") — a Supabase Auth user made in the dashboard, and
->   `tools/supabase-login.sql` gives that one email SELECT on the bucket;
+>   public). The project URL and public key are baked in; you type ONE
+>   PASSWORD (2026-09-26, Eric: "just add a password to the website … like
+>   123abc") — the page signs in to Supabase Auth as the fixed account
+>   `sessions@spindeck.app` (`SB_LOGIN`; a name, not a mailbox), made once
+>   in the dashboard with that password, and `tools/supabase-login.sql`
+>   gives that one account SELECT on the bucket;
 >   the token sits in that browser's localStorage and refreshes itself.
 >   (The service_role-key path is gone: the new sb_secret_ keys are blocked
 >   in browsers anyway.) Files can be dropped from disk too. It lists
