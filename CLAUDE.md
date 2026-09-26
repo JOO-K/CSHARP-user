@@ -209,10 +209,14 @@
 >   nothing. **`sessions.html`** is the viewer, reached by a faint
 >   "sessions" link in the viewer's bottom-right corner (`.sd-sessions-link`,
 >   index.html / style.css; it shows nothing without the key, so it can be
->   public). The project URL is baked in;
->   "Load from Supabase" wants only the secret (service_role) key, typed in
->   (kept in that browser's localStorage, never in the repo); files can be
->   dropped from disk too. It lists sessions as use
+>   public). The project URL and public key are baked in; you SIGN IN with
+>   an email + password (2026-09-26, Eric: "a normal password instead of an
+>   api key") — a Supabase Auth user made in the dashboard, and
+>   `tools/supabase-login.sql` gives that one email SELECT on the bucket;
+>   the token sits in that browser's localStorage and refreshes itself.
+>   (The service_role-key path is gone: the new sb_secret_ keys are blocked
+>   in browsers anyway.) Files can be dropped from disk too. It lists
+>   sessions as use
 >   case #N (name · date · device · taps · screens · length), replays one in
 >   rrweb-player with the log as a seekable timeline. Libraries come from
 >   jsdelivr at runtime (rrweb 1.1.3, rrweb-player 0.7.14 — the 0.7.x line is
