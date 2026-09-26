@@ -123,6 +123,15 @@
     $('sb-load').addEventListener('click', async () => {
       const key = $('sb-key').value.trim();
       if (!key) { status('Paste the secret key first.', true); return; }
+      // Which key is this? Only the legacy service_role JWT can read the bucket
+      // from a browser: sb_secret_ keys are blocked in browsers by Supabase, and
+      // the anon / publishable keys can only add files.
+      if (/^sb_secret_/.test(key)) { status('That is the new-style secret key, which Supabase blocks in browsers. Use the service_role key from the "Legacy API keys" tab.', true); return; }
+      if (/^sb_publishable_/.test(key)) { status('That is the public (publishable) key — it can only add recordings. Use the service_role key from the "Legacy API keys" tab.', true); return; }
+      if (/^eyJ/.test(key)) {
+        let role = ''; try { role = JSON.parse(atob(key.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).role || ''; } catch (e) {}
+        if (role && role !== 'service_role') { status(`That is the "${role}" key — it cannot read the bucket. On the "Legacy API keys" tab, reveal and copy the one labelled service_role.`, true); return; }
+      }
       try { localStorage.setItem('sb-key', key); } catch (e) {}
       try {
         status('Listing sessions…');
