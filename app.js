@@ -7879,6 +7879,7 @@ function obSyncFooter(root) {
   const step = OB.step;
   if (skip) skip.style.visibility = [1,2,4,5,6].includes(step) ? 'visible' : 'hidden';
   if (!next) return;
+  next.dataset.lbl = step === 7 ? 'Finish' : 'Next';   // the band's small label (::before)
   if (step === 7)      { next.textContent = 'Start exploring';                       next.disabled = false; }
   else if (step === 0) { next.textContent = 'Continue';                              next.disabled = !obUserValid(); }
   else if (step === 3) { next.textContent = OB.genres.size    ? `Continue · ${OB.genres.size}`    : 'Continue'; next.disabled = false; }

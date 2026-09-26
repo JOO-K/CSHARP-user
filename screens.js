@@ -1203,6 +1203,10 @@ function onboardingHtml(light) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
           <div class="ob-stepcount"><span class="ob-step-n">01</span><i>/</i><span class="ob-step-t">08</span></div>
+          <!-- Skip lives up here now (Eric, 2026-09-26), beside the count; the
+               footer is the one full-width Continue band. obSyncFooter still
+               finds it by class. -->
+          <button class="ob-skip" onclick="obNext(true)">Skip</button>
         </div>
 
         <div class="ob-stage">
@@ -1366,8 +1370,12 @@ function onboardingHtml(light) {
         <div class="ob-foot">
           <div class="ob-picks-dock is-empty"></div>
           <div class="ob-footer">
-            <button class="ob-skip" onclick="obNext(true)">Skip</button>
-            <button class="ob-next btn-primary" onclick="obNext()">Continue</button>
+            <!-- THE CONTINUE BAND (Eric, 2026-09-26): full width, in the shape of
+                 the album page's "Your review" band — a small mono label over a
+                 big line, raised off the page with a soft shadow. The label is a
+                 ::before reading data-lbl (obSyncFooter sets it), because the
+                 text is written with textContent. -->
+            <button class="ob-next btn-primary" data-lbl="Next" onclick="obNext()">Continue</button>
           </div>
         </div>
       </div>`;

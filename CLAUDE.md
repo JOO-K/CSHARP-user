@@ -191,6 +191,12 @@
 >   `--surface2` fill. The meter, hint, note, wall-card captions, the
 >   profile-step hero and stats are left-aligned. Step 0's sub-line is gone
 >   from screens.js. The original rules are untouched above the block.
+>   **2026-09-26 — Skip is on the rail** (beside the 01/08 count; the same
+>   `.ob-skip`, so `obSyncFooter`'s visibility rule still holds) **and the
+>   footer is ONE full-width Continue band** in the album page's "Your
+>   review" shape: mono label (`::before` from `data-lbl`, set by
+>   obSyncFooter: Next / Finish) over the 26px/800 line, raised with the
+>   shadow cast upward, flush with the bottom edge. Same block in app.css.
 > - **2026-09-25 (later still) — THE SESSION RECORDER.** Eric: "copy the
 >   exact movement through the app as they use it … asks 'what's your name'
 >   … saves as use case #X so we can look at it later". `recorder.js`

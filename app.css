@@ -12172,6 +12172,45 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 .ob-stat { text-align: left; padding: 12px 12px; }
 .ob-pf-note { text-align: left; }
 
+/* THE RAIL + THE CONTINUE BAND (Eric, 2026-09-26: "put the skip button at
+   the top near the 01/07 numbers, make it full width and styled like our
+   large-number review on the album page"). Skip is a quiet text pill on the
+   rail's right, beside the count. The footer is ONE band, edge to edge and
+   flush with the bottom: the "Your review" band's recipe — a faint lift of
+   the surface, a soft shadow above it, a mono 9.5px label over a 26px/800
+   line — as a button. */
+.ob-rail { gap: 10px; }
+.ob-rail .ob-stepcount { margin-left: auto; }
+.ob-rail .ob-skip {
+  padding: 6px 10px; margin: -6px -10px -6px 0;
+  font-size: 12px; font-weight: 600; color: var(--text2);
+  background: none; border-radius: 8px; box-shadow: none;
+}
+.ob-rail .ob-skip:hover { color: var(--text); background: var(--surface); }
+.ob-footer { padding: 0; }
+.s-onboarding .ob-next {
+  display: block; width: 100%; margin: 0; flex: none;
+  padding: 12px 24px 26px; border: 0; border-radius: 0; text-align: left;
+  background: rgba(255,255,255,0.04); color: var(--text);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 -8px 22px rgba(0,0,0,0.38), 0 -2px 6px rgba(0,0,0,0.28);
+  font-family: var(--font-main); font-size: 26px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1;
+  position: relative; z-index: 1;
+}
+.s-onboarding .ob-next::before {
+  content: attr(data-lbl); display: block; margin-bottom: 4px;
+  font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text2); opacity: .7;
+}
+.s-onboarding .ob-next:hover { background: rgba(255,255,255,0.06); }
+.s-onboarding .ob-next:disabled { opacity: .4; }
+.s-onboarding.sd-theme-light .ob-next {
+  background: rgba(26,18,8,0.05);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset, 0 -8px 22px rgba(30,20,10,0.16), 0 -2px 6px rgba(30,20,10,0.1);
+}
+.s-onboarding.sd-theme-light .ob-next:hover { background: rgba(26,18,8,0.08); }
+/* The dock sits on the band; its own bottom air is the band's top padding now. */
+.ob-has-dock .ob-picks-dock { padding-bottom: 6px; }
+
 /* ============================================================
    MINIMAL MOTION — csharpuser (2026-09-25). Eric: "reduce the interactions
    like the animations to a minimum". At-rest loops are off for everyone
