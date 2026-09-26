@@ -215,7 +215,8 @@
 >   dropped from disk too. It lists sessions as use
 >   case #N (name · date · device · taps · screens · length), replays one in
 >   rrweb-player with the log as a seekable timeline. Libraries come from
->   jsdelivr at runtime (rrweb 1.1.3, rrweb-player 1.0.0, fflate 0.8.2).
+>   jsdelivr at runtime (rrweb 1.1.3, rrweb-player 0.7.14 — the 0.7.x line is
+>   the player for rrweb 1.x; 1.0.0 does not exist on the CDN — and fflate 0.8.2).
 > Everything below this box is the ORIGINAL's documentation and still describes
 > the code that is here — read it with the list above in mind.
 

@@ -13,7 +13,8 @@
        kept in this browser's localStorage and nowhere else, never in the
        repo. Files on disk (downloaded from the dashboard) can be dropped on
        the page too. Everything runs in this page; nothing is uploaded. -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@1.0.0/dist/style.css">
+  <!-- rrweb-player 0.7.x is the player for rrweb 1.x recordings (recorder.js records with rrweb 1.1.3). -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@0.7.14/dist/style.css">
   <style>
     :root { --bg: #0c0c0c; --surface: #161616; --border: #262626; --text: #e8e8e8; --dim: #8a8a8a; --accent: #8892a4; --hi: #3b82f6; }
     * { box-sizing: border-box; }
@@ -84,7 +85,7 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/rrweb-player@1.0.0/dist/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/rrweb-player@0.7.14/dist/index.js"></script>
   <script>
     const $ = id => document.getElementById(id);
     const SESSIONS = {};   // sid → { meta, chunks: {seq: body} }
@@ -222,10 +223,13 @@
       const host = $('player'); host.innerHTML = '';
       if (player) { try { player.pause(); } catch (e) {} player = null; }
       if (a.events.length < 2) { host.innerHTML = '<div class="empty">Not enough recorded frames to replay.</div>'; }
+      else if (typeof rrwebPlayer === 'undefined') { host.innerHTML = '<div class="empty">The player library did not load (offline?). The transcript on the right still works.</div>'; }
       else {
-        const w = Math.min(host.clientWidth - 28, 1100), h = Math.max(320, Math.min(innerHeight - 200, Math.round(w * 0.62)));
-        player = new rrwebPlayer({ target: host, props: { events: a.events, width: w, height: h, autoPlay: false, showController: true, skipInactive: true, speedOption: [1, 2, 4, 8] } });
-        player.addEventListener('ui-update-current-time', ev => markNow(ev.payload));
+        try {
+          const w = Math.min(host.clientWidth - 28, 1100), h = Math.max(320, Math.min(innerHeight - 200, Math.round(w * 0.62)));
+          player = new rrwebPlayer({ target: host, props: { events: a.events, width: w, height: h, autoPlay: false, showController: true, skipInactive: true, speedOption: [1, 2, 4, 8] } });
+          player.addEventListener('ui-update-current-time', ev => markNow(ev.payload));
+        } catch (e) { console.error(e); host.innerHTML = '<div class="empty">Could not build the replay: ' + esc(e.message || e) + '</div>'; player = null; }
       }
       const tl = $('tl');
       tl.innerHTML = a.log.map((l, i) => {
