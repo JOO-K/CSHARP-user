@@ -185,6 +185,21 @@ const REC_CFG = {
     let name = '';
     try { name = localStorage.getItem(NAME_KEY) || ''; } catch (e) {}
     if (name) begin(name); else ask();
+    holdToAskAgain();
+  }
+  /* Hold the corner "sessions" link for three seconds (Eric, 2026-09-26) and
+     the site forgets the name and reloads — the prompt comes back and the
+     next session files under whatever is typed. A plain click still opens
+     the sessions page. */
+  function holdToAskAgain() {
+    const link = document.querySelector('.sd-sessions-link');
+    if (!link) return;
+    let t = 0;
+    const start = () => { clearTimeout(t); t = setTimeout(() => { try { localStorage.removeItem(NAME_KEY); } catch (e) {} flush(true); location.reload(); }, 3000); link.classList.add('is-holding'); };
+    const stop = () => { clearTimeout(t); link.classList.remove('is-holding'); };
+    link.addEventListener('pointerdown', start);
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => link.addEventListener(ev, stop));
+    link.addEventListener('contextmenu', e => e.preventDefault());
   }
   const ready = () => Promise.all(LIBS.map(loadScript)).then(init, e => console.warn('[rec] libraries failed to load', e));
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(ready, 0));
