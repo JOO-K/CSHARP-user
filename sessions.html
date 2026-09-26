@@ -28,7 +28,8 @@
     body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.5 'DM Sans', system-ui, sans-serif; overflow: hidden; }
     .panel { position: fixed; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 16px 48px rgba(0,0,0,0.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
     /* top-right: sign-in + status */
-    #auth { top: 16px; right: 16px; z-index: 30; padding: 8px 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; max-width: 340px; }
+    /* the sign-in row heads the right panel (Eric, 2026-09-26: "part of the right side, at the top" — it floated over things before) */
+    #auth { padding: 8px 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
     #auth input { width: 150px; background: #0c0c0c; border: 1px solid #333; color: var(--text); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 12px; }
     .btn { background: none; border: 1px solid #333; color: var(--text); border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
     .btn:hover { border-color: #555; }
@@ -58,7 +59,8 @@
     #player { display: flex; align-items: center; justify-content: center; }
     .empty { padding: 40px; color: var(--dim); text-align: center; }
     /* right: the transcript */
-    #tl { top: 76px; right: 16px; bottom: 16px; width: 320px; z-index: 20; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+    #tl { top: 16px; right: 16px; bottom: 16px; width: 320px; z-index: 20; display: flex; flex-direction: column; }
+    #tl-body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #333 transparent; }
     .tl-row { display: grid; grid-template-columns: 46px 52px 1fr; gap: 8px; padding: 6px 12px; border-bottom: 1px solid #1c1c1c; font-size: 12px; cursor: pointer; }
     .tl-row:hover { background: rgba(255,255,255,.03); }
     .tl-row.is-now { background: rgba(59,130,246,.16); }
@@ -70,11 +72,9 @@
     .tl-row .v small { color: var(--dim); }
     /* the player, repainted dark (its own rules are (0,3,0) svelte-scoped, so these carry !important) */
     #player .replayer-wrapper iframe { zoom: var(--zoom, 1); }   /* phone recordings, blown up to fill the stage (see open) */
-    /* the phone's outline (see open): the frame grows by the bars' share, the
-       viewport sits at its top, and the dark rest is labelled */
-    #player.is-phone .rr-player__frame { box-sizing: content-box; padding-bottom: var(--bars, 0px); position: relative; background: #141414; border-radius: 22px 22px 0 0; }
+    /* a phone is sized by the zoom above, so the player's own scale is 1 — pin the frame to the top */
+    #player.is-phone .rr-player__frame { position: relative; border-radius: 22px 22px 0 0; }
     #player.is-phone .replayer-wrapper { top: 0 !important; transform: translate(-50%, 0) !important; }
-    #player.is-phone.has-bars .rr-player__frame::after { content: 'browser bars — the app never had this part of the screen'; position: absolute; left: 0; right: 0; bottom: 0; height: var(--bars); display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 24px; color: #4a4a4a; font-size: 11px; line-height: 1.4; border-top: 1px dashed #2a2a2a; }
     /* THE FINGER (Eric, 2026-09-26: "i cant see clicks when they drag"): the
        player's touch marker is a faint ring that exists only between touch
        start and end — a flick was invisible. Now a finger is always a small
@@ -96,20 +96,9 @@
   </style>
 </head>
 <body>
-  <!-- Two boxes: email and password. Enter signs in and lists the sessions;
-       once signed in the page opens straight to the list and the boxes are gone. -->
-  <div class="panel" id="auth">
-    <input id="sb-email" type="email" placeholder="email" autocomplete="username">
-    <input id="sb-pass" type="password" placeholder="password, then Enter" autocomplete="current-password">
-    <button class="btn" id="sb-load" hidden>Reload</button>
-    <button class="btn btn--quiet" id="sb-out" hidden title="Forget the password on this computer">sign out</button>
-    <input type="file" id="files" multiple accept=".gz,.json">
-    <div class="status" id="status"></div>
-  </div>
-
   <aside class="panel" id="list">
     <div class="hd">Sessions</div>
-    <div class="drop" id="drop">Sign in above to list the sessions,<br>or drop session files here.</div>
+    <div class="drop" id="drop">Sign in on the right to list the sessions,<br>or drop session files here.</div>
   </aside>
 
   <section id="stage">
@@ -118,7 +107,18 @@
   </section>
 
   <aside class="panel" id="tl">
-    <div class="hd">Transcript</div>
+    <!-- Sign-in heads the panel: email and password, Enter signs in and lists
+         the sessions; once signed in the boxes give way to Reload / sign out.
+         The transcript fills the rest. -->
+    <div id="auth">
+    <input id="sb-email" type="email" placeholder="email" autocomplete="username">
+    <input id="sb-pass" type="password" placeholder="password, then Enter" autocomplete="current-password">
+    <button class="btn" id="sb-load" hidden>Reload</button>
+    <button class="btn btn--quiet" id="sb-out" hidden title="Forget the password on this computer">sign out</button>
+    <input type="file" id="files" multiple accept=".gz,.json">
+    <div class="status" id="status"></div>
+    </div>
+    <div id="tl-body"><div class="hd">Transcript</div></div>
   </aside>
 
   <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
@@ -282,7 +282,7 @@
           <span class="n">#${s.n}</span>
           <span><span class="who">${esc(s.name)}</span><br><span class="meta">${s.startedAt.getTime() ? s.startedAt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '?'}${s.local ? ' · from disk' : ''}</span></span>
           <span class="dur">${fmt(s.ms)}<small>${s.bytes ? kb(s.bytes) : ''}</small></span>
-        </div>`).join('') : `<div class="drop" id="drop">Sign in above to list the sessions,<br>or drop session files here.</div>`);
+        </div>`).join('') : `<div class="drop" id="drop">Sign in on the right to list the sessions,<br>or drop session files here.</div>`);
       el.querySelectorAll('.row').forEach(r => r.addEventListener('click', () => open(r.dataset.sid)));
     }
 
@@ -317,30 +317,23 @@
              bigger than the stage and still shrinks the usual way. */
           const vp = a.events.find(e => e.type === 4);
           const rw = (vp && vp.data.width) || (m.w || 0), rh = (vp && vp.data.height) || (m.h || 0);
-          /* THE PHONE'S OUTLINE (Eric, 2026-09-26: "awfully square instead of
-             the tall phone shape"): a recording is only the viewport, and in
-             Safari the address bar and toolbar take the bottom of the screen,
-             so a phone session came out 390×660-ish. The frame below is the
-             whole screen — the recorded height from the recorder's sh, or
-             the iPhone's 19.5:9 for older sessions — with the viewport at the
-             top and the bars' share left dark under it. A home-screen session
-             fills it. */
-          const fh = m.mobile ? Math.max(rh, m.sh || Math.round(rw * 2.164)) : rh;
-          const k = rw && rh ? Math.min(2, Math.floor(Math.min(h / fh, w / rw) * 100) / 100) : 1;
-          const bars = m.mobile ? Math.round((fh - rh) * k) : 0;
-          // a phone is always sized by us (CSS zoom, up or down) so the outline
-          // hugs it; a desktop recording only when it is smaller than the stage,
-          // else the player shrinks it the usual way
+          /* A phone recording is only the viewport — in Safari the address bar
+             and toolbar take the bottom of the screen, so a session made in
+             the browser is 390×660-ish; one opened from the home screen is
+             the whole screen. The frame is the viewport, as recorded (a dark
+             "browser bars" band under it was tried and cut — Eric, 2026-09-26). */
+          const k = rw && rh ? Math.min(2, Math.floor(Math.min(h / rh, w / rw) * 100) / 100) : 1;
+          // a phone is always sized by us (CSS zoom, up or down); a desktop
+          // recording only when it is smaller than the stage, else the player
+          // shrinks it the usual way
           const fit = !!m.mobile || k > 1;
           host.style.setProperty('--zoom', fit ? k : 1);
-          host.style.setProperty('--bars', bars + 'px');
           host.classList.toggle('is-phone', !!m.mobile);
-          host.classList.toggle('has-bars', bars > 36);
           player = new rrwebPlayer({ target: host, props: { events: a.events, width: fit ? Math.round(rw * k) : w, height: fit ? Math.round(rh * k) : h, autoPlay: true, showController: true, skipInactive: true, speedOption: [1, 2, 4, 8], mouseTail: { strokeStyle: '#3b82f6', lineWidth: 5, lineCap: 'round', duration: 900 } } });
           player.addEventListener('ui-update-current-time', ev => markNow(ev.payload));
         } catch (e) { console.error(e); host.innerHTML = '<div class="empty">Could not build the replay: ' + esc(e.message || e) + '</div>'; player = null; }
       }
-      const tl = $('tl');
+      const tl = $('tl-body');
       tl.innerHTML = '<div class="hd">Transcript</div>' + (a.log.map((l, i) => {
         const v = l.k === 'input' ? `${esc(l.v)} <small>“${esc(l.val || '')}”</small>` : esc(l.v);
         return `<div class="tl-row k-${l.k}" data-t="${l.t}" data-i="${i}"><span class="t">${fmt(l.t)}</span><span class="k">${l.k}</span><span class="v">${v}</span></div>`;

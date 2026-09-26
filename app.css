@@ -11529,7 +11529,19 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
      the integers swapped — the flash. fbPaintDeck sets no z-index. */
   transform-style: preserve-3d;
   z-index: 1;
-  touch-action: pan-y;     /* the page still scrolls; a sideways drag is ours (fbSwipe) */
+  /* ⚠️ `none`, not `pan-y` (Eric, 2026-09-26: "when u swipe on the carousel
+     i dont want to be able to scroll vertically, it does both"): with pan-y
+     the phone starts its own vertical scroll the moment a finger wanders,
+     so a swipe on the deck dragged the page too. A touch that begins on the
+     deck is the deck's, both axes; the page scrolls from anywhere else. */
+  touch-action: none;
+  /* ⚠️ On the phone the deck painted FLAT on load and only turned 3D after a
+     touch (Eric, 2026-09-26) — the DOM was right from the first frame (the
+     session replay shows the poses), so it is the compositor: WebKit only
+     built the 3D scene once something moved. Promoting the flow to its own
+     layer up front makes it build the scene straight away. */
+  will-change: transform;
+  transform: translateZ(0);
   cursor: grab;
   user-select: none; -webkit-user-select: none;
 }

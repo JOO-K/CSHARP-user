@@ -3896,6 +3896,12 @@ const FB_DRAG_PX = 150, FB_COMMIT = 0.37, FB_FLICK = 0.5;    // px per card · f
 function fbSwipe(screenEl, flow) {
   let x0 = 0, y0 = 0, on = false, claimed = false, p = 0, lastX = 0, lastT = 0, vx = 0;
   const clampP = v => { const m = Math.abs(v); return Math.sign(v) * (m <= 1 ? m : 1 + (m - 1) * 0.25); };
+  /* ONE PAINT PER FRAME (Eric, 2026-09-26: "so not smooth, it's laggy"): a
+     phone reports a moving finger far more often than it draws, and every
+     report was a full repaint of eighteen 3D cards. The moves now only note
+     where the finger is; the deck is painted once, on the next frame. */
+  let raf = 0, pendingP = 0;
+  const paint = () => { raf = 0; fbPaintDeck(screenEl, (screenEl._fbCur || 0) + pendingP); };
   flow.addEventListener('pointerdown', e => {
     x0 = lastX = e.clientX; y0 = e.clientY; lastT = performance.now();
     on = true; claimed = false; p = 0; vx = 0;
@@ -3913,12 +3919,14 @@ function fbSwipe(screenEl, flow) {
     const now = performance.now(), dt = now - lastT;
     if (dt > 0) { vx = 0.6 * vx + 0.4 * ((e.clientX - lastX) / dt); lastX = e.clientX; lastT = now; }
     p = clampP(-dx / FB_DRAG_PX);                   // drag left → the next card comes
-    fbPaintDeck(screenEl, (screenEl._fbCur || 0) + p);
+    pendingP = p;
+    if (!raf) raf = requestAnimationFrame(paint);
   });
   const end = e => {
     if (!on) return;
     on = false;
     if (!claimed) return;
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
     flow.classList.remove('is-dragging');
     const cur = screenEl._fbCur || 0;
     let step = 0;
