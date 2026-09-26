@@ -11,8 +11,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,400&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..900&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=SUSE+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=159">
-  <link rel="stylesheet" href="app.css?v=642">
+  <link rel="stylesheet" href="style.css?v=162">
+  <link rel="stylesheet" href="app.css?v=644">
   <link rel="stylesheet" href="roadmap.css?v=6">
 </head>
 <body>
@@ -20,30 +20,56 @@
   <!-- ==================== DESKTOP VIEWER ==================== -->
   <div id="viewer">
 
+    <!-- THE TOOLBAR, for user testing (Eric, 2026-09-25): upper-left is
+         Patch notes and a Feedback button (patchnotes.js). Everything that was
+         here for development is still here, marked `.tb-dev`, and only shows
+         with `?tools` on the URL (body.sd-tools, app.js). Every id is
+         unchanged — app.js, guides.js and roadmap.js wire them by id. -->
     <header id="toolbar">
       <div class="tb-section">
-        <img class="vinyl-icon" src="images/spindeck-icon-white.png" alt="">
-        <span class="tb-name" role="img" aria-label="Spindeck"></span>
-        <span class="tb-tag">mockup</span>
+        <div class="tb-test">
+          <button class="tb-act tb-test-btn" id="btn-patchnotes" data-pop="tn-pop" onclick="togglePatchNotes()" title="What changed in this build">Patch notes</button>
+          <button class="tb-act tb-test-btn tb-test-btn--go" id="btn-feedback" data-pop="fb-pop" onclick="toggleFeedback()" title="Tell Eric what you found">Feedback</button>
+          <!-- The two popovers. `hidden` until their button is pressed. -->
+          <div class="tn-pop" id="tn-pop" hidden>
+            <div class="tn-hd"><span class="tn-hd-title">Patch notes</span><button class="tn-x" onclick="togglePatchNotes()" title="Close">×</button></div>
+            <div class="tn-body" id="tn-body"></div>
+          </div>
+          <div class="tn-pop fb-pop" id="fb-pop" hidden>
+            <div class="tn-hd"><span class="tn-hd-title">Feedback</span><button class="tn-x" onclick="toggleFeedback()" title="Close">×</button></div>
+            <div class="fb-body">
+              <p class="fb-lead">What were you trying to do, and what got in the way? Anything confusing, broken or missing.</p>
+              <textarea class="fb-text" id="fb-text" rows="6" placeholder="Write it here…" spellcheck="true"></textarea>
+              <div class="fb-foot">
+                <span class="fb-status" id="fb-status"></span>
+                <button class="tb-act tb-test-btn tb-test-btn--go" onclick="sendFeedback(this)">Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <!-- Persona switcher — filled by renderPersonaBar() in app.js from window.PERSONAS -->
-        <div class="tb-persona" id="persona-bar" aria-label="Persona"></div>
+        <div class="tb-persona tb-dev" id="persona-bar" aria-label="Persona"></div>
       </div>
 
       <div class="tb-section center">
-        <button class="tb-nav" id="btn-prev" title="Previous  ← ">&#8249;</button>
-        <div class="tb-screen-info">
+        <span class="tb-brand">
+          <img class="vinyl-icon" src="images/spindeck-icon-white.png" alt="">
+          <span class="tb-name" role="img" aria-label="Spindeck"></span>
+          <span class="tb-tag tb-dev">mockup</span>
+        </span>
+        <button class="tb-nav tb-dev" id="btn-prev" title="Previous  ← ">&#8249;</button>
+        <div class="tb-screen-info tb-dev">
           <span id="lbl-name">Home</span>
           <span class="tb-idx" id="lbl-idx">3 / 13</span>
         </div>
-        <button class="tb-nav" id="btn-next" title="Next  → ">&#8250;</button>
+        <button class="tb-nav tb-dev" id="btn-next" title="Next  → ">&#8250;</button>
       </div>
 
       <!-- RIGHT (reorganised 2026-09-25 so it fits): WHO is looking (Free | Pro,
            then the Alts switch for the comparison phones) · zoom · the tools as
            icon buttons (their names are the tooltips) · Roadmap · a Labs menu
-           holding the three external pages. Every id is unchanged — app.js,
-           guides.js and roadmap.js wire them by id. -->
-      <div class="tb-section end">
+           holding the three external pages. `?tools` only. -->
+      <div class="tb-section end tb-dev">
         <!-- Plan switcher — view the whole mockup as a Free or Pro account.
              Filled by renderPlanBar() in app.js. -->
         <div class="tb-plan" id="plan-bar" aria-label="Plan"></div>
@@ -77,6 +103,11 @@
 
     <main id="stage">
       <nav id="page-nav"></nav>
+      <!-- THE TESTER RAIL (Eric, 2026-09-25): Onboarding · Home · Search ·
+           Trending · Profile, floating centred on the left, the page you are
+           on lit; Onboarding opens its steps under it. Testing mode only —
+           with ?tools the dev page rail above shows instead. patchnotes.js. -->
+      <nav id="test-nav" aria-label="Pages"></nav>
       <div id="phone-container"></div>
       <!-- Dev box: live-tunes the compact bento's two info lines and prints the
            CSS. Built by initDevBox() in app.js; desktop viewer only. -->
@@ -204,6 +235,10 @@
     </main>
 
     <nav id="thumb-tray" aria-label="Screen thumbnails"></nav>
+    <!-- A faint link in the corner to the session viewer (Eric, 2026-09-25:
+         "a button in the lower right … make it subtle"). The viewer shows
+         nothing without the secret key, so this can sit on the public site. -->
+    <a class="sd-sessions-link" href="sessions.html" title="Sessions">sessions</a>
 
   </div>
 
@@ -260,13 +295,21 @@
   <!-- GENERATED by tools/build_personas.py from personas/*.csv — must load after
        data.js (it swaps ARCHIVE) and before app.js (which applies the persona). -->
   <script src="personas.js?v=8"></script>
-  <script src="screens.js?v=355"></script>
-  <script src="app.js?v=378"></script>
+  <script src="screens.js?v=357"></script>
+  <script src="app.js?v=380"></script>
   <!-- Quick share — needs app.js first (computeAlbumColors, albumDraft, shellAlbum). -->
   <script src="share.js?v=15"></script>
   <!-- Roadmap overlay. Independent of the prototype — loads last, touches
        nothing in app.js, and only runs when the toolbar button is pressed. -->
   <script src="roadmap.js?v=8"></script>
   <script src="guides.js?v=1"></script>
+  <!-- Patch notes + Feedback — the user-testing chrome. Loads last; only the
+       two toolbar buttons call into it. -->
+  <script src="patchnotes.js?v=2"></script>
+  <!-- The session recorder (user testing): records the tester's session to
+       a Supabase storage bucket the site can only add to. Loads its own
+       libraries only when it is configured and the page is in testing mode.
+       See the note at the top of recorder.js. -->
+  <script src="recorder.js?v=1"></script>
 </body>
 </html>

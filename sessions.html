@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spindeck — Sessions</title>
+  <!-- THE SESSION VIEWER (csharpuser, 2026-09-25). Every recording
+       recorder.js uploaded, listed as a use case: who, when, how long, on
+       what. Open one and it replays in rrweb's player with the semantic log
+       beside it; a row in the log seeks the player.
+       LOADING: "Load from Supabase" lists and downloads the bucket with the
+       project's PRIVATE (service_role) key, which you type in here — it is
+       kept in this browser's localStorage and nowhere else, never in the
+       repo. Files on disk (downloaded from the dashboard) can be dropped on
+       the page too. Everything runs in this page; nothing is uploaded. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@1.0.0/dist/style.css">
+  <style>
+    :root { --bg: #0c0c0c; --surface: #161616; --border: #262626; --text: #e8e8e8; --dim: #8a8a8a; --accent: #8892a4; --hi: #3b82f6; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.5 'DM Sans', system-ui, sans-serif; }
+    header { display: flex; align-items: center; gap: 14px; padding: 10px 18px; border-bottom: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; }
+    header h1 { font-size: 14px; margin: 0; font-weight: 700; letter-spacing: .2px; }
+    header .sub { color: var(--dim); font-size: 12px; }
+    .src { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .src input { background: #0c0c0c; border: 1px solid #333; color: var(--text); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+    .src input.key { width: 260px; }
+    .btn { background: none; border: 1px solid #333; color: var(--text); border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 12px; cursor: pointer; }
+    .btn:hover { border-color: #555; }
+    .btn--go { background: rgba(255,255,255,.06); }
+    input[type=file] { display: none; }
+    .status { width: 100%; font-size: 11.5px; color: var(--dim); min-height: 14px; }
+    .status.err { color: #e06060; }
+    main { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 74px); }
+    #list { border-right: 1px solid var(--border); overflow-y: auto; }
+    .drop { margin: 18px; padding: 28px 18px; border: 1px dashed #333; border-radius: 10px; color: var(--dim); text-align: center; font-size: 12.5px; }
+    .drop.is-over { border-color: var(--hi); color: var(--text); }
+    .row { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; align-items: center; }
+    .row:hover { background: rgba(255,255,255,.03); }
+    .row.is-on { background: rgba(59,130,246,.12); }
+    .row .n { font-family: ui-monospace, Menlo, monospace; color: var(--dim); font-size: 12px; }
+    .row .who { font-weight: 700; }
+    .row .meta { color: var(--dim); font-size: 11.5px; }
+    .row .dur { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--dim); }
+    #view { display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+    #head { padding: 10px 18px; border-bottom: 1px solid var(--border); display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; }
+    #head .who { font-size: 15px; font-weight: 700; }
+    #head .meta { color: var(--dim); font-size: 12px; }
+    #body { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
+    #player { padding: 14px; overflow: auto; display: flex; align-items: flex-start; justify-content: center; }
+    #tl { border-left: 1px solid var(--border); overflow-y: auto; }
+    .tl-row { display: grid; grid-template-columns: 52px 60px 1fr; gap: 8px; padding: 6px 12px; border-bottom: 1px solid #1c1c1c; font-size: 12px; cursor: pointer; }
+    .tl-row:hover { background: rgba(255,255,255,.03); }
+    .tl-row.is-now { background: rgba(59,130,246,.14); }
+    .tl-row .t { font-family: ui-monospace, Menlo, monospace; color: var(--dim); }
+    .tl-row .k { color: var(--accent); font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; padding-top: 2px; }
+    .tl-row.k-screen .v { font-weight: 700; }
+    .tl-row .v small { color: var(--dim); }
+    .empty { padding: 40px; color: var(--dim); text-align: center; }
+    .rr-player { background: #000; box-shadow: none !important; border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Spindeck — Sessions</h1>
+    <span class="sub" id="count">no sessions loaded</span>
+    <div class="src">
+      <input class="key" id="sb-key" type="password" placeholder="paste the secret key" title="The project's secret (service_role) key — stays in this browser">
+      <button class="btn btn--go" id="sb-load">Load from Supabase</button>
+      <label class="btn">…or files from disk<input type="file" id="files" multiple accept=".gz,.json"></label>
+    </div>
+    <div class="status" id="status"></div>
+  </header>
+  <main>
+    <aside id="list">
+      <div class="drop" id="drop">Load from Supabase above,<br>or drop downloaded session files here.</div>
+    </aside>
+    <section id="view">
+      <div id="head"><span class="meta">Pick a session on the left.</span></div>
+      <div id="body">
+        <div id="player"><div class="empty">The replay appears here.</div></div>
+        <div id="tl"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/rrweb-player@1.0.0/dist/index.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const SESSIONS = {};   // sid → { meta, chunks: {seq: body} }
+    const BUCKET = 'sessions';
+    const SB_URL = 'https://msxbtpnpioqtypkfyzhm.supabase.co';   // the project; it never changes
+    let player = null, current = null;
+    const status = (s, err) => { const el = $('status'); el.textContent = s; el.classList.toggle('err', !!err); };
+
+    /* ── Decoding a chunk ──────────────────────────────────── */
+    function ingest(buf, name) {
+      let txt;
+      try { txt = /\.gz$/i.test(name) ? fflate.strFromU8(fflate.gunzipSync(buf)) : fflate.strFromU8(buf); } catch (e) { console.warn('skip', name, e); return; }
+      let body; try { body = JSON.parse(txt); } catch (e) { console.warn('bad json', name); return; }
+      if (!body || !body.sid) return;
+      const s = SESSIONS[body.sid] || (SESSIONS[body.sid] = { sid: body.sid, meta: null, chunks: {} });
+      if (body.meta) s.meta = body.meta;
+      s.chunks[body.seq] = body;
+    }
+
+    /* ── Supabase ──────────────────────────────────────────── */
+    try { $('sb-key').value = localStorage.getItem('sb-key') || ''; } catch (e) {}
+    async function sb(path, opts) {
+      const key = $('sb-key').value.trim();
+      const r = await fetch(SB_URL + path, Object.assign({ headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' } }, opts || {}));
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText} on ${path}`);
+      return r;
+    }
+    async function listDir(prefix) {
+      const out = []; let offset = 0;
+      for (;;) {
+        const r = await sb(`/storage/v1/object/list/${BUCKET}`, { method: 'POST', body: JSON.stringify({ prefix, limit: 1000, offset, sortBy: { column: 'name', order: 'asc' } }) });
+        const page = await r.json(); out.push(...page); if (page.length < 1000) break; offset += 1000;
+      }
+      return out;
+    }
+    $('sb-load').addEventListener('click', async () => {
+      const key = $('sb-key').value.trim();
+      if (!key) { status('Paste the secret key first.', true); return; }
+      try { localStorage.setItem('sb-key', key); } catch (e) {}
+      try {
+        status('Listing sessions…');
+        const folders = (await listDir('')).filter(o => !o.id);          // a folder comes back with no id
+        let n = 0, total = 0;
+        const jobs = folders.map(f => async () => {
+          const files = (await listDir(f.name + '/')).filter(o => o.id);
+          total += files.length;
+          for (const file of files) {
+            const r = await sb(`/storage/v1/object/${BUCKET}/${f.name}/${file.name}`);
+            ingest(new Uint8Array(await r.arrayBuffer()), file.name);
+            status(`Loaded ${++n} chunk${n === 1 ? '' : 's'} from ${folders.length} session${folders.length === 1 ? '' : 's'}…`);
+          }
+        });
+        // four folders at a time
+        for (let i = 0; i < jobs.length; i += 4) await Promise.all(jobs.slice(i, i + 4).map(j => j()));
+        renderList();
+        status(`${folders.length} session${folders.length === 1 ? '' : 's'}, ${total} chunks.`);
+      } catch (e) { status('Could not load: ' + e.message, true); }
+    });
+
+    /* ── Files from disk ───────────────────────────────────── */
+    async function readFiles(files) {
+      for (const f of files) if (/\.json(\.gz)?$/i.test(f.name)) ingest(new Uint8Array(await f.arrayBuffer()), f.name);
+      renderList();
+    }
+    function walk(entry, out) {
+      return new Promise(res => {
+        if (entry.isFile) entry.file(f => { out.push(f); res(); }, res);
+        else if (entry.isDirectory) {
+          const r = entry.createReader(); const all = [];
+          const next = () => r.readEntries(async ents => {
+            if (!ents.length) { for (const e of all) await walk(e, out); res(); return; }
+            all.push(...ents); next();
+          }, res);
+          next();
+        } else res();
+      });
+    }
+    $('files').addEventListener('change', e => readFiles([...e.target.files]));
+    document.addEventListener('dragover', e => { e.preventDefault(); const d = $('drop'); if (d) d.classList.add('is-over'); });
+    document.addEventListener('dragleave', () => { const d = $('drop'); if (d) d.classList.remove('is-over'); });
+    document.addEventListener('drop', async e => {
+      e.preventDefault(); const d = $('drop'); if (d) d.classList.remove('is-over');
+      const out = [];
+      const items = [...(e.dataTransfer.items || [])];
+      if (items.length && items[0].webkitGetAsEntry) { for (const it of items) { const en = it.webkitGetAsEntry(); if (en) await walk(en, out); } }
+      else out.push(...e.dataTransfer.files);
+      readFiles(out);
+    });
+
+    /* ── The list ──────────────────────────────────────────── */
+    function assemble(s) {
+      const seqs = Object.keys(s.chunks).map(Number).sort((a, b) => a - b);
+      const events = [], log = [];
+      seqs.forEach(q => { events.push(...(s.chunks[q].events || [])); log.push(...(s.chunks[q].log || [])); });
+      const t0 = events.length ? events[0].timestamp : 0, t1 = events.length ? events[events.length - 1].timestamp : 0;
+      return { events, log, ms: Math.max(0, t1 - t0), t0, seqs };
+    }
+    const fmt = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+    const device = m => !m ? '?' : (m.mobile ? 'phone' : 'desktop') + ' · ' + (/(iPhone|iPad|Android|Windows|Mac OS)/.exec(m.ua || '') || ['?'])[0] + ` · ${m.w}×${m.h}`;
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    function renderList() {
+      const list = Object.values(SESSIONS).map(s => Object.assign({ a: assemble(s) }, s));
+      list.sort((x, y) => (x.meta ? x.meta.startedAt : x.sid).localeCompare(y.meta ? y.meta.startedAt : y.sid));
+      list.forEach((s, i) => s.n = i + 1);
+      list.reverse();
+      $('count').textContent = list.length ? `${list.length} session${list.length === 1 ? '' : 's'}` : 'no sessions loaded';
+      const el = $('list');
+      el.innerHTML = list.length ? list.map(s => {
+        const m = s.meta || {}; const d = m.startedAt ? new Date(m.startedAt) : null;
+        const taps = s.a.log.filter(l => l.k === 'tap').length, screens = new Set(s.a.log.filter(l => l.k === 'screen').map(l => l.v.split(/[/+]/)[0])).size;
+        return `<div class="row${current === s.sid ? ' is-on' : ''}" data-sid="${s.sid}">
+          <span class="n">#${s.n}</span>
+          <span><span class="who">${esc(m.name || '?')}</span><br><span class="meta">${d ? d.toLocaleString() : s.sid} · ${device(m)} · ${taps} taps · ${screens} screens</span></span>
+          <span class="dur">${fmt(s.a.ms)}</span>
+        </div>`; }).join('') : `<div class="drop" id="drop">Load from Supabase above,<br>or drop downloaded session files here.</div>`;
+      el.querySelectorAll('.row').forEach(r => r.addEventListener('click', () => open(r.dataset.sid)));
+    }
+
+    /* ── One session ───────────────────────────────────────── */
+    function open(sid) {
+      const s = SESSIONS[sid]; if (!s) return;
+      current = sid; renderList();
+      const a = assemble(s), m = s.meta || {};
+      $('head').innerHTML = `<span class="who">${esc(m.name || '?')}</span>
+        <span class="meta">${m.startedAt ? new Date(m.startedAt).toLocaleString() : ''} · ${device(m)} · ${fmt(a.ms)} · build ${esc(m.build || '?')}${m.persona ? ' · persona ' + esc(m.persona) : ''} · ${a.seqs.length} chunk${a.seqs.length === 1 ? '' : 's'}</span>`;
+      const host = $('player'); host.innerHTML = '';
+      if (player) { try { player.pause(); } catch (e) {} player = null; }
+      if (a.events.length < 2) { host.innerHTML = '<div class="empty">Not enough recorded frames to replay.</div>'; }
+      else {
+        const w = Math.min(host.clientWidth - 28, 1100), h = Math.max(320, Math.min(innerHeight - 200, Math.round(w * 0.62)));
+        player = new rrwebPlayer({ target: host, props: { events: a.events, width: w, height: h, autoPlay: false, showController: true, skipInactive: true, speedOption: [1, 2, 4, 8] } });
+        player.addEventListener('ui-update-current-time', ev => markNow(ev.payload));
+      }
+      const tl = $('tl');
+      tl.innerHTML = a.log.map((l, i) => {
+        const v = l.k === 'input' ? `${esc(l.v)} <small>“${esc(l.val || '')}”</small>` : esc(l.v);
+        return `<div class="tl-row k-${l.k}" data-t="${l.t}" data-i="${i}"><span class="t">${fmt(l.t)}</span><span class="k">${l.k}</span><span class="v">${v}</span></div>`;
+      }).join('') || '<div class="empty">No log.</div>';
+      tl.querySelectorAll('.tl-row').forEach(r => r.addEventListener('click', () => { if (player) { player.goto(+r.dataset.t); player.play(); } }));
+    }
+    function markNow(ms) {
+      const rows = [...document.querySelectorAll('.tl-row')]; let hit = null;
+      for (const r of rows) { if (+r.dataset.t <= ms) hit = r; else break; }
+      rows.forEach(r => r.classList.toggle('is-now', r === hit));
+    }
+  </script>
+</body>
+</html>

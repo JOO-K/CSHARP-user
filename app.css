@@ -6483,16 +6483,16 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 /* ── The log control's shared identity ────────────────────────────────────
    One dot-icon size and one type scale across the CTA and the three squares,
    so the four read as one control rather than a button with three tag-alongs.
-   ⚠️ The dot icons are SD_DOTS grids: they fill with `currentColor` and carry
-   no strokes, so they inherit hover/`.on` colour like a glyph. Don't add
-   `stroke` rules — there is nothing to stroke, and a stroke on a rounded-square
-   rect would fatten the dot off the grid. */
+   csharpuser (2026-09-25): the `.sd-dot-ico` icons are plain 24×24 LINE
+   glyphs now (SD_LINE_ICONS, screens.js) — stroke: currentColor, no fill —
+   so they still inherit hover/`.on` colour; the class name stayed so these
+   size rules did not have to move. */
 .sd-dot-ico { display: block; }
 .v3-rev-q   .sd-dot-ico { width: 15px; height: 15px; }
 /* The box icon is 7×5 cells, not 5×5, so it takes its own size — a square rule
    would squash it. Wider on screen too: it carries three dots inside a frame
    and needs the room to stay legible. */
-.v3-rev-cta .sd-dot-ico--box { width: 21px; height: 15px; }
+.v3-rev-cta .sd-dot-ico--box { width: 17px; height: 17px; }   /* 21×15 → 17×17 (2026-09-25): a plain pencil, not the 7×5 box */
 
 /* ⚠️ The three dots inside the box are the only thing on this page that moves
    at rest — that is the point, it marks the button you're meant to press. Slow
@@ -11719,7 +11719,7 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
    weight tuned for a 13–17px pill, which is ~3px here. A CSS stroke-width on
    the shapes beats the presentation attribute; both glyphs share the 100-unit
    box now, so one number — ~1.8px at 36px. */
-.v3-fbr .v3-up svg * { stroke-width: 5; }
+.v3-fbr .v3-up svg * { stroke-width: 1.8; }   /* 5 → 1.8 (2026-09-25): the heart and bubble are plain 24-unit line icons now */
 /* The bubble sits a touch small beside the heart at the same box size — its
    drawing is shorter than the box. 5% up (Eric). */
 .v3-fbr .v3-cmt-btn svg { width: 31px; height: 31px; }   /* 3% off (Eric) */
@@ -11733,32 +11733,10 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 .v3-fbr-act:first-child .v3-up { flex-direction: row-reverse; }
 .v3-fbr-act:last-child  { justify-content: flex-start; }
 .v3-fbr-name { font-family: var(--font-main); font-size: 13px; font-weight: 700; color: var(--sd-ink, #e8e2d6); }   /* 12.5 → 14.5 → 13 (Eric, 2026-09-24: "a bit smaller") */
-/* THE BELT round a popular review's face — ONE RIBBON (Eric, 2026-09-24:
-   "one fluid ribbon, not cut into pieces"). Built by fbBeltHtml (app.js):
-   an SVG of a tilted, wavy ellipse, the band a thick stroke and the legend
-   a textPath along it, animated by SMIL. Two copies sit in the wrap — the
-   BACK one before the face in the DOM, clipped to the top half, and the
-   FRONT one after it, clipped to the bottom half — so DOM order alone puts
-   the band behind the photo and over it. No 3D any more. Each copy is
-   centred on the wrap (its margin is inline, half its box) and scaled by
-   --belt-scale for a layout with a smaller face. The band's colours are
-   here; its geometry is the FB_BELT_* block in app.js. */
-.v3-fbr-av-wrap {
-  position: relative; width: 64px; height: 64px;   /* 76 → 64 (Eric, "a bit smaller") — keep FB_BELT_FACE (app.js) in step */
-}
-.v3-fbr-belt {
-  position: absolute; left: 50%; top: 50%;
-  display: none; pointer-events: none; overflow: visible;
-  transform: scale(var(--belt-scale, 1));   /* a layout with a smaller face shrinks the belt to match */
-}
-.v3-fbr.is-popular .v3-fbr-belt { display: block; }
-.v3-fbr-belt-band { fill: none; stroke: #3b82f6; stroke-width: 8; stroke-linejoin: round; }   /* FB_BELT_H */
-.v3-fbr-belt--back .v3-fbr-belt-band { stroke: #2f6fd8; }   /* the far side a shade darker; the halves meet outside the photo, so no seam shows */
-.v3-fbr-belt-text {
-  fill: #fff; font-family: var(--font-main); font-weight: 800; font-size: 5.6px;
-  dominant-baseline: central;
-}
-.v3-fbr-belt--back .v3-fbr-belt-text { fill: rgba(255,255,255,0.8); }
+/* csharpuser (2026-09-25): the ribbon that ran round a popular review's face
+   is gone (Eric: no 3D ribbons), and the flat tag that briefly replaced it
+   went the same day — a popular review looks like any other. */
+.v3-fbr-av-wrap { position: relative; width: 64px; height: 64px; }
 .v3-fbr-score .v3-fbr-discs { display: inline-flex; }
 .v3-fbr-ago  { margin-left: 6px; font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--sd-ink3, rgba(232,226,214,0.4)); }
 /* The score row (Eric, 2026-09-23): the like on the left, the number large
@@ -12125,25 +12103,15 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
   color: var(--sd-ink, #e8e2d6); font-variant-numeric: tabular-nums;
 }
 .sd-log-song-val.is-blank { color: var(--sd-ink3, rgba(232,226,214,0.32)); }
-/* The three toggles: air above and below the row, and — once ON — the
-   POPULAR belt round the icon (logBeltIcon, app.js): the band in the
-   toggle's colour with its word riding it, passing behind the icon and over
-   its foot. Off: just the icon and the word. The emboss and the flat ribbon
-   are gone (Eric). */
-.sd-log-opts { margin: 12px 0 30px; justify-content: center; gap: 16px; }   /* the belts hang ~28px under the words; the three sit close together (Eric) */
+/* The three toggles (csharpuser, 2026-09-25): the POPULAR belts round the
+   words are gone with the ribbon. Air above and below the row; ON is the
+   icon and the word in the toggle's colour, nothing else. */
+.sd-log-opts { margin: 12px 0 18px; justify-content: center; gap: 16px; }
 .sd-log-opt { flex: 0 0 auto; padding: 8px 10px; }
 .sd-log-opt, .sd-log-opt.on { background: none; box-shadow: none; transform: none; }
-.sd-log-opt-word { position: relative; display: inline-flex; align-items: center; justify-content: center; }
-.sd-log-opt-lbl  { position: relative; }                           /* painted between the belt's halves */
-.sd-log-opt .v3-fbr-belt { width: auto; height: auto; }            /* the belt's own box, not the icon's 22px */
-.sd-log-opt.on .sd-log-opt-lbl { color: #fff; }
-.sd-log-opt .v3-fbr-belt { display: none; }
-.sd-log-opt.on .v3-fbr-belt { display: block; }
-.sd-log-opt .v3-fbr-belt-band { stroke: var(--star, #e8a83c); stroke-width: 7; }
-.sd-log-opt .v3-fbr-belt--back .v3-fbr-belt-band { stroke: var(--star, #e8a83c); filter: brightness(0.82); }
-.sd-log-opt .v3-fbr-belt-text { fill: #16130d; font-size: 4.8px; }
-.sd-log-opt .v3-fbr-belt--back .v3-fbr-belt-text { fill: rgba(22,19,13,0.75); }
-.sd-log-opt[data-k="fav"] .v3-fbr-belt-band { stroke: #ff5c8a; }
+.sd-log-opt-lbl { position: relative; }
+.sd-log-opt.on .sd-log-opt-lbl { color: var(--star, #e8a83c); }
+.sd-log-opt[data-k="fav"].on .sd-log-opt-lbl { color: #ff5c8a; }
 .sd-log-opt.on .sd-log-opt-ico { color: var(--star, #e8a83c); }
 .sd-log-opt[data-k="fav"].on .sd-log-opt-ico { color: #ff5c8a; }
 /* The song numbers a touch in from the edge; Post near the TOP of the cover. */
@@ -12163,3 +12131,77 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
    corner radius at the top, not the bottom"): 20 → 12 on the review sheet
    and the write-a-review sheet; the bottom stays flush. */
 .v3-rsh, .sd-log-sheet { border-radius: 12px 12px 0 0; }
+
+/* ============================================================
+   ONBOARDING, SIMPLER — csharpuser (2026-09-25). Eric: "make the onboarding
+   simpler as well: no more emboss, and left align". Every neu-emboss pair
+   (the raised buttons, the pressed-in wells) becomes a flat surface with a
+   1px border, ON is a filled accent border, and everything that was
+   centred under the field, on the profile step and in the wall cards sits
+   on the left edge with the headings. The original rules stay above;
+   this block overrides them by order. (Step 0's "This is how friends find
+   you on Spindeck." line came out of screens.js the same day.)
+   ============================================================ */
+/* Flat surfaces */
+.ob-user-well, .sd-theme-light .ob-user-well,
+.ob-svc, .sd-theme-light .ob-svc,
+.ob-mix-back, .sd-theme-light .ob-mix-back,
+.ob-view, .sd-theme-light .ob-view,
+.ob-view-btn.is-on, .sd-theme-light .ob-view-btn.is-on,
+.ob-gbub, .sd-theme-light .ob-gbub,
+.ob-gsubs, .sd-theme-light .ob-gsubs,
+.ob-card-img, .ob-pf-av { box-shadow: none; }
+.ob-user-well, .ob-svc, .ob-gbub, .ob-gsubs, .ob-view, .ob-mix-back {
+  background: var(--surface); border: 1px solid var(--border);
+}
+.ob-svc:active, .ob-gbub:active { transform: none; }
+/* ON states: a border in the accent, the fill a shade up */
+.ob-plate--ok .ob-user-well, .sd-theme-light .ob-plate--ok .ob-user-well { box-shadow: none; border-color: var(--ob-fill); }
+.ob-svc--on, .sd-theme-light .ob-svc--on { box-shadow: none; border-color: var(--accent); background: var(--surface2); }
+.ob-gbub.is-lit, .sd-theme-light .ob-gbub.is-lit { box-shadow: none; border-color: var(--accent); }
+.ob-gbub.is-on, .sd-theme-light .ob-gbub.is-on { box-shadow: none; border-color: var(--accent); background: var(--surface2); }
+.ob-view-btn.is-on { background: var(--surface2); }
+/* Left aligned */
+.ob-user-read { text-align: left; }
+.ob-user-meter { margin: 0; }
+.ob-user-note, .ob-note { margin-left: 0; margin-right: 0; max-width: none; text-align: left; }
+.ob-empty { text-align: left; padding: 20px 0; }
+.ob-card { align-items: flex-start; }
+.ob-card-t, .ob-card-s { text-align: left; }
+.ob-pf-hero { align-items: flex-start; text-align: left; padding-top: 8px; }
+.ob-stat { text-align: left; padding: 12px 12px; }
+.ob-pf-note { text-align: left; }
+
+/* ============================================================
+   MINIMAL MOTION — csharpuser (2026-09-25). Eric: "reduce the interactions
+   like the animations to a minimum". At-rest loops are off for everyone
+   (the same resting states the prefers-reduced-motion rules above pick),
+   entry animations are gone (`animation: none` shows the resting state —
+   every one of them fills backwards from it), and the long transitions
+   are cut to a fast, functional length, so sheets still slide and states
+   still settle but nothing lingers. Gestures and their end states are
+   untouched. To bring something back, delete its line HERE, not the
+   original rule. ⚠ Keep this block LAST in the file: it wins by order.
+   ============================================================ */
+/* At-rest loops */
+.v3-cmt-btn .cmt-dot { animation: none; opacity: 1; }
+.v3-blue-quote--scroll .v3-blue-quote-text { animation: none; }
+.v3-cd, .plp-cd, .v3-rsh-cd, .prof-fav-img.prof-fav--spin { animation: none; }   /* no spinning records */
+.v3-live-dot, .v3-ring-dot, .v3-rev-caret, .ob-track-wave i { animation: none; }
+.v3-up--heart:not(.is-on) .rvp-hole { animation: none; opacity: 0; }
+.sd-ico-live { animation: none; }
+.v3-rev-hint-run, .v3-rev-yours .hstar { animation: none; }
+.v3-fbr .v3-up-n.is-flip { animation: none; }
+/* Entries */
+.s-home-v3--review .v3-review-panel,
+.s-home-v3--rvp .v3-rvp-panel,
+:is(.s-rvp, .s-home-v3--rvp) .v3-body,
+body.sd-return .s-home-v3--review .v3-body,
+.ob-panel, .ob-genres.is-on, .ob-hub-t,
+.mix-inline.is-opening .ob-dial, .mix-inline.is-opening .ob-hub-svg { animation: none; }
+/* Transitions: everything that ran .3s or longer now runs .2s */
+.sd-face-dot, .v3-for-single, .v3-blue-artist, .v3-blue-album, .s-home-v3, .v3-ring-dot,
+.s-home-v3--review .v3-bento, .s-home-v3--review .v3-album, .s-home-v3--review .v3-blue,
+.sd-log-sheet, .plc-sheet, .pldel-sheet, .sds-panel, .pl2-card-art,
+.v3-fb-card, .v3-fb-card::after, .v3-fbr-face { transition-duration: .2s; }
+.v3-rsh.is-drag { transition: none; }   /* restated after the cap above: the sheet still follows the finger */

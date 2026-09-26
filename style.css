@@ -1037,3 +1037,115 @@ body.mb-bare #mobile-bar { display: none; }
 #recbox .rb-go:hover { color: var(--vtext); border-color: #404040; }
 #recbox .rb-go.rb-busy { opacity: 0.5; pointer-events: none; }
 #recbox .rb-count { margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   USER TESTING (Eric, 2026-09-25): the dev chrome is gone unless `?tools`
+   is on the URL (body.sd-tools, app.js). Without it the toolbar is Patch
+   notes · Feedback on the left and the wordmark in the middle; the left
+   page rail, the recs bar and every `.tb-dev` control stay in the DOM
+   (app.js still wires them by id) but never paint.
+   ============================================================ */
+body:not(.sd-tools) .tb-dev,
+body:not(.sd-tools) .tb-section.center,
+body:not(.sd-tools) #page-nav,
+body:not(.sd-tools) #thumb-tray,
+body:not(.sd-tools) .var-label,        /* the version over each phone … */
+body:not(.sd-tools) .var-sublabel,     /* … and the variant's name under it (Eric, 2026-09-25) */
+body:not(.sd-tools) #recbox { display: none !important; }
+/* NO BAR (Eric, 2026-09-25: "we don't need a full bar at the top, just the two
+   buttons"): in testing mode the toolbar is out of the flow — no height, no
+   surface, no border — and the two buttons float in the top-left corner over
+   the stage, which now has the whole window. The bottom tray is gone too. */
+#toolbar { position: relative; }
+body:not(.sd-tools) #toolbar {
+  position: absolute; top: 0; left: 0; z-index: 50;
+  width: auto; height: auto; padding: 12px 14px;
+  background: none; border: 0;
+}
+body:not(.sd-tools) #toolbar .tb-section { flex: none; }
+/* The wordmark, left of prev · next in tools mode. */
+.tb-brand { display: inline-flex; align-items: center; gap: 8px; margin-right: 6px; }
+
+/* The two buttons and their popovers (patchnotes.js). */
+.tb-test { position: relative; display: flex; align-items: center; gap: 6px; }
+.tb-test-btn { font-size: 11.5px; padding: 6px 12px; color: #b9b9b9; }
+.tb-test-btn.on { background: rgba(136,146,164,0.22); border-color: #404040; color: var(--vtext); }
+.tb-test-btn--go { color: var(--vtext); border-color: #3a3a3a; background: rgba(255,255,255,0.05); }
+.tb-test-btn--go:hover { background: rgba(255,255,255,0.1); }
+.tn-pop {
+  position: absolute; top: calc(100% + 10px); left: 0; z-index: 60;
+  width: 380px; max-height: min(560px, calc(100vh - var(--toolbar-h) - 24px));
+  display: flex; flex-direction: column;
+  background: #1c1c1c; border: 1px solid #303030; border-radius: 10px;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.55);
+  color: #d8d8d8; font-size: 12.5px; line-height: 1.5;
+  user-select: text;
+}
+.tn-pop[hidden] { display: none; }
+.fb-pop { left: 94px; }   /* under its own button (Patch notes is ~88px wide + the 6px gap) */
+.tn-hd { display: flex; align-items: center; padding: 10px 12px 8px 14px; border-bottom: 1px solid #2a2a2a; }
+.tn-hd-title { font-size: 12px; font-weight: 600; color: var(--vtext); letter-spacing: 0.2px; }
+.tn-x { margin-left: auto; width: 22px; height: 22px; border: 0; border-radius: 6px; background: none; color: #777; font-size: 16px; line-height: 1; cursor: pointer; }
+.tn-x:hover { background: rgba(255,255,255,0.08); color: var(--vtext); }
+.tn-body { overflow-y: auto; padding: 6px 14px 12px; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+.tn-entry { padding: 10px 0 8px; border-bottom: 1px solid #262626; }
+.tn-entry:last-child { border-bottom: 0; }
+.tn-entry-hd { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; }
+.tn-date { font-size: 10.5px; color: #8a8a8a; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tn-title { font-weight: 600; color: var(--vtext); }
+.tn-new { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; padding: 1px 6px; border-radius: 99px; background: rgba(136,146,164,0.2); color: #c6ccd8; }
+.tn-list { margin: 0; padding-left: 16px; }
+.tn-list li { margin: 2px 0; }
+.fb-body { padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+.fb-lead { margin: 0; color: #a8a8a8; }
+.fb-text {
+  width: 100%; resize: vertical; min-height: 96px;
+  background: #121212; border: 1px solid #2e2e2e; border-radius: 8px; padding: 8px 10px;
+  color: var(--vtext); font: inherit; font-size: 12.5px; line-height: 1.5;
+}
+.fb-text:focus { outline: none; border-color: #4a4a4a; }
+.fb-foot { display: flex; align-items: center; gap: 10px; }
+.fb-status { flex: 1; min-width: 0; font-size: 11px; color: #8fa07a; }
+
+/* THE TESTER RAIL (#test-nav, patchnotes.js): floating, centred on the left,
+   no surface. Testing mode only — the dev rail (#page-nav) takes over with ?tools. */
+body.sd-tools #test-nav { display: none; }
+#test-nav {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%); z-index: 5;
+  display: flex; flex-direction: column; gap: 2px; width: 138px;
+  user-select: none;
+}
+.tnav-btn {
+  text-align: left; background: none; border: 0; border-radius: 6px;
+  color: #6c6c6c; font-size: 12.5px; padding: 7px 10px; cursor: pointer; font-family: inherit;
+  transition: color .12s, background .12s;
+}
+.tnav-btn:hover:not(.active) { color: #b0b0b0; background: rgba(255,255,255,0.04); }
+.tnav-btn.active { color: var(--vtext); background: rgba(255,255,255,0.09); }
+.tnav-steps { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 6px 12px; padding-left: 8px; border-left: 1px solid #2a2a2a; }
+.tnav-step {
+  text-align: left; background: none; border: 0; border-radius: 5px;
+  color: #5c5c5c; font-size: 11px; padding: 4px 8px; cursor: pointer; font-family: inherit;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tnav-step:hover:not(.active) { color: #a0a0a0; }
+.tnav-step.active { color: var(--vtext); }
+.tnav-step .n { display: inline-block; min-width: 14px; color: #444; font-variant-numeric: tabular-nums; }
+.tnav-step.active .n { color: var(--vaccent); }
+
+/* THE TESTER'S NAME PROMPT (recorder.js, 2026-09-25): one card over
+   everything on a first visit, desktop and phone. It is `#sd-rec-prompt`, so
+   the recorder blocks it out of its own recording. */
+.rec-prompt { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,0.72); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.rec-card { width: 100%; max-width: 340px; padding: 22px 22px 20px; border-radius: 12px; background: #1c1c1c; border: 1px solid #303030; box-shadow: 0 20px 60px rgba(0,0,0,0.6); color: #e8e8e8; font-family: 'DM Sans', system-ui, sans-serif; }
+.rec-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: #8a8a8a; margin-bottom: 8px; }
+.rec-lbl { display: block; font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+.rec-input { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 8px; border: 1px solid #3a3a3a; background: #121212; color: #fff; font: inherit; font-size: 16px; }
+.rec-input:focus { outline: none; border-color: #6a6a6a; }
+.rec-note { margin: 12px 0 14px; font-size: 12px; line-height: 1.5; color: #9a9a9a; }
+.rec-go { width: 100%; padding: 11px; border: 0; border-radius: 8px; background: #e8e8e8; color: #111; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.rec-go:hover { background: #fff; }
+
+/* The corner link to sessions.html — barely there until hovered. */
+.sd-sessions-link { position: fixed; right: 12px; bottom: 10px; z-index: 40; font-size: 10.5px; letter-spacing: 0.3px; color: #3a3a3a; text-decoration: none; padding: 4px 6px; border-radius: 4px; }
+.sd-sessions-link:hover { color: #9a9a9a; background: rgba(255,255,255,0.04); }

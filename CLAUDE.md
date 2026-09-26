@@ -138,6 +138,84 @@
 >   The CD console still grows the bar upward (553/82 → 553/205). Scrolled
 >   (`.is-scrolled`, `sdScrollWatch`): the wordmark fades, the bubbles stay,
 >   and a "back 2 top" tab rises out of the pill's top edge (`.v3-nav-top`).
+> - **2026-09-25 (later) — SIMPLER: basic icons, no ribbons, minimal motion.**
+>   Eric: "change out the icons to basic ones", "reduce the interactions like
+>   the animations to a minimum", "get rid of the 3d ribbons". (1) `SD_ICONS`
+>   is built from `SD_LINE_ICONS` (screens.js): plain 24×24 stroke glyphs under
+>   the same keys and the same `sd-dot-ico` class; the dot grids stay in the
+>   file unused. The log CTA's breathing box is the plain pencil; `RVP_HEART`
+>   and `CMT_SVG` are a plain heart and bubble (no hole, no beat, no dots).
+>   (2) The POPULAR REVIEW belt (`fbBeltHtml`, `FB_BELT_*`, `logBeltWord`) is
+>   deleted (git: commit 54e24ad still has it); a popular review is NOT
+>   marked at all (a flat tag replaced the belt for an hour — Eric: "no more
+>   popular tag"); an ON log toggle is just icon + word in colour. (3) **MINIMAL MOTION**, the LAST block in app.css:
+>   every at-rest loop (CD spin, quote scroll, live dot, ring pulse, caret,
+>   hint marquee, disc pulse, number flip) is off for everyone, entry
+>   animations are gone, and transitions of .3s+ are capped at .2s. Bring
+>   anything back by deleting its line there, not the original rule. The
+>   friends deck's cover-flow geometry and reflections were NOT touched.
+> - **2026-09-25 (later still) — THE VIEWER IS FOR USER TESTING.** Eric: "get
+>   rid of that stuff at the top and left of the website, not the mockup, and
+>   replace it with patchnotes in the upper left with a feedback button next
+>   to it" — then "we don't need a full bar at the top, just the two buttons,
+>   and we don't need that bar at the bottom". So: NO toolbar and NO thumb
+>   tray in testing mode — `#toolbar` is absolute, no surface, no height, and
+>   just **Patch notes · Feedback** float in the top-left corner over the
+>   stage (`patchnotes.js`, new; `.tb-test*` / `.tn-*` / `.fb-*` at the end
+>   of style.css); the wordmark, the version over each phone and the variant
+>   name under it only show with the tools, and only ONE phone is on stage
+>   (`stageVariants` returns just the active variant). Down the left, centred,
+>   floats THE TESTER RAIL (`#test-nav`; `renderTestNav` + `RAIL` in
+>   patchnotes.js, `.tnav-*` in style.css): Onboarding · Home · Search ·
+>   Trending · Profile, the page on screen lit (`railActive` reads the
+>   current SCREENS entry, or the open search overlay); in Onboarding the
+>   steps unfold under it (`obActiveSteps`, current `OB.step` lit; a tap sets
+>   the step and obSync's). It polls every 400ms because the phone changes
+>   screen without telling the viewer. EVERY dev control is
+>   still in index.html, marked `.tb-dev`, and with the left page rail and
+>   the recs bar only paints with **`?tools`** on the URL (`SD_TOOLS` →
+>   `body.sd-tools`, app.js — the switch the mobile side already had). The
+>   Alts phones are off without it. Patch notes are the `PATCH_NOTES` array
+>   at the top of patchnotes.js — add the newest entry at the TOP, in tester
+>   language. Feedback: `FEEDBACK_TO` there is EMPTY — Send copies the note
+>   (plus the screen · persona · build line) to the clipboard until Eric puts
+>   an address in, at which point it opens a prefilled mail instead. The
+>   mobile bar was left as it was.
+> - **2026-09-25 (later still) — ONBOARDING, SIMPLER.** Eric: "no more emboss,
+>   left align, take out 'this is how friends find you on Spindeck'". The
+>   **ONBOARDING, SIMPLER** block in app.css (just above MINIMAL MOTION)
+>   flattens every neu-emboss surface on the wizard — the handle well, the
+>   service rows, the Wheel|List switch, the dial's Back, the genre bubbles
+>   and their sub-wells, the card art and the profile avatar — to a flat
+>   `--surface` fill with a 1px `--border`; ON is an accent border on a
+>   `--surface2` fill. The meter, hint, note, wall-card captions, the
+>   profile-step hero and stats are left-aligned. Step 0's sub-line is gone
+>   from screens.js. The original rules are untouched above the block.
+> - **2026-09-25 (later still) — THE SESSION RECORDER.** Eric: "copy the
+>   exact movement through the app as they use it … asks 'what's your name'
+>   … saves as use case #X so we can look at it later". `recorder.js`
+>   (loads last from index.html; testing mode only, `?tools` / `?norec` off)
+>   asks the tester's name once (`.rec-*` card, style.css; name kept in
+>   localStorage), then records with **rrweb** (DOM snapshot + every change,
+>   tap, scroll, input, with timing — replayable, not video) plus a small
+>   SEMANTIC LOG (`screen` from SCREENS[currentIdx] + shell state classes +
+>   open overlays, polled; `tap` with the target's label; `input` with the
+>   value) and uploads gzipped chunks `<sid>/0001.json.gz…` every 8s / 150KB
+>   raw / on pagehide (keepalive). **Storage is a Supabase bucket**, chosen
+>   over Dropbox so nothing private of Eric's is involved: the site carries
+>   only the project's PUBLIC anon key and the bucket's one policy lets it
+>   INSERT and nothing else (`tools/supabase-setup.sql`). `REC_CFG` at the
+>   top of recorder.js holds url + anonKey; empty = the recorder does
+>   nothing. **`sessions.html`** is the viewer, reached by a faint
+>   "sessions" link in the viewer's bottom-right corner (`.sd-sessions-link`,
+>   index.html / style.css; it shows nothing without the key, so it can be
+>   public). The project URL is baked in;
+>   "Load from Supabase" wants only the secret (service_role) key, typed in
+>   (kept in that browser's localStorage, never in the repo); files can be
+>   dropped from disk too. It lists sessions as use
+>   case #N (name · date · device · taps · screens · length), replays one in
+>   rrweb-player with the log as a seekable timeline. Libraries come from
+>   jsdelivr at runtime (rrweb 1.1.3, rrweb-player 1.0.0, fflate 0.8.2).
 > Everything below this box is the ORIGINAL's documentation and still describes
 > the code that is here — read it with the list above in mind.
 

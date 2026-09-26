@@ -118,44 +118,39 @@ const SD_DOT_ICONS = {
            'x.x.x'],
 };
 
-/* ⚠️ Built at parse time, which is why dots.js has to load before screens.js —
-   the same reason sdScene() is declared up here. */
-const SD_ICONS = Object.keys(SD_DOT_ICONS).reduce((out, k) => {
-  out[k] = SD_DOTS.svg(SD_DOT_ICONS[k], { cls: 'sd-dot-ico' });
-  return out;
-}, {});
+/* csharpuser (2026-09-25): BASIC ICONS. Eric asked for plain icons, so the
+   dot-matrix grids above are no longer drawn (kept for reference / dot-lab).
+   Every key is now a simple 24×24 line glyph — 2px round strokes, nothing
+   filled — under the SAME keys and the same `sd-dot-ico` class, so every
+   caller and every size rule still applies unchanged. */
+const SD_LINE_ICONS = {
+  pencil: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  // "Listened" — headphones.
+  ear:    '<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>',
+  clock:  '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  heart:  '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/>',
+  bag:    '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  ticket: '<path d="M3 9a2 2 0 0 0 2-2V5h14v2a2 2 0 0 0 2 2v6a2 2 0 0 0-2 2v2H5v-2a2 2 0 0 0-2-2z"/><path d="M13 5v14"/>',
+  crown:  '<path d="M3 18h18l1-11-5 4-5-7-5 7-5-4z"/>',
+  wave:   '<path d="M4 15v-6"/><path d="M8 19V5"/><path d="M12 16V8"/><path d="M16 19V5"/><path d="M20 15V9"/>',
+  mic:    '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4"/><path d="M8 21h8"/>',
+  gem:    '<path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/>',
+  flame:  '<path d="M12 22c4 0 7-3 7-7 0-3-2-5-3-7-1 3-2 4-3 4 0-3-1-6-3-9-1 4-5 7-5 12 0 4 3 7 7 7z"/>',
+  moon:   '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  bolt:   '<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',
+  drop:   '<path d="M12 2.7 6.3 8.4a8 8 0 1 0 11.4 0z"/>',
+  sun:    '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+};
+function sdLineIcon(k, cls) {
+  return `<svg class="${cls || 'sd-dot-ico'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SD_LINE_ICONS[k] || ''}</svg>`;
+}
+const SD_ICONS = Object.keys(SD_LINE_ICONS).reduce((out, k) => { out[k] = sdLineIcon(k); return out; }, {});
 
-/* The log CTA's icon — a box with an ellipsis of dots inside, the three of them
-   breathing slowly. It says "there are words to write here" where a pencil said
-   "edit", and the motion is the only thing on the page that moves at rest, so
-   the button reads as the one you're meant to press.
-
-   ⚠️ Hand-built rather than `SD_DOTS.svg()`, because the generator has no way to
-   mark individual cells and the three inner dots need their own class to
-   animate. It emits the SAME geometry — cell 8, dot 56% of the cell, corner 14%
-   of the dot — so it stays the brand's dot; if `dots.js` ever changes those
-   fractions, this has to follow. 'o' marks an animated dot, 'x' a static one. */
+/* The log CTA's icon. csharpuser (2026-09-25): it was a box with three
+   breathing dots inside; now it is the plain pencil, still under the
+   `sd-dot-ico--box` class so the CTA's size rule finds it. Nothing moves. */
 function sdBoxIcon() {
-  const CELL = 8, FRAC = 0.56, CORNER = 0.14;      // mirrors SD_DOTS' defaults
-  const d = +(CELL * FRAC).toFixed(2);
-  const rx = +(d * CORNER).toFixed(2);
-  const off = +((CELL - d) / 2).toFixed(2);
-  const rows = ['xxxxxxx',
-                'x.....x',
-                'x.ooo.x',
-                'x.....x',
-                'xxxxxxx'];
-  let n = 0, out = '';
-  rows.forEach((row, y) => [...row].forEach((ch, x) => {
-    if (ch === '.') return;
-    const live = ch === 'o';
-    // Staggered so they roll left-to-right instead of pulsing as one blob.
-    const delay = live ? ` style="animation-delay:${(n++ * 0.26).toFixed(2)}s"` : '';
-    out += `<rect x="${(x * CELL + off).toFixed(2)}" y="${(y * CELL + off).toFixed(2)}"`
-         + ` width="${d}" height="${d}" rx="${rx}" ry="${rx}"`
-         + ` fill="currentColor"${live ? ' class="sd-ico-live"' : ''}${delay}/>`;
-  }));
-  return `<svg viewBox="0 0 ${7 * CELL} ${5 * CELL}" class="sd-dot-ico sd-dot-ico--box">${out}</svg>`;
+  return sdLineIcon('pencil', 'sd-dot-ico sd-dot-ico--box');
 }
 SD_ICONS.logbox = sdBoxIcon();
 
@@ -1221,7 +1216,8 @@ function onboardingHtml(light) {
             <div class="ob-h">
               <div class="ob-eyebrow">01 · Handle</div>
               <div class="ob-title">Claim your handle</div>
-              <div class="ob-sub">This is how friends find you on Spindeck.</div>
+              <!-- csharpuser (2026-09-25): the "This is how friends find you on
+                   Spindeck." sub-line came out (Eric). -->
             </div>
 
             <!-- ⚠ A <label>, so the whole slot focuses the field natively. It
@@ -2942,15 +2938,12 @@ function playlistNewHtml(light) {
    ⚠️ The viewBox is padded 6 units a side: the path runs to the box's very
    edges and half the stroke fell OUTSIDE it, so the lobes and the tip were
    clipped flat ("it's getting cut off"). */
-/* ⚠️ TWO paths (Eric, 2026-09-23: "get rid of the circle in the heart until
-   you like, and then the circle appears"): `.rvp-out` is the outline alone,
-   `.rvp-full` the outline WITH the pulley hole (evenodd). CSS shows one or
-   the other by state — `.is-on` (and the song's always-on favourite) get the
-   full one, filled, with the hole open; everything else the plain outline. */
-/* …and a THIRD piece (Eric, 2026-09-24): the hole as its own circle, for the
-   unliked heart's BEAT — every five seconds the pulley shows for a moment
-   and beats (`.rvp-hole`, app.css). Hidden once liked: the full path has it. */
-const RVP_HEART = '<svg viewBox="-6 -6 112 106.47" fill="none" fill-rule="evenodd" stroke="currentColor" stroke-width="8.5" stroke-linejoin="round"><path class="rvp-out" d="M49.87 12.04A27.26 27.26 0 1 1 93.83 44.22L56.41 91.32A8.34 8.34 0 0 1 43.34 91.32L5.92 44.22A27.26 27.26 0 1 1 49.87 12.04Z"/><path class="rvp-full" d="M49.87 12.04A27.26 27.26 0 1 1 93.83 44.22L56.41 91.32A8.34 8.34 0 0 1 43.34 91.32L5.92 44.22A27.26 27.26 0 1 1 49.87 12.04ZM89.45 27.26A16.96 16.96 0 1 0 55.53 27.26A16.96 16.96 0 1 0 89.45 27.26Z"/><circle class="rvp-hole" cx="72.49" cy="27.26" r="16.96"/></svg>';
+/* (2026-09-23/24 history: the two-path outline/full-with-hole heart and
+   its beating hole are in git before this date.) */
+/* csharpuser (2026-09-25): BASIC HEART. The belt-and-pulley heart (outline,
+   full-with-hole, and the beating hole) is gone — one plain outline path,
+   filled by the existing `.is-on svg { fill }` rules when liked. */
+const RVP_HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
 /* The review, as a panel: back pill · Letterboxd-shaped hero · comments.
    Two hosts — the standalone review-page screen (reached from the profile's
    pins and the left rail) and, in place, the album page's own shell

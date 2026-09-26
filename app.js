@@ -19,13 +19,25 @@ let _dragActive  = false;
    on; the toolbar switch beside Free | Pro flips it and it survives a reload.
    ⚠ A viewer control like the plan, not app state: nothing in a phone reads it. */
 const ALT_KEY = 'spindeck-alt';
+/* USER TESTING (Eric, 2026-09-25): the desktop viewer opens with none of the
+   dev chrome — no persona / plan / Alts switches, no prev · next, no zoom or
+   tool buttons, no left page rail, no recs bar. `?tools` on the URL brings
+   all of it back (body.sd-tools; style.css hides `.tb-dev`, #page-nav and
+   #recbox without it), the same switch the mobile side has had since 09-18.
+   What testers get instead is Patch notes + Feedback (patchnotes.js). */
+const SD_TOOLS = /[?&]tools/.test(location.search);
 let SD_ALT = false;
-try { SD_ALT = localStorage.getItem(ALT_KEY) === '1'; } catch (e) {}
+try { SD_ALT = SD_TOOLS && localStorage.getItem(ALT_KEY) === '1'; } catch (e) {}   // the comparison phones are a tool
 // The variants of a screen that are on stage right now, each with its REAL
 // index — `pickVariant` / `setVariant` index into `s.variants`, so hiding a
 // column must not renumber the ones beside it.
 function stageVariants(s) {
-  return s.variants.map((v, i) => ({ v, i })).filter(x => SD_ALT || !x.v.alt);
+  const all = s.variants.map((v, i) => ({ v, i })).filter(x => SD_ALT || !x.v.alt);
+  // ONE PHONE for user testing (Eric, 2026-09-25): without ?tools only the
+  // active variant is on stage — home's Float·Dark unless something picked
+  // another. The tools bring the side-by-side columns back.
+  if (!SD_TOOLS) { const one = all.find(x => x.i === getVariantIdx(s)) || all[0]; return one ? [one] : []; }
+  return all;
 }
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -104,6 +116,7 @@ function init() {
   }
 
   isMobile = window.matchMedia('(max-width: 767px)').matches;
+  document.body.classList.toggle('sd-tools', SD_TOOLS);   // the dev chrome, only with ?tools
 
   const params = new URLSearchParams(window.location.search);
   const p = params.get('screen');
@@ -2211,7 +2224,7 @@ function cmtFind(key, id) {
    over two pulleys, three pulleys inside for the dots (images/comment-icon.svg
    has the construction). Same 100-unit box and padding as RVP_HEART; stroke
    8.3 here is the 2-in-24 the old glyph wore. The home card thins both (app.css). */
-const CMT_SVG = `<svg viewBox="-6 -6 112 98.80" fill="none" stroke="currentColor" stroke-width="8.3" stroke-linejoin="round"><path d="M43.05 86.74L43.38 86.74C43.38 86.74 84.71 86.74 90.23 86.74C95.75 86.74 101.87 80.05 99.36 72.64C96.84 65.24 85.7 31.86 85.7 31.86C80.06 14.31 63.22 0.03 43.26 0.03C19.38 0.03 0.03 19.44 0.03 43.38C0.03 67.26 19.27 86.63 43.05 86.74Z"/><circle class="cmt-dot" cx="29.79" cy="46.60" r="5.92"/><circle class="cmt-dot" cx="46.08" cy="46.60" r="5.92"/><circle class="cmt-dot" cx="62.37" cy="46.60" r="5.92"/></svg>`;
+const CMT_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.4 8.4 0 0 1-3.6-.8L3 21l1.9-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>`;   /* csharpuser (2026-09-25): basic bubble; the belt-over-pulleys glyph and its blinking dots are gone */
 
 /* The comment pill. Same object as the upvote pill (`.v3-up`) so the pair reads
    as one control.
@@ -3403,16 +3416,12 @@ function fbGo(screenEl, i) {
       revBox.insertAdjacentHTML('beforeend', `
               <div class="v3-fbr" onclick="fbOpenFront(this, event)">
                 <div class="v3-fbr-head">
-                  <!-- THE RIBBON (Eric, 2026-09-24): on a popular review a belt runs
-                       round the face — a band 8px off the photo's edge with
-                       POPULAR REVIEW along it, turning slowly. It is the app's
-                       own picture: a belt on a pulley. Shown by .is-popular. -->
+                  <!-- csharpuser (2026-09-25): the POPULAR REVIEW ribbon that ran
+                       round the face is gone (Eric: no 3D ribbons), and so is
+                       the flat tag that briefly replaced it — a popular review
+                       looks like any other; .is-popular is data only. -->
                   <div class="v3-fbr-av-wrap">
-                    <!-- One ribbon, two halves: the back one is painted before the
-                         face and the front one after it (fbBeltHtml). -->
-                    ${fbBeltHtml('back')}
                     <div class="v3-fbr-av"></div>
-                    ${fbBeltHtml('front')}
                   </div>
                 </div>
                 <div class="v3-fbr-name"><span class="v3-fbr-who"></span><span class="v3-fbr-ago"></span></div>
@@ -3438,7 +3447,7 @@ function fbGo(screenEl, i) {
     strip.querySelector('.v3-fb-year').textContent = album.year || '';
     strip.querySelector('.v3-fb-artist').textContent = album.artist;
     fbFace(rev.querySelector('.v3-fbr-av'), f.face);
-    rev.classList.toggle('is-popular', !!f.popular);   // the ribbon round the face (no chip, no genre — Eric)
+    rev.classList.toggle('is-popular', !!f.popular);   // data only — no ribbon, no tag (Eric, 2026-09-25)
     rev.querySelector('.v3-fbr-who').textContent = f.user;
     rev.querySelectorAll('.v3-fbr-ago').forEach(el => { el.textContent = f.ago; });   // the name's and the score row's (one shows per layout)
     rev.querySelector('.v3-fbr-n').textContent = rating.toFixed(1);
@@ -3604,71 +3613,10 @@ function fbTick(el, from, to) {
   flip();
 }
 
-/* THE BELT — ONE FLUID RIBBON (Eric, 2026-09-24: "no way to get it to be
-   one fluid ribbon, not cut into pieces?"). It was forty flat segments
-   standing in a 3D ring; now it is ONE SVG PATH — a tilted ellipse round
-   the face with a sine wave built into it — drawn twice: a thick blue
-   stroke is the band, and the legend rides it as a <textPath>, so the
-   letters flow round the bend as one piece. The front/back split is done
-   by clipping, not 3D: the wrap holds two copies of the same SVG, the
-   BACK one (the top half of the ellipse) painted before the face and the
-   FRONT one (the bottom half) after it, so the band passes behind the
-   photo and back over it, like a belt on a pulley. The halves meet outside
-   the photo, where nothing overlaps, so the seam is invisible.
-   Motion is SMIL, so it needs no JS after the build: the text's
-   startOffset slides one legend length (negative, so the run-in is
-   already on the path — that is what keeps the loop seamless), and the
-   wave rolls round by morphing `d` through FB_BELT_PHASES phases at the
-   same speed, so crests and letters travel together. textLength pins the
-   lettering to exactly three laps whatever font loads, so the period is a
-   known fraction of the path. Sizes are in the SVG's own units (1 = 1px
-   at --belt-scale 1): the face is FB_BELT_FACE across, the band FB_BELT_GAP
-   off its edge and FB_BELT_H thick, wave ±FB_BELT_WAVE with FB_BELT_WAVES
-   crests, tilt FB_BELT_TILT (the ellipse's vertical squash). Built once
-   per card; ids are per instance so several cards on a page don't clash. */
-const FB_BELT_FACE = 64, FB_BELT_GAP = 5, FB_BELT_H = 8, FB_BELT_WAVE = 2, FB_BELT_WAVES = 3, FB_BELT_TILT = 0.31;
-const FB_BELT_PTS = 72, FB_BELT_PHASES = 8, FB_BELT_SPIN_S = 18;
-const FB_BELT_LEGEND = 'POPULAR REVIEW  ·   ';   // one period; six of them cover three laps
-let fbBeltSeq = 0;
-function fbBeltHtml(half, o) {
-  o = o || {};
-  const FACE = o.face != null ? o.face : FB_BELT_FACE, GAP = o.gap != null ? o.gap : FB_BELT_GAP, H = o.h != null ? o.h : FB_BELT_H;
-  const WAVE = o.wave != null ? o.wave : FB_BELT_WAVE, WAVES = o.waves || FB_BELT_WAVES, TILT = o.tilt || FB_BELT_TILT;
-  const DY = o.dy || 0, LEGEND = o.legend || FB_BELT_LEGEND, SPIN = o.spin || FB_BELT_SPIN_S;
-  const R = FACE / 2 + GAP + H / 2;                              // the band's centre line, out from the face's centre
-  const box = Math.ceil(2 * (R + H / 2 + WAVE + Math.abs(DY)) + 2);
-  const c = box / 2, b = R * TILT, cy = c + DY;                  // DY drops the ring toward the face's bottom (the toggles)
-  // The ring runs COUNTER-clockwise on screen (t: 0 right, 90° top, 270° bottom),
-  // so along the front — the bottom — the path heads right and the legend reads upright.
-  const pt = (t, phase) => [c + R * Math.cos(t), cy - b * Math.sin(t) + WAVE * Math.sin(WAVES * t + phase)];
-  const pathD = (phase) => {
-    let d = '';
-    for (let i = 0; i <= FB_BELT_PTS; i++) {
-      const [x, y] = pt(i / FB_BELT_PTS * 2 * Math.PI, phase);
-      d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
-    }
-    return d + 'Z';
-  };
-  let len = 0, prev = pt(0, 0);
-  for (let i = 1; i <= FB_BELT_PTS; i++) { const q = pt(i / FB_BELT_PTS * 2 * Math.PI, 0); len += Math.hypot(q[0] - prev[0], q[1] - prev[1]); prev = q; }
-  const period = len / 2;                                     // two legends a lap, as before
-  const phases = [];
-  for (let k = 0; k <= FB_BELT_PHASES; k++) phases.push(pathD((k % FB_BELT_PHASES) / FB_BELT_PHASES * 2 * Math.PI));
-  const id = 'fbb' + (++fbBeltSeq);
-  const clipY = half === 'back' ? 0 : cy, clipH = half === 'back' ? cy : box - cy;   // back: above the ring's centre line; front: below
-  // One crest spacing (a lap / WAVES) must pass in the time the text moves one period (a lap / 2).
-  const waveS = (SPIN * 2 / WAVES).toFixed(2);
-  return `<svg class="v3-fbr-belt v3-fbr-belt--${half}" viewBox="0 0 ${box} ${box}" width="${box}" height="${box}" style="margin:${-c}px 0 0 ${-c}px" aria-hidden="true">
-    <defs>
-      <path id="${id}p" d="${phases[0]}"><animate attributeName="d" values="${phases.join(';')}" dur="${waveS}s" repeatCount="indefinite" calcMode="linear"/></path>
-      <clipPath id="${id}c"><rect x="0" y="${clipY}" width="${box}" height="${clipH}"/></clipPath>
-    </defs>
-    <g clip-path="url(#${id}c)">
-      <use href="#${id}p" class="v3-fbr-belt-band"/>
-      <text class="v3-fbr-belt-text" textLength="${(3 * len).toFixed(1)}" lengthAdjust="spacing"><textPath href="#${id}p" startOffset="0">${LEGEND.repeat(6).replace(/ /g, '\u00a0')}<animate attributeName="startOffset" from="0" to="${(-period).toFixed(1)}" dur="${SPIN}s" repeatCount="indefinite"/></textPath></text>
-    </g>
-  </svg>`;
-}
+/* csharpuser (2026-09-25): the POPULAR REVIEW belt (fbBeltHtml and the
+   FB_BELT_* geometry) is gone — Eric asked for no 3D ribbons, and then for
+   no tag either: a popular review is not marked at all. The builder is in
+   git history (commit 54e24ad and before) if it is wanted. */
 
 // "View more" opens the whole review in place; again to fold it back.
 window.fbMore = function (btn, e) {
@@ -3748,9 +3696,7 @@ function rshBodyHtml(R) {
         <div class="v3-fbr v3-fbr--sheet${R.popular ? ' is-popular' : ''}" data-k="${_revAttr(key)}">
           <div class="v3-fbr-head">
             <div class="v3-fbr-av-wrap">
-              ${fbBeltHtml('back')}
               <div class="v3-fbr-av"><span class="v3-fbr-face is-in" style="background-image:url('${face}')"></span></div>
-              ${fbBeltHtml('front')}
             </div>
           </div>
           <div class="v3-fbr-name"><span class="v3-fbr-who">${R.name || 'Listener'}</span><span class="v3-fbr-ago">${R.ago || ''}</span></div>
@@ -6428,6 +6374,7 @@ const NAV_PAGES = [
 let activeNavId = 'home';
 
 function renderPageNav() {
+  if (window.renderTestNav) window.renderTestNav();   // the tester rail (patchnotes.js) follows the same beats
   const nav = document.getElementById('page-nav');
   if (!nav) return;
   nav.innerHTML = NAV_PAGES.map(p =>
@@ -7117,20 +7064,9 @@ document.addEventListener('mousemove', e => { if (_ptr && sdPtrMove(e.clientX, e
 document.addEventListener('mouseup', sdPtrEnd, true);
 document.addEventListener('click', e => { if (_ptrSwallow) { e.stopPropagation(); e.preventDefault(); } }, true);
 
-/* THE TOGGLE BELTS (Eric, 2026-09-25: "3D, at the bottom of the icon, like
-   the home page's POPULAR REVIEW ribbon — and it doesn't show until you
-   press the button"). The popular belt itself (fbBeltHtml), sized to ring a
-   22px icon and dropped toward its bottom, the toggle's word as the legend.
-   The back half is painted before the icon and the front half after it, so
-   it passes behind the icon and over its foot. CSS shows it on `.on`. */
-/* …round the WORD, not the icon (Eric, same day): the ring is wider than
-   the label (`face` = the word's width + a little) and dropped so its front
-   passes just under the text and its back behind the top of it. */
-const LOG_BELT = { gap: 4, h: 7, wave: 0.7, waves: 3, tilt: 0.2, dy: 19, spin: 12 };   /* lower and flatter: clear of the letters, under them (Eric; 15 → 19, "a little lower even") */
-function logBeltWord(word, face) {
-  const o = Object.assign({ legend: word.toUpperCase() + '  ·  ', face }, LOG_BELT);
-  return `<span class="sd-log-opt-word">${fbBeltHtml('back', o)}<span class="sd-log-opt-lbl">${word}</span>${fbBeltHtml('front', o)}</span>`;
-}
+/* csharpuser (2026-09-25, later the same day): the toggle belts (the
+   POPULAR ribbon round each word once it was on) are gone with the ribbon.
+   An ON toggle is now just the icon and the word in the toggle's colour. */
 function ensureLogSheet() {
   let ov = document.getElementById('sd-log');
   if (ov) return ov;
@@ -7168,10 +7104,9 @@ function ensureLogSheet() {
         </span>
       </div>
       <div class="sd-log-opts">
-        <!-- Each WORD wears the POPULAR belt once it's on (logBeltWord). -->
-        <button class="sd-log-opt" data-k="listened"><span class="sd-log-opt-ico">${SDLOG_ICONS.ear}</span>${logBeltWord('Listened', 56)}</button>
-        <button class="sd-log-opt" data-k="later"><span class="sd-log-opt-ico">${SDLOG_ICONS.clock}</span>${logBeltWord('Listen later', 70)}</button>
-        <button class="sd-log-opt" data-k="fav"><span class="sd-log-opt-ico">${SDLOG_ICONS.heart}</span>${logBeltWord('Favorite', 52)}</button>
+        <button class="sd-log-opt" data-k="listened"><span class="sd-log-opt-ico">${SDLOG_ICONS.ear}</span><span class="sd-log-opt-lbl">Listened</span></button>
+        <button class="sd-log-opt" data-k="later"><span class="sd-log-opt-ico">${SDLOG_ICONS.clock}</span><span class="sd-log-opt-lbl">Listen later</span></button>
+        <button class="sd-log-opt" data-k="fav"><span class="sd-log-opt-ico">${SDLOG_ICONS.heart}</span><span class="sd-log-opt-lbl">Favorite</span></button>
       </div>
       <div class="sd-log-review">
         <textarea class="sd-log-write" rows="3" placeholder="Write a review…"></textarea>
