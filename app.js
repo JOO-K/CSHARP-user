@@ -781,7 +781,7 @@ function artistAlbumsHtml(a) {
   const albums = artistAlbumsFor(a);
   const row = ARTIST_ALBUM_VIEW === 'row';
   const cells = albums.map(al => `
-      <div class="wall2-cell" onclick="event.stopPropagation(); openAlbumPage(ARCHIVE.find(x=>x.album==='${al.album.replace(/'/g, "\\'")}')||ARCHIVE[0])">
+      <div class="wall2-cell" ${sdAlbumData(al)} onclick="openAlbumByData(this, event)">
         <div class="wall2-art" style="background-image:url('${al.image}')"></div>
         <div class="wall2-meta"><span class="wall2-album">${al.album}</span><span class="wall2-artist">${al.artist}</span></div>
         <div class="wall2-rating">${halfStars(al.rating, 11)}<span class="wall2-score">${al.rating.toFixed(1)}</span></div>
@@ -2440,8 +2440,8 @@ window.rvpBack = function () {
 // the standalone page it opens the album.
 window.rvpRecordTap = function (btn, name) {
   if (btn.closest('.s-home-v3--rvp')) { rvpBack(); return; }
-  const arch = window.ARCHIVE || [];
-  openAlbumPage(arch.find(x => x.album === name) || arch[0]);
+  const a = albumByTitle(name) || window.activeAlbum;
+  if (a) openAlbumPage(a);
 };
 /* Fade a scroller's CONTENT out, then do the thing. The shell — and with it
    the album colour — stays put, so the screen never flashes; the next screen's
@@ -2854,6 +2854,26 @@ function markLongReviews(list) {
 // Friend-feed card taps: the card is the review → album page scrolled to the
 // review section with that review pinned on top; the art is the album → album
 // page from the top. (i indexes window.FRIEND_ACTIVITY — no attr-escaping woes.)
+/* ⚠️ NO MORE `|| ARCHIVE[0]` (2026-09-26). Every tile that named its album
+   inside an inline onclick string fell back to the FIRST record in the
+   archive when the lookup missed — a title with a double quote broke the
+   attribute, a title shared by two records matched the wrong one, and the
+   notifications' hand-authored albums never exist under a persona — so a
+   tap opened a record that had nothing to do with the tile ("sometimes the
+   wrong album comes up"). Tiles now carry the title AND artist as data
+   attributes (no quoting games) and resolve through here; a genuine miss
+   opens nothing rather than something else. */
+window.albumByTitle = function (title, artist) {
+  const arc = window.ARCHIVE || [];
+  return (artist && arc.find(x => x.album === title && x.artist === artist)) || arc.find(x => x.album === title) || null;
+};
+window.sdAttr = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+window.sdAlbumData = a => `data-alb="${sdAttr(a.album)}" data-art="${sdAttr(a.artist)}"`;   // put on the tile
+window.openAlbumByData = function (el, e) {
+  if (e) e.stopPropagation();
+  const a = albumByTitle(el.dataset.alb, el.dataset.art);
+  if (a) openAlbumPage(a);
+};
 function friendAlbumFor(f) {
   return (window.ARCHIVE || []).find(x => x.album === f.album && x.artist === f.artist)
       || (window.ARCHIVE || []).find(x => x.album === f.album) || null;
@@ -3218,6 +3238,16 @@ function renderFriendsBento(screenEl) {
   const list = fbReviews();
   if (!list.length) { fb.hidden = true; return; }
   const flow = fb.querySelector('.v3-fb-flow');
+  /* ⚠️ THE DECK OWNS ITS LIST (2026-09-26). `fbReviews()` is re-dealt by
+     every `setFriendActivity` — the rec deal's `dzRefreshHome` a few seconds
+     after load, a persona switch, pull-to-refresh — and only a full render
+     repaints this deck. Between the two, everything that reads the list by
+     index (the cover tap, the strip, the review tap) has to see the SAME list
+     the covers were painted from, or a tap on Hyperdrama opens Talisman and
+     the review tap finds no key and does nothing (reproduced in Chrome).
+     So the list is pinned on the screen as `_fbList` — exactly what the
+     Trending wall's discovery deck already does — and `fbListOf` reads it. */
+  screenEl._fbList = list;
   if (flow && flow._list !== list) {           // first paint, or the list was rebuilt (setFriendActivity)
     flow._list = list;
     flow.innerHTML = list.map((f, i) => `
@@ -3629,7 +3659,7 @@ window.fbMore = function (btn, e) {
 window.fbOpenFront = function (el, e) {
   if (e) e.stopPropagation();
   const scr = el.closest('.s-home-v3');
-  const f = scr && fbReviews()[scr._fbCur || 0];
+  const f = scr && fbListOf(scr)[scr._fbCur || 0];   // the deck's OWN list (see renderFriendsBento), never the live one
   if (!f) return;
   // The REVIEW SHEET (Eric, 2026-09-24): the review, its comments and the
   // composer slide up over the deck. From the comment pill, the composer is

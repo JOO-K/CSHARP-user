@@ -1869,7 +1869,7 @@ function profReviewRowHtml(P, e) {
   const rvFace  = P.pic || '';
   const rvBadge = '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>';
   const a = e.album;
-  const open = `openAlbumPage(ARCHIVE.find(x=>x.album==='${esc(a.album)}')||ARCHIVE[0])`;
+  const open = `openAlbumPage(albumByTitle('${esc(a.album)}', '${esc(a.artist || '')}'))`;   // null on a miss → opens nothing (2026-09-26)
   // ⚠ Guarded the same way the feed guards it: "Weezer by Weezer" reads as a
   // bug, and nobody says the artist twice out loud either.
   const rec = `<i>${a.album}</i>` + (a.artist && a.artist !== a.album ? ` by <b>${a.artist}</b>` : '');
@@ -2450,7 +2450,7 @@ function wallItems() {
    position). Reads `wallItems()`, so it always reflects the active sort. */
 function wallGridHtml() {
   return wallItems().slice(0, 24).map((a, i) => `
-              <div class="wall2-cell" onclick="openAlbumPage(ARCHIVE.find(x=>x.album==='${a.album.replace(/'/g, '\\\'')}')||ARCHIVE[0])">
+              <div class="wall2-cell" ${sdAlbumData(a)} onclick="openAlbumByData(this, event)">
                 <div class="wall2-art" style="background-image:url('${a.image}')">${i < 3 ? `<span class="wall2-rank">${i + 1}</span>` : ''}</div>
                 <div class="wall2-meta">
                   <span class="wall2-album">${a.album}</span>
@@ -3172,7 +3172,11 @@ function notificationsHtml(light) {
   const pics  = ntfPeople();
   const items = ntfItems();
   const esc   = s => String(s).replace(/'/g, '\\\'');
-  const albOf = name => arch.find(a => a.album === name) || arch[0] || {};
+  // A hand-authored row names a demo album that a persona's archive may not
+  // hold. Then it takes a STEADY stand-in (seeded off the name, not arch[0]),
+  // and the row's tap opens that same stand-in — never a different record.
+  const albOf = name => arch.find(a => a.album === name)
+    || arch[[...String(name)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % Math.max(1, arch.length)] || {};
   const unread = items.filter(i => i.unread).length;
 
   // Small glyph clipped to the avatar's bottom-right — says what happened
@@ -3221,7 +3225,7 @@ function notificationsHtml(light) {
   // opens their profile, a playlist row opens the playlist.
   const go = it => {
     if (it.playlist) return `openPlaylistPage('${esc(it.playlist)}')`;
-    if (it.album)    return `openAlbumPage(ARCHIVE.find(x=>x.album==='${esc(it.album)}')||ARCHIVE[0])`;
+    if (it.album)    { const al = albOf(it.album); return `openAlbumPage(albumByTitle('${esc(al.album)}', '${esc(al.artist || '')}'))`; }
     return `navigate('profile')`;
   };
 

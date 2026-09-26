@@ -240,6 +240,29 @@
 >   rrweb-player with the log as a seekable timeline. Libraries come from
 >   jsdelivr at runtime (rrweb 1.1.3, rrweb-player 0.7.14 — the 0.7.x line is
 >   the player for rrweb 1.x; 1.0.0 does not exist on the CDN — and fflate 0.8.2).
+> - **2026-09-26 — TWO "WRONG ALBUM" BUGS, found by driving the app in Chrome.**
+>   Eric: "the back button, sometimes the wrong album comes up, and the
+>   comment is opened when it shouldn't". (1) **The deck read a re-dealt
+>   list.** `dzRefreshHome` (the rec deal, seconds after load) and every
+>   other `setFriendActivity` re-deal `fbReviews()`, but only a full render
+>   repaints the deck — so the cover tap and the review tap indexed a DIFFERENT
+>   list than the covers on screen: Hyperdrama's cover opened Talisman, and
+>   the review tap found no `REV_INDEX` key and did nothing (reproduced).
+>   `renderFriendsBento` now pins its list on the screen as `_fbList` (as the
+>   wall's discovery deck always did) and `fbOpenFront` reads `fbListOf`.
+>   (2) **`|| ARCHIVE[0]` fallbacks.** The wall tiles, the artist page's
+>   albums, the profile's review rows and the notifications rows opened the
+>   FIRST record of the archive whenever a title-only lookup missed (a shared
+>   title, a `"` in a title breaking the attribute, or a hand-authored demo
+>   album absent under a persona). Now: `albumByTitle(title, artist)` (null on
+>   a miss → nothing opens), tiles carry `data-alb`/`data-art` via
+>   `sdAlbumData` + `openAlbumByData`, and a notification row's stand-in album
+>   is seeded off the name and is what its tap opens. Verified in Chrome,
+>   desktop and the phone build: cover / review / pill / artist / wall /
+>   notifications / in-place review / search, each with Back. The "comment
+>   opened" report was most likely (1): the review tap doing nothing, or the
+>   sheet with the wrong review. No path focuses the composer except the
+>   comment pill itself.
 > Everything below this box is the ORIGINAL's documentation and still describes
 > the code that is here — read it with the list above in mind.
 
