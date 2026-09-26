@@ -12,11 +12,11 @@
        chunks' sizes and timestamps (name · when · length · size come from
        those), and downloads a session only when you open it (Eric: "we only
        download the one we press").
-       SIGN-IN: one password. The page signs in to Supabase as a fixed account
-       (SB_LOGIN, made once in Authentication → Users with that password;
-       tools/supabase-login.sql gives that account, and only it, the right to
-       read the bucket). The site holds only the public key; the token is kept
-       in this browser's localStorage and refreshes itself.
+       SIGN-IN: email + password. Each viewer is a Supabase account made by
+       hand in Authentication → Users (sign-ups are off, so nobody else can
+       make one); tools/supabase-login.sql lets any signed-in account read
+       the bucket. The site holds only the public key; the token is kept in
+       this browser's localStorage and refreshes itself.
        rrweb-player 0.7.x is the player for rrweb 1.x recordings (recorder.js
        records with rrweb 1.1.3); its white controller is repainted dark below.
        Files from disk can still be dropped anywhere on the page. -->
@@ -80,9 +80,10 @@
   </style>
 </head>
 <body>
-  <!-- One box: the password. Enter signs in and lists the sessions; once
-       signed in the page opens straight to the list and the box is gone. -->
+  <!-- Two boxes: email and password. Enter signs in and lists the sessions;
+       once signed in the page opens straight to the list and the boxes are gone. -->
   <div class="panel" id="auth">
+    <input id="sb-email" type="email" placeholder="email" autocomplete="username">
     <input id="sb-pass" type="password" placeholder="password, then Enter" autocomplete="current-password">
     <button class="btn" id="sb-load" hidden>Reload</button>
     <button class="btn btn--quiet" id="sb-out" hidden title="Forget the password on this computer">sign out</button>
@@ -111,7 +112,6 @@
     const BUCKET = 'sessions';
     const SB_URL = 'https://msxbtpnpioqtypkfyzhm.supabase.co';   // the project; it never changes
     const SB_KEY = 'sb_publishable_jPR6r7DVZTNMv_KPesf8uw_urETvpwt';   // the PUBLIC key, same as recorder.js
-    const SB_LOGIN = 'me@sd.app';   // the one account that may read; only its password is asked
     const INDEX = {};      // sid → { sid, name, startedAt, ms, bytes, files: [names] | null, local }
     const LOADED = {};     // sid → { meta, chunks: {seq: body} }  (only once opened)
     let player = null, current = null;
@@ -126,7 +126,7 @@
     const saveAuth = a => { AUTH = a; try { a ? localStorage.setItem('sb-auth', JSON.stringify(a)) : localStorage.removeItem('sb-auth'); } catch (e) {} paintAuth(); };
     function paintAuth() {
       const on = !!AUTH;
-      $('sb-pass').hidden = on; $('sb-out').hidden = !on; $('sb-load').hidden = !on;
+      $('sb-email').hidden = on; $('sb-pass').hidden = on; $('sb-out').hidden = !on; $('sb-load').hidden = !on;
     }
     async function authCall(grant, body) {
       const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=${grant}`, { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -164,16 +164,18 @@
       const name = m[5].split('-').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
       return { startedAt, name };
     }
-    $('sb-out').addEventListener('click', () => { saveAuth(null); status(''); $('sb-pass').focus(); });
+    $('sb-out').addEventListener('click', () => { saveAuth(null); status(''); $('sb-email').focus(); });
+    $('sb-email').addEventListener('keydown', e => { if (e.key === 'Enter') $('sb-pass').focus(); });
     $('sb-pass').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
     $('sb-load').addEventListener('click', load);
-    if (AUTH) load(); else setTimeout(() => $('sb-pass').focus(), 50);
+    if (AUTH) load(); else setTimeout(() => $('sb-email').focus(), 50);
     async function load() {
       if (!AUTH) {
-        const pass = $('sb-pass').value;
+        const email = $('sb-email').value.trim(), pass = $('sb-pass').value;
+        if (!email) { status('Type your email.', true); return; }
         if (!pass) { status('Type the password.', true); return; }
-        try { status('Checking…'); saveAuth(await authCall('password', { email: SB_LOGIN, password: pass })); $('sb-pass').value = ''; }
-        catch (e) { status('Wrong password.', true); return; }
+        try { status('Checking…'); saveAuth(await authCall('password', { email, password: pass })); $('sb-pass').value = ''; }
+        catch (e) { status('Wrong email or password.', true); return; }
       }
       try {
         status('Listing sessions…');
