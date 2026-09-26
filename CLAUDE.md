@@ -192,7 +192,8 @@
 >   profile-step hero and stats are left-aligned. Step 0's sub-line is gone
 >   from screens.js. The original rules are untouched above the block.
 >   **2026-09-26 — Skip is on the rail** (beside the 01/08 count; the same
->   `.ob-skip`, so `obSyncFooter`'s visibility rule still holds) **and the
+>   `.ob-skip`; it now shows on EVERY step, and `obNext(true)` skips past
+>   step 0's username check) **and the
 >   footer is ONE full-width Continue band** in the album page's "Your
 >   review" shape: mono label (`::before` from `data-lbl`, set by
 >   obSyncFooter: Next / Finish) over the 26px/800 line, raised with the

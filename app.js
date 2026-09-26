@@ -7877,7 +7877,7 @@ function obSyncFooter(root) {
   const skip = root.querySelector('.ob-skip');
   const next = root.querySelector('.ob-next');
   const step = OB.step;
-  if (skip) skip.style.visibility = [1,2,4,5,6].includes(step) ? 'visible' : 'hidden';
+  if (skip) skip.style.visibility = 'visible';   // every step (Eric, 2026-09-26: "a skip option at the top for all the onboarding pages for now")
   if (!next) return;
   next.dataset.lbl = step === 7 ? 'Finish' : 'Next';   // the band's small label (::before)
   if (step === 7)      { next.textContent = 'Start exploring';                       next.disabled = false; }
@@ -9196,8 +9196,8 @@ window.obToggleAlbum  = function (key) { OB.albums.has(key) ? OB.albums.delete(k
 window.obToggleFollow = function (user){ OB.following.has(user) ? OB.following.delete(user) : OB.following.add(user); obSync(); };
 window.obSearch       = function (kind, v) { OB.q[kind] = String(v).toLowerCase(); document.querySelectorAll('.s-onboarding').forEach(r => obRenderWall(r, kind)); };
 
-window.obNext = function () {
-  if (OB.step === 0 && !obUserValid()) return;   // username required
+window.obNext = function (skip) {
+  if (!skip && OB.step === 0 && !obUserValid()) return;   // username required — unless skipping (the rail's Skip passes true)
   const active = obActiveSteps();
   const i = active.indexOf(OB.step);
   if (i >= active.length - 1) { obFinish(); return; }

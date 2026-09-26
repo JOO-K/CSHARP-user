@@ -12187,7 +12187,9 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
   background: none; border-radius: 8px; box-shadow: none;
 }
 .ob-rail .ob-skip:hover { color: var(--text); background: var(--surface); }
-.ob-footer { padding: 0; }
+/* ⚠ `.s-onboarding .ob-footer` (0,2,0) pads 10/22/20 + the safe area; that
+   padding is what kept the band off the edges and off the bottom. */
+.s-onboarding .ob-footer { display: block; padding: 0; }
 .s-onboarding .ob-next {
   display: block; width: 100%; margin: 0; flex: none;
   padding: 12px 24px 26px; border: 0; border-radius: 0; text-align: left;
