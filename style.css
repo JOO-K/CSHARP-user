@@ -1063,6 +1063,10 @@ body:not(.sd-tools) #toolbar {
   background: none; border: 0;
 }
 body:not(.sd-tools) #toolbar .tb-section { flex: none; }
+/* The phone sits in the vertical middle of the stage in testing mode (Eric,
+   2026-09-26). The dev layout bottom-aligns the columns so the version label
+   above and the variant name below can differ in height; both are hidden here. */
+body:not(.sd-tools) #phone-container.multi-variant { align-items: center; padding: 16px 12px; }
 /* The wordmark, left of prev · next in tools mode. */
 .tb-brand { display: inline-flex; align-items: center; gap: 8px; margin-right: 6px; }
 
