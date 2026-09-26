@@ -158,6 +158,9 @@ const REC_CFG = {
     addEventListener('pagehide', bye);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') bye(); });
     console.info('[rec] recording as', name, S.sid);
+    /* Feedback's Post (patchnotes.js): a `feedback` line in this session's
+       transcript, sent straight away rather than on the next tick. */
+    window.sdRecPost = text => { if (S.dead || !S.sid) return false; log('feedback', String(text).slice(0, 2000)); flush(false); return true; };
   }
 
   /* ── The name prompt ─────────────────────────────────────── */

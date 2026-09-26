@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,400&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..900&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=SUSE+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=164">
+  <link rel="stylesheet" href="style.css?v=165">
   <link rel="stylesheet" href="app.css?v=648">
   <link rel="stylesheet" href="roadmap.css?v=6">
 </head>
@@ -30,29 +30,26 @@
   <!-- ==================== DESKTOP VIEWER ==================== -->
   <div id="viewer">
 
-    <!-- THE TOOLBAR, for user testing (Eric, 2026-09-25): upper-left is
-         Patch notes and a Feedback button (patchnotes.js). Everything that was
+    <!-- THE TOOLBAR, for user testing (Eric, 2026-09-25): upper-left is one
+         Feedback button (patchnotes.js). Patch notes and the tester's page rail
+         went on 2026-09-26 ("lets get rid of patchnotes and the left side nav").
+         Everything that was
          here for development is still here, marked `.tb-dev`, and only shows
          with `?tools` on the URL (body.sd-tools, app.js). Every id is
          unchanged — app.js, guides.js and roadmap.js wire them by id. -->
     <header id="toolbar">
       <div class="tb-section">
         <div class="tb-test">
-          <button class="tb-act tb-test-btn" id="btn-patchnotes" data-pop="tn-pop" onclick="togglePatchNotes()" title="What changed in this build">Patch notes</button>
           <button class="tb-act tb-test-btn tb-test-btn--go" id="btn-feedback" data-pop="fb-pop" onclick="toggleFeedback()" title="Tell Eric what you found">Feedback</button>
-          <!-- The two popovers. `hidden` until their button is pressed. -->
-          <div class="tn-pop" id="tn-pop" hidden>
-            <div class="tn-hd"><span class="tn-hd-title">Patch notes</span><button class="tn-x" onclick="togglePatchNotes()" title="Close">×</button></div>
-            <div class="tn-body" id="tn-body"></div>
-          </div>
+          <!-- The popover: a box and Post, nothing else (Eric, 2026-09-26).
+               `hidden` until the button is pressed. Post puts the note into
+               the tester's session transcript (recorder.js). -->
           <div class="tn-pop fb-pop" id="fb-pop" hidden>
-            <div class="tn-hd"><span class="tn-hd-title">Feedback</span><button class="tn-x" onclick="toggleFeedback()" title="Close">×</button></div>
             <div class="fb-body">
-              <p class="fb-lead">What were you trying to do, and what got in the way? Anything confusing, broken or missing.</p>
-              <textarea class="fb-text" id="fb-text" rows="6" placeholder="Write it here…" spellcheck="true"></textarea>
+              <textarea class="fb-text" id="fb-text" rows="6" spellcheck="true"></textarea>
               <div class="fb-foot">
                 <span class="fb-status" id="fb-status"></span>
-                <button class="tb-act tb-test-btn tb-test-btn--go" onclick="sendFeedback(this)">Send</button>
+                <button class="tb-act tb-test-btn tb-test-btn--go" onclick="sendFeedback(this)">Post</button>
               </div>
             </div>
           </div>
@@ -113,11 +110,6 @@
 
     <main id="stage">
       <nav id="page-nav"></nav>
-      <!-- THE TESTER RAIL (Eric, 2026-09-25): Onboarding · Home · Search ·
-           Trending · Profile, floating centred on the left, the page you are
-           on lit; Onboarding opens its steps under it. Testing mode only —
-           with ?tools the dev page rail above shows instead. patchnotes.js. -->
-      <nav id="test-nav" aria-label="Pages"></nav>
       <div id="phone-container"></div>
       <!-- Dev box: live-tunes the compact bento's two info lines and prints the
            CSS. Built by initDevBox() in app.js; desktop viewer only. -->
@@ -318,11 +310,11 @@
   <!-- The shared-element transition: a tapped cover or face glides into its
        place on the next screen. app.js calls in through typeof sdMorph. -->
   <script src="morph.js?v=1"></script>
-  <script src="patchnotes.js?v=2"></script>
+  <script src="patchnotes.js?v=3"></script>
   <!-- The session recorder (user testing): records the tester's session to
        a Supabase storage bucket the site can only add to. Loads its own
        libraries only when it is configured and the page is in testing mode.
        See the note at the top of recorder.js. -->
-  <script src="recorder.js?v=4"></script>
+  <script src="recorder.js?v=5"></script>
 </body>
 </html>

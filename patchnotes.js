@@ -1,5 +1,9 @@
 /* ============================================================
-   PATCH NOTES + FEEDBACK — the user-testing chrome (csharpuser, 2026-09-25).
+   FEEDBACK — the user-testing chrome (csharpuser, 2026-09-25; cut down
+   2026-09-26: the Patch notes panel and the tester's page rail are gone —
+   "lets just make it so the feedback box that pops up has no text, just a
+   textbox and post"). PATCH_NOTES stays as data: its top date is the build
+   tag on every recording and every note.
    Eric: "we are reappropriating this website to be more about user testing
    … replace [the dev stuff] with patchnotes in the upper left with a
    feedback button next to it". Two buttons in the toolbar's left section
@@ -64,41 +68,19 @@ const FEEDBACK_TO = '';
 (function () {
   const $ = id => document.getElementById(id);
 
-  function closeAll(except) {
-    ['tn-pop', 'fb-pop'].forEach(id => { if (id !== except) { const p = $(id); if (p) p.hidden = true; } });
-    ['btn-patchnotes', 'btn-feedback'].forEach(id => { const b = $(id); if (b) b.classList.toggle('on', !!except && b.dataset.pop === except); });
+  function closeAll() {
+    const p = $('fb-pop'); if (p) p.hidden = true;
+    const b = $('btn-feedback'); if (b) b.classList.remove('on');
   }
-
-  function renderNotes() {
-    const body = $('tn-body');
-    if (!body || body.dataset.done) return;
-    body.innerHTML = PATCH_NOTES.map((n, i) => `
-      <section class="tn-entry${i === 0 ? ' tn-entry--new' : ''}">
-        <header class="tn-entry-hd">
-          <span class="tn-date">${n.date}</span>
-          <span class="tn-title">${n.title}</span>
-          ${i === 0 ? '<span class="tn-new">new</span>' : ''}
-        </header>
-        <ul class="tn-list">${n.items.map(t => `<li>${t}</li>`).join('')}</ul>
-      </section>`).join('');
-    body.dataset.done = '1';
-  }
-
-  window.togglePatchNotes = function () {
-    const pop = $('tn-pop');
-    if (!pop) return;
-    const open = pop.hidden;
-    closeAll(open ? 'tn-pop' : null);
-    if (open) { renderNotes(); pop.hidden = false; }
-  };
 
   window.toggleFeedback = function () {
     const pop = $('fb-pop');
     if (!pop) return;
     const open = pop.hidden;
-    closeAll(open ? 'fb-pop' : null);
+    closeAll();
     if (open) {
       pop.hidden = false;
+      const b = $('btn-feedback'); if (b) b.classList.add('on');
       const ta = $('fb-text');
       if (ta) setTimeout(() => ta.focus(), 30);
       const st = $('fb-status');
@@ -118,10 +100,20 @@ const FEEDBACK_TO = '';
     return bits.join(' · ');
   }
 
+  /* POST (Eric, 2026-09-26): the note goes into the tester's session — a
+     `feedback` line in the transcript, uploaded at once (recorder.js exposes
+     sdRecPost while it records). Not recording (?tools, ?norec, blocked) →
+     the old ways: a prefilled mail if FEEDBACK_TO is set, else the clipboard. */
   window.sendFeedback = function (btn) {
     const ta = $('fb-text'), st = $('fb-status');
     const text = (ta && ta.value || '').trim();
     if (!text) { if (st) st.textContent = 'Write something first.'; if (ta) ta.focus(); return; }
+    if (window.sdRecPost && window.sdRecPost(text)) {
+      if (st) st.textContent = 'Posted.';
+      if (ta) ta.value = '';
+      setTimeout(closeAll, 700);
+      return;
+    }
     const body = text + '\n\n— ' + context();
     if (FEEDBACK_TO) {
       location.href = 'mailto:' + FEEDBACK_TO + '?subject=' + encodeURIComponent('Spindeck feedback') + '&body=' + encodeURIComponent(body);
@@ -140,68 +132,10 @@ const FEEDBACK_TO = '';
     t.remove(); done();
   }
 
-  /* ── THE TESTER RAIL ──────────────────────────────────────────
-     Five pages down the left, centred. The one on screen is lit. Onboarding
-     unfolds its steps under itself while you are in it, the current step lit,
-     and a tap on a step jumps straight to it. Re-rendered on every viewer
-     render (app.js's renderPageNav calls in) and polled lightly, because the
-     phone changes screen — search opens, a step advances — without telling
-     the viewer. */
-  const RAIL = [
-    { id: 'onboarding', label: 'Onboarding', go: () => window.navPage('onboarding') },
-    { id: 'home',       label: 'Home',       go: () => window.navPage('home') },
-    { id: 'search',     label: 'Search',     go: () => window.navPage('search') },
-    { id: 'trending',   label: 'Trending',   go: () => window.navPage('wall') },
-    { id: 'profile',    label: 'Profile',    go: () => window.navPage('profile') },
-  ];
-  const OB_LABELS = ['Handle', 'Bring your music', 'Share listening', 'Genres', 'Artists', 'Albums', 'People', 'Profile'];
-
-  function railActive() {
-    const ov = document.getElementById('sd-search');
-    if (ov && ov.classList.contains('open')) return 'search';
-    const s = (typeof SCREENS !== 'undefined' && typeof currentIdx !== 'undefined') ? SCREENS[currentIdx] : null;
-    const id = s ? s.id : '';
-    if (id === 'wall') return 'trending';
-    if (id === 'profile' || id === 'profile-edit') return 'profile';
-    if (id === 'onboarding' || id === 'home' || id === 'search') return id;
-    return '';
-  }
-  let railKey = '';
-  window.renderTestNav = function () {
-    const nav = $('test-nav');
-    if (!nav) return;
-    const active = railActive();
-    const steps = (active === 'onboarding' && typeof obActiveSteps === 'function') ? obActiveSteps() : [];
-    const step = (typeof OB !== 'undefined') ? OB.step : -1;
-    const key = active + '|' + steps.join(',') + '|' + step;
-    if (key === railKey) return;
-    railKey = key;
-    nav.innerHTML = RAIL.map(r => `
-      <button class="tnav-btn${r.id === active ? ' active' : ''}" type="button" data-id="${r.id}">${r.label}</button>` +
-      (r.id === 'onboarding' && steps.length ? `<div class="tnav-steps">${steps.map((k, i) =>
-        `<button class="tnav-step${k === step ? ' active' : ''}" type="button" data-step="${k}"><span class="n">${i + 1}</span>${OB_LABELS[k] || 'Step'}</button>`).join('')}</div>` : '')
-    ).join('');
-  };
-  document.addEventListener('click', e => {
-    const b = e.target.closest('#test-nav .tnav-btn, #test-nav .tnav-step');
-    if (!b) return;
-    if (b.dataset.id) { const r = RAIL.find(x => x.id === b.dataset.id); if (r) r.go(); }
-    else if (b.dataset.step != null) {
-      const k = +b.dataset.step;
-      if (railActive() !== 'onboarding') window.navPage('onboarding');
-      if (typeof OB !== 'undefined') OB.step = k;
-      if (typeof obSync === 'function') obSync();
-      if (typeof obScrollTop === 'function') obScrollTop();
-      if (typeof obMixArrive === 'function') obMixArrive();
-    }
-    window.renderTestNav();
-  });
-  setInterval(() => { if (document.body.classList.contains('sd-tools')) return; window.renderTestNav(); }, 400);
-
   // A click anywhere outside the open popover (or Esc) shuts it.
   document.addEventListener('click', e => {
-    if (e.target.closest('#tn-pop, #fb-pop, #btn-patchnotes, #btn-feedback')) return;
-    closeAll(null);
+    if (e.target.closest('#fb-pop, #btn-feedback')) return;
+    closeAll();
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(null); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
 })();
