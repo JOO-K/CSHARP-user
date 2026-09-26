@@ -67,7 +67,15 @@
     .tl-row.k-screen .v { font-weight: 700; }
     .tl-row .v small { color: var(--dim); }
     /* the player, repainted dark (its own rules are (0,3,0) svelte-scoped, so these carry !important) */
-    #player .replayer-wrapper iframe { zoom: var(--zoom, 1); }   /* phone recordings, blown up to fill the stage (see open) */
+    #player .replayer-wrapper iframe { zoom: var(--zoom, 1); }
+    /* THE FINGER (Eric, 2026-09-26: "i cant see clicks when they drag"): the
+       player's touch marker is a faint ring that exists only between touch
+       start and end — a flick was invisible. Now a finger is always a small
+       dot; while it is down it grows into a bright ring and stays that way
+       long enough to read, and the tail (below, in open) draws the drag. */
+    #player .replayer-mouse.touch-device { width: 26px; height: 26px; margin-left: -13px; margin-top: -13px; border: 3px solid rgba(255,255,255,.55); background: rgba(59,130,246,.25); box-shadow: 0 0 0 1px rgba(0,0,0,.5); transition: left .12s linear, top .12s linear, transform .15s ease, border-color .15s, background .15s; }
+    #player .replayer-mouse.touch-device.touch-active { border-color: #fff; background: rgba(59,130,246,.75); transform: scale(1.6); }
+    #player .replayer-mouse.touch-device.active:after { animation: none; }   /* phone recordings, blown up to fill the stage (see open) */
     #player .rr-player { background: #0f0f0f; box-shadow: none; border: 1px solid var(--border); border-radius: 10px; float: none; }
     #player .rr-controller { background: #161616 !important; border-radius: 0 0 10px 10px !important; }
     #player .rr-timeline__time { color: #bdbdbd !important; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
@@ -304,7 +312,7 @@
           const rw = (vp && vp.data.width) || (m.w || 0), rh = (vp && vp.data.height) || (m.h || 0);
           const k = rw && rh ? Math.min(2, Math.floor(Math.min(h / rh, w / rw) * 100) / 100) : 1;
           host.style.setProperty('--zoom', k > 1 ? k : 1);
-          player = new rrwebPlayer({ target: host, props: { events: a.events, width: k > 1 ? Math.round(rw * k) : w, height: k > 1 ? Math.round(rh * k) : h, autoPlay: true, showController: true, skipInactive: true, speedOption: [1, 2, 4, 8] } });
+          player = new rrwebPlayer({ target: host, props: { events: a.events, width: k > 1 ? Math.round(rw * k) : w, height: k > 1 ? Math.round(rh * k) : h, autoPlay: true, showController: true, skipInactive: true, speedOption: [1, 2, 4, 8], mouseTail: { strokeStyle: '#3b82f6', lineWidth: 5, lineCap: 'round', duration: 900 } } });
           player.addEventListener('ui-update-current-time', ev => markNow(ev.payload));
         } catch (e) { console.error(e); host.innerHTML = '<div class="empty">Could not build the replay: ' + esc(e.message || e) + '</div>'; player = null; }
       }

@@ -144,7 +144,10 @@ const REC_CFG = {
         S.raw += ev.type === 2 ? JSON.stringify(ev).length : 120;   // the full snapshot is the one big event
         if (S.raw > FLUSH_RAW) flush(false);
       },
-      sampling: { mousemove: 60, mouseInteraction: true, scroll: 150, media: 800, input: 'last' },
+      // mousemove also paces touchmove: a flick lasts ~100ms, so at 60ms a
+      // drag replayed as two points (Eric, 2026-09-26: "i cant see clicks when
+      // they drag"). 15ms gives a finger path the player can actually draw.
+      sampling: { mousemove: 15, mouseInteraction: true, scroll: 150, media: 800, input: 'last' },
       blockSelector: '#devbox, #petbox, #roadmap, #recbox, #page-nav, .tb-dev, #sd-rec-prompt',
       slimDOMOptions: { script: true, comment: true, headFavicon: true, headWhitespace: true, headMetaDescKeywords: true, headMetaSocial: true, headMetaRobots: true, headMetaHttpEquiv: true, headMetaAuthorship: true, headMetaVerification: true },
       inlineStylesheet: true, recordCanvas: false, collectFonts: false,
