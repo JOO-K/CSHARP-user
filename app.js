@@ -9896,8 +9896,21 @@ const PERSONA_INK1 = ['.v3-brand-name', '.wall2-title', '.pl2-title',
   '.set-title', '.v3-aa-title'];
 const PERSONA_INK2 = ['.v3-brand-tag', '.wall2-sub'];
 
+/* 0.12 (2026-10-02) — ONE BACKGROUND FOR EVERYONE (Eric: the live site came
+   up purple / dark red — a persona's own bg, e.g. Kpopper's #1a0f16 — where
+   the house blue-grey was expected; "homogenize it"). Every persona now wears
+   the house surfaces and ink (Eric's own row in personas.csv, which IS the
+   house palette); only `accent` stays theirs, and that is just the fallback
+   gold on screens with no cover. Delete this to give personas their colours back. */
+const PERSONA_HOUSE = {
+  dark:  { bg: '#111116', ink: '#e8e2d6', ink2: 'rgba(232,226,214,0.5)', card: '#1a1a21' },
+  light: { bg: '#f0ece3', ink: '#1a1208', ink2: 'rgba(26,18,8,0.5)',     card: '#e2dccf' },
+};
 function personaSkinCss(p) {
-  const s = p.skin, k = `.app-screen.persona-${p.id}`;
+  const k = `.app-screen.persona-${p.id}`;
+  const s = { ...p.skin,
+    dark:  { ...p.skin.dark,  ...PERSONA_HOUSE.dark },
+    light: { ...p.skin.light, ...PERSONA_HOUSE.light } };
   // A screen is the LIGHT variant when it carries --light (home-shell screens)
   // or sd-theme-light (auth / onboarding / song). Both sets are emitted so the
   // viewer's side-by-side Dark|Light pair stays a real comparison — a persona
