@@ -7405,17 +7405,30 @@ function ensureLogSheet() {
     return Math.min(5, i + (half ? 0.5 : 1));
   };
   const buzz = () => { try { navigator.vibrate && navigator.vibrate(6); } catch (x) {} };
+  /* 0.12 (2026-10-02) — A TAP IS LETTERBOXD'S (Eric): tap a record and the
+     rating is that WHOLE record; tap the same record again and it drops to
+     the half; again, back to whole. Which half of the disc you hit no longer
+     matters for a tap. A SLIDE still reads halves off the finger (valueAt) —
+     the press only turns into a slide once it travels past TAP_SLOP. */
+  const TAP_SLOP = 6;
+  const discAt = clientX => {
+    const r = track.getBoundingClientRect();
+    return Math.max(1, Math.min(5, Math.floor((clientX - r.left) / (r.width / 5)) + 1));
+  };
+  const tapValue = (n, cur) => (cur === n ? n - 0.5 : n);
   track.addEventListener('pointerdown', e => {
     if (!SDLOG) return;
     e.preventDefault(); e.stopPropagation();
     try { track.setPointerCapture(e.pointerId); } catch (x) {}
-    const v = valueAt(e.clientX);
-    rateDown = { x0: e.clientX, v0: SDLOG.rating, last: v };
+    const v = tapValue(discAt(e.clientX), SDLOG.rating || 0);
+    rateDown = { x0: e.clientX, v0: SDLOG.rating, last: v, slid: false };
     track.classList.add('is-rating');
     paintLogRating(v); buzz();
   });
   track.addEventListener('pointermove', e => {
     if (!rateDown) return;
+    if (!rateDown.slid && Math.abs(e.clientX - rateDown.x0) < TAP_SLOP) return;   // still a tap
+    rateDown.slid = true;
     const v = valueAt(e.clientX);
     if (v === rateDown.last) return;
     rateDown.last = v;
