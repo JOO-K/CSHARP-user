@@ -2,3 +2,7 @@ tools/.persona_cache.json
 tools/.build.log
 tools/.apple_cache.json
 tools/.credits_cache.json
+
+# Private work-in-progress versions (git worktrees on their own branches).
+# Never deployed: GitHub Pages serves main, and main ignores this folder.
+versions/

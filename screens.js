@@ -488,6 +488,15 @@ function homeShellHtml(light, coversUp, cls) {
               <!-- Notifications: friends adding you, replies to your reviews, etc.
                    .has-notif expands the bubble into a blue pill with the unread count on the right.
                    Click toggles the state (mockup demo). -->
+              <!-- THE BACK CARET (0.12, Eric 2026-10-02: "consolidate the back button —
+                   copy the quick review page's caret and use it for the album page,
+                   artist page and the other pages that had the floating back button;
+                   whenever we use the caret the notification button is replaced").
+                   Shown in the bell's place on any screen with a way back (app.css,
+                   THE BACK CARET); sdHeaderBack does what that screen's back did. -->
+              <button class="v3-hdr-back" type="button" title="Back" aria-label="Back" onclick="event.stopPropagation(); sdHeaderBack(this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
               <button class="v3-bubble v3-bubble--notif has-notif" title="Notifications" aria-label="Notifications"
                       onclick="navigate('notifications')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -542,22 +551,14 @@ function homeShellHtml(light, coversUp, cls) {
                    with — the point is that marking something listened / later /
                    favourite costs one tap instead of opening the sheet. -->
               <div class="v3-rev-mine">
-                <!-- YOUR REVIEW (Eric, 2026-09-24): the rate ring and its wings
-                     (rateGroupHtml, parked) gave way to the headline score's own
-                     shape — your number, large, over your discs — on a band the
-                     width of the screen, labelled. A tap opens the log sheet, where
-                     the rating, the text and listened / later / favourite live.
-                     syncRevCta paints it from the draft. -->
-                <div class="v3-rev-yours" onclick="event.stopPropagation(); openLogSheet(this)">
-                  <!-- The hint, SIDEWAYS down the band's right edge, marqueeing
-                       (Eric, 2026-09-25); CSS shows it only until you rate or write. -->
-                  <span class="v3-rev-hint" aria-hidden="true"><span class="v3-rev-hint-run">${'Tap to rate · '.repeat(6)}</span><span class="v3-rev-hint-run">${'Tap to rate · '.repeat(6)}</span></span>
-                  <span class="v3-rev-lbl">Your review</span>
-                  <div class="v3-rev-score v3-rev-score--mine">
-                    <span class="v3-rev-score-n v3-rev-mine-n">0.0</span>
-                    <span class="v3-rev-score-sub v3-rev-mine-sub">${halfStars(0, 13, true)}</span>
-                  </div>
-                </div>
+                <!-- THE ROUND RATE BUTTON is back (0.12, Eric 2026-10-02: "instead of
+                     having the review button be a bar lets make it a round circle button
+                     again"). rateGroupHtml — just its circle (-0.11's look: the wings and
+                     the four lobes are hidden in app.css; Listened / Later / Favorite /
+                     Share live in the log sheet). syncRevCta paints the middle: "Rate
+                     album", your number over your discs once rated, "Reviewed" if you only
+                     wrote. The "Your review" bar this replaced is .v3-rev-yours (CSS kept). -->
+                ${rateGroupHtml()}
               </div>
 
             </div><!-- /v3-rev-top -->
@@ -858,6 +859,15 @@ function appHeader(subtitle) {
   return `
           <div class="v3-header">
             <div class="v3-header-bubbles">
+              <!-- THE BACK CARET (0.12, Eric 2026-10-02: "consolidate the back button —
+                   copy the quick review page's caret and use it for the album page,
+                   artist page and the other pages that had the floating back button;
+                   whenever we use the caret the notification button is replaced").
+                   Shown in the bell's place on any screen with a way back (app.css,
+                   THE BACK CARET); sdHeaderBack does what that screen's back did. -->
+              <button class="v3-hdr-back" type="button" title="Back" aria-label="Back" onclick="event.stopPropagation(); sdHeaderBack(this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
               <button class="v3-bubble v3-bubble--notif has-notif" title="Notifications" aria-label="Notifications"
                       onclick="navigate('notifications')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -1341,6 +1351,22 @@ function onboardingHtml(light) {
             <div class="ob-wall ob-wall--albums" data-wall="albums"></div>
           </section>
 
+          <!-- 8 · QUICK REVIEW (0.12, 2026-10-02) — runs after albums, before
+               people (the order is obActiveSteps; 8 is an id, not a position).
+               Search, tap a record, and the app's own rate and review sheet
+               opens on it; Skip or Continue moves on. -->
+          <section class="ob-panel ob-panel--review" data-step="8">
+            <div class="ob-h">
+              <div class="ob-title">Review an album</div>
+              <div class="ob-sub">Find something you've had on lately — rate it, say a few words. Or skip.</div>
+            </div>
+            <div class="ob-searchbar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
+              <input type="text" placeholder="Search albums or artists" autocomplete="off" spellcheck="false" oninput="obSearch('review', this.value)">
+            </div>
+            <div class="ob-rlist"></div>
+          </section>
+
           <!-- 6 · PEOPLE YOU MAY KNOW -->
           <section class="ob-panel" data-step="6">
             <div class="ob-h">
@@ -1580,6 +1606,36 @@ function profEarsHtml() {
                   <path class="prof-ears-inner" d="M283.856 39.9244C276.538 54.1016 264.419 86.9451 236.103 86.9451H360.736C369.426 64.9933 346.855 35.8768 331.609 24.0625C324.741 18.7402 298.748 11.0731 283.856 39.9244Z"/>
                   <path class="prof-ears-inner" d="M574.445 39.9244C567.127 54.1016 555.008 86.9451 526.692 86.9451H651.325C660.015 64.9933 637.444 35.8768 622.198 24.0625C615.33 18.7402 589.337 11.0731 574.445 39.9244Z"/>
                 </g>`;
+}
+/* THE PROFILE'S HEAD (0.11 — Eric, 2026-09-28: "redo the profile page so that
+   the profile image is just round and centered and the info is below that,
+   just redoing that svg part at the top"). The traced card (profCanvasHtml,
+   below — kept, unused, with all its CSS) is off the profile page: the head
+   is plain flow now. Top to bottom, centred: the picture, round; the name;
+   the @handle; the bio; the location; the tags, wrapping; and the page's one
+   action (Edit on your own page, Follow on someone else's — the same
+   `.prof-act` button, so toggleProfFollow is untouched). The stats row
+   follows it as before (profStatsHtml).
+   The picture keeps the class `prof-pic`: the morph lands a tapped face on it
+   (sdFindProfilePic) and applyProfColors reads the page's tint off it.
+   Gone with the card: the name banner and its pill (sizeProfName finds no
+   canvas and returns), and the Furry skin's ears on the profile. */
+function profHeadHtml(P) {
+  const editIco = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  const pinIco  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+  const act = window.PROFILE_GUEST
+    ? '<button class="prof-act prof-act--follow" onclick="toggleProfFollow(this)" aria-pressed="false" title="Follow"><span class="prof-act-lbl">Follow</span></button>'
+    : '<button class="prof-act prof-act--edit" title="Edit profile" onclick="event.stopPropagation(); openProfileEdit()"><span class="prof-act-ico">' + editIco + '</span><span class="prof-act-lbl">Edit profile</span></button>';
+  return `
+            <div class="prof-head">
+              <div class="prof-pic" style="background-image:url('${P.pic || ''}')"></div>
+              <div class="prof-head-name">${P.name || 'Your name'}</div>
+              <div class="prof-head-at">@${P.handle || 'handle'}</div>
+              ${P.bio ? `<div class="prof-head-bio">${P.bio}</div>` : ''}
+              ${P.location ? `<div class="prof-head-loc">${pinIco}${P.location}</div>` : ''}
+              ${profTagsHtml(P)}
+              ${act}
+            </div>`;
 }
 function profCanvasHtml(P) {
   const findAlb = name => (window.ARCHIVE || []).find(a => a.album === name);
@@ -1926,7 +1982,8 @@ function profReviewCardHtml(P, e) {
   if (typeof REV_INDEX !== 'undefined') REV_INDEX[key] = { key, album: a, name: P.name || 'They', handle,
     pic: P.pic || '', rating: e.rating, text: e.text, ago: e.when, likes: e.likes, comments: e.comments };
   return (typeof revCardHtml === 'function') ? revCardHtml({
-    key, cls: 'v3-rev-card--feed v3-rev-card--prof', name: P.name || 'They', handle, face: P.pic || '', ago: e.when,
+    key, cls: 'v3-rev-card--feed v3-rev-card--prof v3-rev-card--split', split: true,   // the home feed's split card (0.12, 2026-10-02)
+    name: P.name || 'They', handle, face: P.pic || '', ago: e.when,
     rating: e.rating, text: e.text, likes: e.likes, comments: e.comments, timeRight: true, actsTop: true,
     record: { image: a.image, album: a.album, artist: a.artist, year: a.year },
   }) : profReviewRowHtml(P, e);
@@ -2190,9 +2247,14 @@ function profileHtml(light) {
         <div class="v3-body">
           <div class="prof2-scroll">
 
-            ${profCanvasHtml(P)}
+            ${profHeadHtml(P)}
 
             ${profStatsHtml(P)}
+
+            <!-- THE ALBUM WHEEL is back (0.12, Eric 2026-10-02): the five favourite
+                 albums as discs on an endless arc (profFavsHtml; profFavBoot
+                 lays it out from applyProfColors). No backticks here: template. -->
+            ${profFavsHtml(P)}
 
             <!-- The picks — Favourite songs · Listened · Listen later, one
                  picker ABOVE the pins (Eric, 2026-09-25; it opened under them). -->
@@ -2488,7 +2550,8 @@ function wallHtml(light) {
         ${appHeader()}
         <div class="v3-body">
           <div class="wall2-scroll">
-            ${discoveryDeckHtml()}
+            <!-- 0.12 (Eric, 2026-10-02): no discovery deck on the wall, just the wall of albums.
+                 discoveryDeckHtml + renderDiscoveryDeck are kept; the render is a no-op without it. -->
             <div class="wall2-bar">
               <button class="wall2-cat wall2-sort${WALL_SORT === 'popular' ? ' active' : ''}" data-sort="popular"
                       onclick="event.stopPropagation(); pickWallSort(this)">Popular</button>
@@ -3764,6 +3827,11 @@ function bottomNav(active = 'home') {
             <div class="v3-nav-items">
               <button class="v3-nav-item${on('home')}" onclick="navigate('home')" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></button>
               <button class="v3-nav-item" onclick="event.stopPropagation(); openSearch(this)" title="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
+              <!-- 0.11 (Eric, 2026-09-28): the + in the MIDDLE writes a review. It opens
+                   the search in review mode (albums only; an artist or a song
+                   brings up the album) and the pick opens the log sheet. No
+                   backticks in here: template literal. -->
+              <button class="v3-nav-item v3-nav-item--add" onclick="openReviewSearch(this, event)" title="Write a review" aria-label="Write a review"><span class="v3-nav-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></button>
               <button class="v3-nav-item${on('wall')}" onclick="navigate('wall')" title="Trending"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="2.5" y="2.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="2.5" width="5" height="5" rx="1.2"/><rect x="16.5" y="2.5" width="5" height="5" rx="1.2"/><rect x="2.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="16.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="2.5" y="16.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="16.5" width="5" height="5" rx="1.2"/><rect x="16.5" y="16.5" width="5" height="5" rx="1.2"/></svg></button>
               <button class="v3-nav-item${on('profile')}" onclick="navigate('profile')" title="Profile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
             </div>

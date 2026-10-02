@@ -2412,6 +2412,10 @@
   line-height: 1; white-space: nowrap;
 }
 .s-home-v3--light .v3-header-handle { color: rgba(26,18,8,0.42); }
+/* 0.12 (2026-10-02): the handle under the wordmark is OFF (Eric: "cleaner
+   without it"). populateHomeData still fills it; the stack is top-aligned, so
+   the wordmark doesn't move. Delete this line to bring it back. */
+.v3-header-handle { display: none; }
 
 .v3-header-logo {
   width: 106px;
@@ -3225,7 +3229,7 @@
 .v3-bottom-nav {
   position: absolute;
   left: 50%; transform: translateX(-50%);   /* centred */
-  bottom: 14px;                              /* floating off the bottom */
+  bottom: 19px;                              /* floating off the bottom — 14 → 19 (Eric, 0.12, 2026-10-02: "raise the nav bar by like 5px") */
   width: 72%;                                /* the only scale lever — keeps proportions */
   /* Keeps the fillet curves undistorted — height follows the width. Don't swap
      this for a fixed height: the SVG is preserveAspectRatio="none" and WILL
@@ -4739,6 +4743,34 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
 .s-home-v3--review.s-home-v3--artist { background: #111116; }
 .s-home-v3--light.s-home-v3--review.s-home-v3--artist { background: #f0ece3; }
 .s-home-v3--artist .v3-bg-fill { display: none; }
+/* 0.12 (2026-10-02): the album page keeps the theme background too — no more
+   flood from the cover behind the page (Eric). The flood is the cover-derived
+   --v3-box1-color that applyColorVars sets INLINE, and the page isn't the only
+   thing painted with it — the bento fill behind the cover is too, and it
+   showed as a stray rectangle once only the page went dark. So pin the var
+   itself here (!important beats the inline style) and everything that reads
+   it lands on the theme colour together. */
+/* …and it is the HOMEPAGE's bg, not a fixed #111116 (Eric): --sd-bg, which a
+   persona skin re-points per screen, so home and the album page match. */
+.s-home-v3--review.s-home-v3--album { --v3-box1-color: var(--sd-bg, #111116) !important; background: var(--sd-bg, #111116); }
+/* Light theme: the album page stays DARK too — every `.v3-rev-*` ink on it is
+   light, written for a dark surface. Only the artist page goes cream (it has
+   its own `--light.--artist` re-inks). */
+.s-home-v3--light.s-home-v3--review.s-home-v3--album:not(.s-home-v3--artist) { --v3-box1-color: #111116 !important; background: #111116; }
+.s-home-v3--light.s-home-v3--review.s-home-v3--album.s-home-v3--artist { --v3-box1-color: #f0ece3 !important; background: #f0ece3; }
+/* 0.12 (2026-10-02): ONE YELLOW on the album page (Eric) — the histogram
+   bars, the discs and every rating read the house gold instead of the
+   cover-derived colour. applyColorVars sets --v3-star / --v3-accent INLINE,
+   so they're pinned here with !important; --star resolves off --v3-star on
+   .s-home-v3, so the bars and discs follow. (Also the artist page, which
+   shares the --album class.) */
+.s-home-v3--review.s-home-v3--album { --v3-star: #e8a83c !important; --v3-accent: #e8a83c !important; }
+/* 0.12 (2026-10-02): the artist page's favorite heart is just the heart now,
+   like the reviews' like — no embossed pill behind it (Eric). Same spot. */
+.s-home-v3--review.s-home-v3--album.s-home-v3--artist .v3-artist-fav,
+.s-home-v3--light.s-home-v3--review.s-home-v3--album.s-home-v3--artist .v3-artist-fav {
+  background: none; box-shadow: none; width: auto; padding: 4px;
+}
 /* Match the trending page's 12px side margins (drop the review panel's extra 10px inset) */
 .s-home-v3--artist .v3-review-panel { padding-left: 0; padding-right: 0; }
 /* No genre line — the artist name stands alone under the banner. (populateArtistPage
@@ -12234,6 +12266,288 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 .sd-morphing .v3-album, .sd-morphing .v3-bento, .sd-morphing .v3-blue, .sd-morphing .v3-for-single, .sd-morphing .v3-review-panel { transition: none !important; animation: none !important; }
 
 /* ============================================================
+   0.11 (2026-09-28) — three things on home. Eric: "have the review under
+   [the carousel] be the same style as the review below but make it clear
+   that it's for the album carousel … add a people u may know like 3 reviews
+   down … a + icon in the center of the ui bar at the bottom".
+   ============================================================ */
+
+/* ── 1. THE DECK'S REVIEW IS THE FEED'S CARD, IN A PANEL ─────────────────
+   fbGo renders `.v3-rev-card--feed.v3-rev-card--deck` into `.v3-fb-review`
+   (the centred `.v3-fbr` block is gone from home; the review sheet keeps
+   its own). What says "this belongs to the carousel": the panel (the feed's
+   cards below sit flat on the page, this one is on a raised surface), the
+   notch in its top edge pointing up at the cover and its title, and the
+   caption naming the record. Everything inside is the feed card's own CSS.
+   The panel's fill and hairline are the --sd-* tokens, so light follows. */
+.s-home-v3 .v3-fb-review:not(:empty) {
+  align-self: stretch; position: relative;
+  margin: 16px 2px 0; padding: 0;
+  border-radius: 16px;
+  background: var(--sd-card);
+  box-shadow: 0 0 0 1px var(--sd-line);
+  cursor: pointer;
+}
+.s-home-v3 .v3-fb-review:not(:empty)::before {   /* the notch */
+  content: ''; position: absolute; left: 50%; top: -6px;
+  width: 12px; height: 12px; margin-left: -6px;
+  background: var(--sd-bg);
+  background-image: linear-gradient(var(--sd-card), var(--sd-card));
+  box-shadow: -1px -1px 0 0 var(--sd-line);
+  border-top-left-radius: 3px;
+  rotate: 45deg;
+  pointer-events: none;
+}
+.v3-fb-revcap {
+  position: relative;
+  padding: 13px 14px 0;
+  font-family: var(--font-mono); font-size: 9.5px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase; text-align: left;   /* left, over the face (Eric, 2026-09-28) — 14px in, the card's own inset */
+  color: var(--sd-ink3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.v3-fb-revcap b { font-weight: 700; color: var(--sd-ink2); }
+/* A PILL, not a line of text (Eric, 2026-09-28: "a bubble in the upper left
+   or pill with friend in it"): "Friend", or "Popular" on a community review,
+   in the panel's upper-left corner over the face. Friend is the quiet one
+   (the page's pill fill); Popular takes the album's gold so the two read
+   apart at a glance. */
+.v3-fb-revpill {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 9px;
+  border-radius: 999px;
+  font-family: var(--font-main); font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.02em; text-transform: none;
+  background: var(--sd-pill); color: var(--sd-ink2);
+}
+.v3-fb-revpill--pop { background: color-mix(in srgb, var(--star) 20%, transparent); color: var(--star); }
+.s-home-v3 .v3-rev-card.v3-rev-card--feed.v3-rev-card--deck { padding: 12px 14px 15px; }
+.s-home-v3 .v3-rev-card.v3-rev-card--feed.v3-rev-card--deck::after { display: none; }   /* no divider: the panel is the edge */
+/* No record row here, so the text takes the gap the record row gives it on
+   the feed; and it is HELD at four lines so the feed under the deck stays
+   put while you flick between a short review and a long one. */
+.s-home-v3 .v3-rev-card--deck .v3-rev-text { margin-top: 21.5px; }
+/* THE BOX FITS ITS REVIEW (Eric, 2026-09-28: "when the review is short …
+   make the box smaller as well"): the four-line hold above is gone, so a
+   one-line review makes a small panel. The feed under it moves when the
+   height changes, which is why the change is EASED (fbGo pins the old
+   height and transitions to the new one; `.is-sizing` clips the card while
+   the box is between the two). */
+.s-home-v3 .v3-fb-review { transition: height .28s cubic-bezier(.22, 1, .36, 1); }
+.s-home-v3 .v3-fb-review.is-sizing { overflow: hidden; }
+/* THE SWAP: the title strip and the card come in from the side the deck
+   moved from, 14px and a fade. `backwards`, never `both` — a fill-forwards
+   animation on text keeps its layer and reads soft (see the review page's
+   note). The panel itself stays put; only what changed moves. */
+@keyframes fb-swap {
+  from { opacity: 0; transform: translateX(calc(var(--fb-dir, 1) * 14px)); }
+  to   { opacity: 1; transform: none; }
+}
+.v3-fb-strip.is-swap > *,
+.v3-fb-review.is-swap > .v3-fb-revcap,
+.v3-fb-review.is-swap > .v3-rev-card > * { animation: fb-swap .26s cubic-bezier(.22, 1, .36, 1) backwards; }
+.v3-fb-review.is-swap > .v3-rev-card > .v3-rev-text { animation-delay: .04s; }
+@media (prefers-reduced-motion: reduce) {
+  .v3-fb-strip.is-swap > *, .v3-fb-review.is-swap > .v3-rev-card > *, .v3-fb-review.is-swap > .v3-fb-revcap { animation: none; }
+  .s-home-v3 .v3-fb-review { transition: none; }
+}
+
+/* ── 1b. THE LIKE AND THE COMMENT SIT 10px FROM THE TIME (Eric, 2026-09-28:
+   "closer to the time ago … like 10px away from it") ─────────────────────
+   Every feed card, the deck's and the activity cards included. The gap was
+   6px of margin PLUS the slack in two fixed boxes (the like count's 16px,
+   the time's 20px), so it read as 15-25px. Both boxes are content-sized now
+   and the margin is the whole gap.
+   SAME DAY, second pass (Eric: "make the number smaller and make sure it
+   doesn't move, maybe we can put the numbers on the left side"): the counts
+   are 11px (were 13.5) and sit to the LEFT of their icons (row-reverse), so
+   a longer count grows away from the time, not into it. Nothing moves:
+   - the heart is hard against the 10px gap, with nothing between it and
+     the time;
+   - the like's count is a fixed 22px box, right-aligned ("1.2k" fits), so
+     the comment bubble left of it holds its place too;
+   - the time is a fixed 20px box with its text LEFT-aligned, so "2h" and
+     "11h" both start exactly 10px after the heart. ⚠️ The price is on the
+     far right: a two-character time ends ~7px short of the card's edge.
+     `text-align: right` squares the edge again and lets the gap vary. */
+/* Third pass (Eric, same day): the heart 3px off the time ("as close as
+   possible"), and the comment closer to the likes — 4px between the two
+   pills (was 9) and the like's count box 16px (was 22: three digits fit; a
+   rare "1.2k" nudges the bubble ~5px). */
+.s-home-v3 .v3-rev-card--feed .v3-rev-top-acts { margin-right: 3px; gap: 4px; }
+.s-home-v3 .v3-rev-card--feed .v3-rev-top-acts + .v3-rev-time { min-width: 20px; text-align: left; }
+.s-home-v3 .v3-rev-card--feed .v3-rev-top-acts .v3-up { flex-direction: row-reverse; font-size: 11px; }
+.s-home-v3 .v3-rev-card--feed .v3-rev-top-acts .v3-up--like .v3-up-n { min-width: 16px; text-align: right; }
+
+/* ── 4. THE PROFILE'S HEAD (profHeadHtml) — the traced card is off the page ──
+   Plain flow, centred: round picture, name, @handle, bio, location, tags,
+   the one action. Inked off --pf-fg / --pf-fg2, the page's own text tokens
+   (the card's --pf-ink was for the card's surface), so skins and light
+   follow. `.prof-pic`, `.prof-tags` and `.prof-act` are the card's classes,
+   re-seated here: every rule is `.prof-head …` to out-rank the card's
+   absolute, percentage-of-the-trace placement. */
+.prof-head {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 14px 6px; text-align: center;
+}
+.prof-head .prof-pic {
+  position: relative; left: auto; top: auto;
+  width: 112px; height: 112px; border-radius: 50%;
+  background-size: cover; background-position: center;
+  box-shadow: 0 0 0 1px var(--sd-line), 0 10px 26px rgba(0,0,0,0.28);
+}
+.prof-head-name {
+  margin-top: 14px; max-width: 100%;
+  font-family: var(--font-main); font-size: 21px; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em;
+  color: var(--pf-fg, var(--sd-ink));
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.prof-head-at {
+  margin-top: 3px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.03em;
+  color: var(--pf-fg2, var(--sd-ink3));
+}
+.prof-head-bio {
+  margin-top: 12px; max-width: 300px;
+  font-family: var(--font-main); font-size: 13px; line-height: 1.5;
+  color: var(--pf-fg, var(--sd-ink)); opacity: 0.86;
+  text-wrap: pretty;
+}
+.prof-head-loc {
+  margin-top: 9px; display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-main); font-size: 11.5px;
+  color: var(--pf-fg2, var(--sd-ink3));
+}
+.prof-head-loc svg { width: 12px; height: 12px; }
+.prof-head .prof-tags { justify-content: center; margin: 14px 0 0; }
+.prof-head .prof-act {
+  position: static; width: auto; height: 34px; margin-top: 16px; padding: 0 20px;
+  background: transparent; box-shadow: inset 0 0 0 1px var(--sd-line);
+  color: var(--pf-fg, var(--sd-ink));
+}
+.prof-head .prof-act:active { box-shadow: inset 0 0 0 1px var(--sd-line); opacity: 0.7; }
+.prof-head .prof-act-ico { color: inherit; }
+.prof-head .prof-act-lbl { font-family: var(--font-main); font-size: 12px; font-weight: 700; letter-spacing: 0; text-transform: none; color: inherit; }
+.prof-head .prof-act--follow { background: var(--pf-fg, var(--sd-ink)); box-shadow: none; color: var(--sd-bg); min-width: 120px; }
+.prof-head .prof-act--follow.is-following { background: transparent; box-shadow: inset 0 0 0 1px var(--sd-line); color: var(--pf-fg2, var(--sd-ink2)); }
+.prof-head .prof-act--follow.is-following .prof-act-lbl { color: inherit; }
+
+/* ── 5. TAGS ARE FLAT COLOUR (Eric, 2026-09-28: "get rid of the bg pattern
+   and just use colors") ─────────────────────────────────────────────────
+   The textures (`.sd-tex--*`, brushed steel, daisies, grooves…) are switched
+   off on every chip — the profile, the Edit Profile picker and the shop wear
+   the same tag, so all three go flat together. A chip is its own tint: a
+   free one a 12% wash with a tinted outline, a collectible the full colour
+   with its ring. The light halo under a collectible's label was there to
+   read over a texture and goes with it. The texture classes are untouched
+   above; delete this rule to bring them back. */
+.prof-tag, .pp-tag { background-image: none; text-shadow: none; }
+
+/* ── 2. PEOPLE YOU MAY KNOW (pymkHtml, three cards down the feed) ───────── */
+.v3-pymk { position: relative; padding: 18px 0 20px; }
+.v3-pymk::after {   /* the feed card's full-width divider */
+  content: ''; position: absolute; left: -10px; right: -10px; bottom: 0; height: 1px;
+  background: var(--sd-line); pointer-events: none;
+}
+.v3-pymk-hd {
+  padding: 0 9px 12px;
+  font-family: var(--font-main); font-size: 13px; font-weight: 700;
+  color: var(--sd-ink);
+}
+/* Bleeds to the screen's edges (the scroll area's 10px) so the last card
+   peeks off the frame; scroll-padding keeps a snap from eating the inset. */
+.v3-pymk-rail {
+  display: flex; gap: 8px;
+  margin: 0 -10px; padding: 0 19px 2px;
+  overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity; scroll-padding-left: 19px;
+  scrollbar-width: none;
+}
+.v3-pymk-rail::-webkit-scrollbar { display: none; }
+.s-home-v3 .v3-pymk .v3-pymk-card {
+  flex: 0 0 112px; min-width: 0; margin: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+  padding: 14px 10px 12px;
+  border-radius: 14px;
+  background: var(--sd-card);
+  box-shadow: 0 0 0 1px var(--sd-line);
+  scroll-snap-align: start;
+  text-align: center;
+}
+.s-home-v3 .v3-pymk .v3-pymk-av { width: 56px; height: 56px; box-shadow: 0 0 0 1px var(--sd-line); }
+.v3-pymk-name {
+  max-width: 100%; margin-top: 9px;
+  font-family: var(--font-main); font-size: 12.5px; font-weight: 700;
+  color: var(--sd-ink); cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.v3-pymk-sub {
+  margin-top: 2px;
+  font-family: var(--font-main); font-size: 10.5px;
+  color: var(--sd-ink3); white-space: nowrap;
+}
+.v3-pymk-btn {
+  margin-top: 11px; width: 100%; height: 28px; padding: 0;
+  border: none; border-radius: 999px; cursor: pointer;
+  font-family: var(--font-main); font-size: 11.5px; font-weight: 700;
+  background: var(--sd-ink); color: var(--sd-bg);
+}
+.v3-pymk-btn.is-on { background: transparent; color: var(--sd-ink2); box-shadow: inset 0 0 0 1px var(--sd-line); }
+
+/* ── 3. THE NAV'S + (bottomNav) AND ITS SEARCH (openSearch 'review') ─────
+   Five items now; the middle one is a filled disc so it reads as the one
+   ACTION among four places. It turns to an × while its search is up. */
+.v3-nav-add {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #e8e2d6; color: #111116;
+}
+.v3-nav-item--add .v3-nav-add svg { width: 17px; height: 17px; }
+.v3-nav-item--add.is-on .v3-nav-add svg { rotate: 45deg; }
+.s-home-v3--light .v3-nav-add { background: #1a1208; color: #f0ece3; }
+/* The overlay in review mode: a heading, no tabs, and a "Review" tag on
+   every row so it is plain what a tap will do. */
+.sds-mode { display: none; }
+/* It stands IN FOR THE TABS: same row, same height (a tab is 9 + 11 of
+   padding round a 12px line), same hairline under it — so switching between
+   Search and Write a review moves nothing above or below it. */
+.sds-overlay--review .sds-mode {
+  display: block; padding: 8px 16px 10px;
+  font-family: var(--font-main); font-size: 14px; font-weight: 800; line-height: 18px;
+  color: #e8e2d6;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.sds-overlay--review .sds-tabs { display: none; }
+.sds-row-go {
+  flex-shrink: 0; padding: 5px 10px; border-radius: 999px;
+  font-family: var(--font-main); font-size: 11px; font-weight: 700;
+  color: #e8e2d6; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16);
+}
+/* The zero state: six popular albums in the wall's grid, then the ad slot.
+   The cells are <button>s here (the overlay's delegated tap reads their data
+   attributes), so the button chrome comes off and the text goes back left. */
+.sds-pickgrid { padding: 8px 16px 0; }
+.sds-pickgrid .wall2-cell { position: relative; padding: 0; border: none; background: none; text-align: left; font-family: var(--font-main); }
+.sds-ad {
+  width: 300px; max-width: calc(100% - 32px); aspect-ratio: 300 / 250;
+  margin: 22px auto 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  border-radius: 10px;
+  border: 1px dashed rgba(232,226,214,0.22);
+  background: rgba(255,255,255,0.03);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+  color: rgba(232,226,214,0.4);
+}
+.sds-ad i { font-style: normal; font-weight: 400; color: rgba(232,226,214,0.28); }
+.sds-overlay--light .wall2-album  { color: #1a1208; }
+.sds-overlay--light .wall2-artist { color: rgba(26,18,8,0.5); }
+.sds-overlay--light .wall2-score  { color: rgba(26,18,8,0.55); }
+.sds-overlay--light .wall2-art    { box-shadow: 0 6px 14px rgba(30,20,10,0.18), 0 2px 5px rgba(30,20,10,0.15); }
+.sds-overlay--light .sds-ad { border-color: rgba(26,18,8,0.22); background: rgba(26,18,8,0.03); color: rgba(26,18,8,0.45); }
+.sds-overlay--light .sds-ad i { color: rgba(26,18,8,0.32); }
+.sds-overlay--light .sds-mode { color: #1a1208; border-bottom-color: rgba(26,18,8,0.1); }
+.sds-overlay--light .sds-row-go { color: #1a1208; box-shadow: inset 0 0 0 1px rgba(26,18,8,0.2); }
+
+/* ============================================================
    MINIMAL MOTION — csharpuser (2026-09-25). Eric: "reduce the interactions
    like the animations to a minimum". At-rest loops are off for everyone
    (the same resting states the prefers-reduced-motion rules above pick),
@@ -12266,3 +12580,235 @@ body.sd-return .s-home-v3--review .v3-body,
 .sd-log-sheet, .plc-sheet, .pldel-sheet, .sds-panel, .pl2-card-art,
 .v3-fb-card, .v3-fb-card::after, .v3-fbr-face { transition-duration: .2s; }
 .v3-rsh.is-drag { transition: none; }   /* restated after the cap above: the sheet still follows the finger */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE SPLIT FEED CARD (0.12, 2026-10-02) — the layout Eric's friend drew.
+   revCardInner `split`. Top row: photo · name · time on the left, year ·
+   album over artist right-aligned on the right (both in the "top" area, the
+   titles hung right). Then the review on the left and, beside it, the cover
+   big with the score and discs under it. Comment + like counts at the foot,
+   left. Scoped (0,4,0) so it out-ranks every `.v3-rev-card--feed` rule above.
+   ══════════════════════════════════════════════════════════════════════════ */
+.s-home-v3 .v3-rev-card.v3-rev-card--feed.v3-rev-card--split,
+.s-home-v3 .v3-rev-card.v3-rev-card--page.v3-rev-card--split {
+  grid-template-columns: minmax(0, 1fr) 80px;   /* 96 → 80 (Eric, 2026-10-02: "album a bit smaller") */
+  grid-template-areas:
+    "top  top"
+    "text side"
+    "acts side"
+    "foot foot";
+  grid-template-rows: auto 1fr auto auto;
+  column-gap: 14px; row-gap: 0;
+}
+.s-home-v3 .v3-rev-card--split .v3-rev-card-top { grid-area: top; min-width: 0; max-width: 52%; align-self: start; }
+.s-home-v3 .v3-rev-card--split .v3-rev-name-row { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
+.s-home-v3 .v3-rev-card--split .v3-rev-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.s-home-v3 .v3-rev-card--split .v3-rsp-time {
+  flex-shrink: 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; color: var(--sd-ink3);
+}
+/* The record's titles: the right half of the top row, right-aligned. */
+.s-home-v3 .v3-rev-card--split .v3-rsp-rec {
+  grid-area: top; justify-self: end; align-self: center; max-width: 50%; min-width: 0;
+  display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: 2px; cursor: pointer;
+}
+.s-home-v3 .v3-rev-card--split .v3-rsp-rec .v3-rev-record-line { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; max-width: 100%; min-width: 0; position: static; }
+.s-home-v3 .v3-rev-card--split .v3-rsp-rec .v3-rev-record-album { font-size: 12.5px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.s-home-v3 .v3-rev-card--split .v3-rsp-rec .v3-rev-record-year { font-size: 10px; flex-shrink: 0; }
+.s-home-v3 .v3-rev-card--split .v3-rsp-rec .v3-rev-record-artist { font-size: 11px; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; position: static; }
+/* The review, left. Keeps the feed's clamp + fade (.v3-rev-text / .is-long). */
+.s-home-v3 .v3-rev-card--split .v3-rsp-text { grid-area: text; margin-top: 16px; align-self: start; min-width: 0; }
+/* The cover and the score, right. */
+.s-home-v3 .v3-rev-card--split .v3-rsp-side {
+  grid-area: side; margin-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 9px;
+}
+.s-home-v3 .v3-rev-card--split .v3-rsp-art {
+  width: 80px; aspect-ratio: 1; border-radius: 8px; background: var(--sd-card) center / cover no-repeat;
+  box-shadow: 0 0 0 1px var(--sd-line), 0 6px 16px rgba(0,0,0,.35); cursor: pointer;
+}
+.s-home-v3 .v3-rev-card--split .v3-rsp-score { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.s-home-v3 .v3-rev-card--split .v3-rsp-score .v3-rev-big-n { font-size: 22px; line-height: 1; }
+.s-home-v3 .v3-rev-card--split .v3-rsp-score .hstars { top: 0; }
+/* Comment + like at the foot, left: bare glyphs and counts, small. */
+.s-home-v3 .v3-rev-card--split .v3-rsp-acts { grid-area: acts; align-self: end; margin-top: 14px; display: flex; align-items: center; gap: 12px; }
+.s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-up {
+  padding: 3px 0; gap: 4px; background: transparent; color: var(--sd-ink3); font-size: 12px; border-radius: 0;
+}
+.s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-up svg { width: 16px; height: 16px; }
+.s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-up:hover { background: transparent; color: var(--sd-ink); }
+.s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-up--heart.is-on { color: #ff5c8a; }
+.s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-up--heart.is-on svg { fill: currentColor; }
+
+/* The split card on the ALBUM page and the ARTIST page (0.12, 2026-10-02 —
+   Eric: the album page's reviews and the profile's wear it too; the profile's
+   are --feed and need nothing more). These are `--page` cards: no --sd-* re-ink,
+   they sit on the album page's dark surface, so the counts and the time take
+   the page's light ink rather than the feed's theme ink. The artist page's
+   cream light theme re-inks them dark, as the rules near `--light.--artist`
+   do for the rest of its panel. `.v3-rsp-foot` is your own card's share. */
+.s-home-v3 .v3-rev-card--page.v3-rev-card--split .v3-rsp-time { color: rgba(232,226,214,0.42); }
+.s-home-v3 .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up { color: rgba(232,226,214,0.55); }
+.s-home-v3 .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up:hover { color: rgba(232,226,214,0.9); }
+.s-home-v3 .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up--heart.is-on { color: #ff5c8a; }
+.s-home-v3 .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up--cmtcol[data-n="0"] { display: none; }
+.s-home-v3 .v3-rev-card--split .v3-rsp-foot { grid-area: foot; margin-top: 12px; }
+/* 0.12 (2026-10-02): no "X listened to this" pill on the album page or the
+   artist page (Eric). JS un-hides `.v3-rev-rec` when a friend logged the
+   record, so this wins with !important rather than racing it. */
+.s-home-v3--album .v3-rev-rec { display: none !important; }
+/* 0.12 (2026-10-02): review cards sit 3.5px closer to the screen edges
+   (Eric — "a bit large"). Home + profile: the feed card's 9px sides → 5.5.
+   Album + artist pages: the list's 12px gutter → 8.5, and the pinned card's
+   bleed follows it (it must equal the gutter so its tint still meets the edge
+   while its text lines up with the rest). The discovery wall is untouched. */
+.s-home-v3 .v3-rev-card.v3-rev-card--feed.v3-rev-card--split { padding-left: 5.5px; padding-right: 5.5px; }
+.s-home-v3 .v3-rev-list { margin-left: 8.5px; margin-right: 8.5px; }
+.s-home-v3 .v3-rev-card.v3-rev-card--pinned { --rev-bleed: 8.5px; }
+.s-home-v3--album .v3-rev-card.v3-rev-card--pinned { --rev-bleed: 18.5px; }
+/* …and the TOP review on home (the deck's `.v3-fbr`) the same way (Eric): its
+   text column 346 → 354px and the box's 4px side padding off, so at the 385
+   frame the text starts 15.5px in — level with the feed cards under it. */
+.s-home-v3 .v3-fb-review { padding-left: 0; padding-right: 0; }
+.s-home-v3:not(.s-home-v3--fb-left) .v3-fbr-text { width: 354px; }   /* not the Alts compact phone, which sizes it by grid */
+/* ══ ONBOARDING (0.12, 2026-10-02) ══════════════════════════════════════════
+   Genres are the flat bubble LIST only — the Wheel | List switch and the
+   dial's back are gone with the wheel (OB.genreView is pinned to 'list').
+   Step 8, QUICK REVIEW: rows in the app's shape (the search overlay's album
+   row) — cover · album over artist · a "Review" pill, or your score and a
+   check once reviewed. */
+.ob-panel--genres .ob-view-row,
+.ob-panel--genres .ob-genres[data-genres="wheel"] { display: none !important; }
+.ob-rlist { display: flex; flex-direction: column; }   /* the panel already pads for the overlaid foot (.ob-stage-fade) */
+.ob-rrow {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 9px 0; border: 0; border-bottom: 1px solid var(--border); background: none;
+  color: var(--text); font-family: var(--font-main); text-align: left; cursor: pointer;
+}
+.ob-rrow-art { width: 48px; height: 48px; flex-shrink: 0; border-radius: 6px; background: var(--surface) center / cover no-repeat; }
+.ob-rrow-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ob-rrow-album { font-size: 14px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ob-rrow-artist { font-size: 12px; font-weight: 700; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ob-rrow-go {
+  flex-shrink: 0; padding: 7px 13px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border);
+  font-size: 12px; font-weight: 700; color: var(--text);
+}
+.ob-rrow.is-done .ob-rrow-go { background: var(--star, #e8a83c); border-color: transparent; color: #16130d; }
+
+/* On the ALBUM page itself the record is the page (Eric, 2026-10-02): no cover
+   and no album / artist / year on the cards — just the score on the right.
+   The artist page keeps them (its banner is the artist, not the album), and
+   so do home and the profile. */
+.s-home-v3--album:not(.s-home-v3--artist) .v3-rev-card--page.v3-rev-card--split { grid-template-columns: minmax(0, 1fr) auto; }
+.s-home-v3--album:not(.s-home-v3--artist) .v3-rev-card--page.v3-rev-card--split .v3-rsp-art,
+.s-home-v3--album:not(.s-home-v3--artist) .v3-rev-card--page.v3-rev-card--split .v3-rsp-rec { display: none; }
+.s-home-v3--album:not(.s-home-v3--artist) .v3-rev-card--page.v3-rev-card--split .v3-rev-card-top { max-width: 100%; }
+.s-home-v3--album:not(.s-home-v3--artist) .v3-rev-card--page.v3-rev-card--split .v3-rsp-side { margin-top: 16px; }
+.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rsp-time,
+.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up,
+.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rev-record-year { color: rgba(26,18,8,0.42); }
+.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rev-record-album,
+.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rev-big-n { color: #1a1208; }
+.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rev-record-artist { color: rgba(26,18,8,0.6); }
+.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up--heart.is-on { color: #e0396e; }
+
+/* 0.12 (2026-10-02): THE DECK'S REVIEW IS 0.1's AGAIN — centred, no box.
+   fbGo puts 0.1's `.v3-fbr` block back into `.v3-fb-review`, so 0.11's panel
+   (fill, hairline, notch, rounded box — "1. THE DECK'S REVIEW IS THE FEED'S
+   CARD, IN A PANEL" above) is switched off here and the box takes 0.1's plain
+   `padding: 0 4px`. Delete this block and restore 0.11's fbGo block to bring
+   the panel back. */
+.s-home-v3 .v3-fb-review:not(:empty) {
+  margin: 0; padding: 0 4px; border-radius: 0;
+  background: none; box-shadow: none; cursor: default;
+}
+.s-home-v3 .v3-fb-review:not(:empty)::before,
+.s-home-v3 .v3-fb-review:not(:empty)::after { display: none; }
+
+/* 0.12 (2026-10-02): the album wheel is back on the profile (profileHtml →
+   profFavsHtml). Its heading stays on one line. */
+.prof-favs .prof-sec-hd { white-space: nowrap; }
+
+/* 0.12 (2026-10-02): THE ALBUM PAGE'S RATE BUTTON, JUST THE CIRCLE — back in
+   place of the "Your review" bar (Eric: "make it a round circle button
+   again"). -0.11's rules: the wings, the four lobes (Listened · Later ·
+   Favorite · Share — all in the log sheet), the arc label and the "_._"
+   placeholder are hidden; the unrated circle says "Rate / album" (syncRevCta).
+   The group box keeps the drawing's 1633×1321 shape so the circle keeps its
+   place; the negative margin gives back the room the lower wings took. */
+.v3-rate-group .v3-rg-wing,
+.v3-rate-group .v3-rg-btn,
+.v3-rate-group .v3-rg-arc,
+.v3-rate-group .v3-rg-blank { display: none; }
+.v3-rate-group { margin-top: 7px; margin-bottom: calc(10px - 17.74%); }   /* margin-top: 14 (a touch lower), 10 back up, then 3 down (Eric, 2026-10-02) */
+.v3-rg-word--rate {
+  font-size: 24px; font-weight: 800; line-height: 1.05; letter-spacing: -0.01em;
+  text-align: center; color: rgba(232,226,214,0.92);
+}
+
+/* 0.12 (2026-10-02): THE CDs SPIN on the album page again (Eric). MINIMAL
+   MOTION above stops every record; this turns the album page's own CD and the
+   review record line's CD back on, at their original 12s a turn. Everywhere
+   else stays still. */
+.s-home-v3--album .v3-cd,
+.s-home-v3--album .v3-rsh-cd { animation: v3spin 12s linear infinite; }
+
+/* 0.12 (2026-10-02): SAVE CHANGES, pinned to the bottom of the rate & review
+   sheet while anything is unsaved (paintLogSave toggles `hidden`). Sticky in
+   the sheet — the sheet is the scroller — so it stays put however far you
+   scroll. The Post that rode the cover is off; the bar does the saving. */
+.sd-log-cover .sd-log-actions,
+.sd-log-cover .sd-log-actions:has(.sd-log-post[data-mode="post"]) { display: none; }
+.sd-log-savebar {
+  position: sticky; bottom: 0; z-index: 3;
+  margin: 14px -12px -14px; padding: 12px 12px 16px;
+  background: linear-gradient(to bottom, transparent, var(--sd-bg, #111116) 34%);
+  display: flex; justify-content: center;
+}
+.sd-log-savebar[hidden] { display: none; }
+.sd-log-savebtn {
+  width: 100%; max-width: 320px; height: 46px; border: 0; border-radius: 23px;
+  background: var(--star, #e8a83c); color: #1a1208;
+  font: 800 15px var(--font-main); letter-spacing: .01em; cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.45);
+}
+.sd-log-savebtn:active { transform: scale(.98); }
+.s-home-v3--light .sd-log-savebar { background: linear-gradient(to bottom, transparent, var(--sd-bg, #f0ece3) 34%); }
+
+/* 0.12 (2026-10-02): what you did, inside the round rate button (syncRevCta):
+   the toggles you set and "Written review", under the number + discs. Ink
+   follows the disc — dark on the gold (rated), light on the dark disc. */
+.v3-rg-did, .v3-rg-wrote {
+  max-width: 82%; text-align: center; line-height: 1.25;
+  font-family: var(--font-main); font-size: 10.5px; font-weight: 700; letter-spacing: .01em;
+}
+.v3-rg-did { margin-top: 4px; }
+.v3-rg-wrote { font-weight: 600; opacity: .85; }
+.v3-rg-rate:not(.is-rated) .v3-rg-did,
+.v3-rg-rate:not(.is-rated) .v3-rg-wrote { color: rgba(232,226,214,0.82); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE BACK CARET (0.12, 2026-10-02). One back control: the quick review
+   page's bare "‹" (.sds-back's look), in the header's top-left where the
+   notification bell sits. It shows — and the bell hides — on any screen with
+   a way back: the album / artist page (`--review`), a review open in place
+   (`--rvp`), and every screen that carries a back pill (notifications,
+   settings, edit profile, the review page). The floating back pills and the
+   album page's corner "Back" pill are hidden; sdHeaderBack does their job.
+   ══════════════════════════════════════════════════════════════════════════ */
+.v3-hdr-back {
+  display: none; flex-shrink: 0; width: 32px; height: 32px; margin-left: -4px;
+  border: none; background: none; padding: 0; cursor: pointer;
+  color: rgba(232,226,214,0.85); align-items: center; justify-content: center;
+}
+.v3-hdr-back svg { width: 22px; height: 22px; }
+.s-home-v3--light .v3-hdr-back { color: rgba(26,18,8,0.75); }
+.s-home-v3--review .v3-hdr-back,
+.s-home-v3--rvp .v3-hdr-back,
+.app-screen:has(.plp-back-pill) .v3-hdr-back { display: inline-flex; }
+.s-home-v3--review .v3-bubble--notif,
+.s-home-v3--rvp .v3-bubble--notif,
+.app-screen:has(.plp-back-pill) .v3-bubble--notif { display: none; }
+/* The old backs, off: the pills, and the album page's corner Back. */
+.app-screen .plp-back-pill { display: none !important; }
+.s-home-v3--review .v3-live-pill,
+.s-home-v3--rvp .v3-live-pill { display: none !important; }

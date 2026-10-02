@@ -1643,6 +1643,18 @@ window.playPreview = function (el, e) {
 };
 
 // Live pill doubles as the Back button in the fullscreen states — pops the history stack.
+/* THE BACK CARET (0.12): the header's "‹", in the bell's place on any screen
+   that has a way back. It does exactly what that screen's own back did:
+   a review open in place → rvpBack; the album / artist page → the corner
+   pill's back (onLivePill); any other screen → its back pill. */
+window.sdHeaderBack = function (btn) {
+  const scr = btn.closest('.app-screen');
+  if (!scr) return;
+  if (scr.classList.contains('s-home-v3--rvp') && typeof rvpBack === 'function') return rvpBack();
+  if (scr.classList.contains('s-home-v3--review')) { const lp = scr.querySelector('.v3-live-pill'); if (lp) return onLivePill(lp); }
+  const pill = scr.querySelector('.plp-back-pill');
+  if (pill) pill.click();
+};
 window.onLivePill = function (btn) {
   const scr = btn.closest('.s-home-v3');
   if (!scr) return;
@@ -1714,7 +1726,7 @@ window.submitReview = function (btn) {
     const alb = scr._album || window.featuredAlbum || {};
     const myKey = 'mine::' + (alb.album || '');
     const card = document.createElement('div');
-    card.className = 'v3-rev-card v3-rev-card--mine';
+    card.className = 'v3-rev-card v3-rev-card--page v3-rev-card--mine v3-rev-card--split';   // the split card, like the list (0.12)
     card.dataset.k = myKey;                     // the 4th card builder — tap opens its page
     REV_INDEX[myKey] = { key: myKey, album: alb, name: 'You', mine: true, rating, text, ago: 'just now', likes: 0, comments: 0 };
     card.onclick = () => cmtCardTap(card);
@@ -1722,6 +1734,7 @@ window.submitReview = function (btn) {
       key: myKey, name: 'You', handle: (window.PROFILE || {}).handle || 'you',
       face: (window.PROFILE || {}).pic || 'images/rp-01.jpg', ago: 'just now',
       rating, text, likes: null, comments: 0, share: true,
+      split: true, record: { image: alb.image, album: alb.album, artist: alb.artist, year: alb.year },
     });
     list.insertBefore(card, list.firstChild);
   }
@@ -1790,6 +1803,37 @@ function syncQuickLog(scr, album) {
    changes. The state is stamped in `data-state` and the markup is only
    rebuilt when it changes — this runs on every autosave. */
 function syncRevCta(scr, d) {
+  /* 0.12 (2026-10-02): the album page's control is the ROUND rate button again
+     (rateGroupHtml, circle only — -0.11's syncRevCta). The "Your review" bar
+     (.v3-rev-yours) is still painted if it's ever put back. */
+  const cta = scr.querySelector('.v3-rg-rate');
+  if (cta) {
+    /* WHAT YOU DID, in the circle (0.12, Eric 2026-10-02: "instead of just
+       saying reviewed put the number and what you did — listened etc — and if
+       you wrote a written review"). Top to bottom: your number over your
+       discs (or "Not rated"), the toggles you've set (Listened · Listen later
+       · Favourite), and "Written review" if there's text. Nothing yet → "Rate
+       album". Gold disc once rated (.is-rated), dark otherwise. */
+    d = d || {};
+    const rated = d.rating > 0, wrote = !!(d.text || '').trim();
+    const did = [d.listened && 'Listened', d.later && 'Listen later', d.fav && 'Favourite'].filter(Boolean);
+    const any = rated || wrote || did.length;
+    const state = JSON.stringify([rated ? d.rating : 0, wrote, did]);
+    if (cta.dataset.state !== state) {
+      cta.dataset.state = state;
+      cta.classList.toggle('is-rated', rated);
+      cta.classList.toggle('is-written', !rated && !!any);
+      if (!any) cta.innerHTML = `<span class="v3-rg-word v3-rg-word--rate">Rate<br>album</span>`;
+      else cta.innerHTML =
+        (rated ? `<span class="v3-rg-num">${String(d.rating).replace(/\.0$/, '')}</span>${halfStars(d.rating, 12)}`
+               : `<span class="v3-rg-word v3-rg-word--sm">Not rated</span>`) +
+        (did.length ? `<span class="v3-rg-did">${did.join(' · ')}</span>` : '') +
+        (wrote ? `<span class="v3-rg-wrote">✎ Written review</span>` : '');
+    }
+  }
+  return syncRevCtaBar(scr, d);
+}
+function syncRevCtaBar(scr, d) {
   const box = scr.querySelector('.v3-rev-yours');
   if (!box) return;
   const rated = d.rating > 0, wrote = !!(d.text || '').trim();
@@ -2518,8 +2562,12 @@ window.cmtCompose = function (btn) {
   // composer aimed. On the page itself: just put the cursor in it.
   const page = btn.closest('.s-rvp, .s-home-v3--rvp, .v3-rsh');
   const feedCard = btn.closest('.v3-rev-card[data-feed]');
-  if (feedCard) return feedOpenReview(+feedCard.dataset.feed, true, btn);   // home feed → the review SHEET with the composer aimed (2026-09-24)
-  if (!page) { if (REV_INDEX[k]) openReviewPage(k, true, btn); return; }
+  /* 0.12 (Eric, 2026-10-02): the comment button opens the REVIEW PAGE, and
+     does NOT put the cursor in the comment box — just the page. (It opened the
+     review sheet with the composer focused.) The card's own tap still opens
+     the sheet (cmtCardTap). */
+  if (feedCard) return feedOpenReview(+feedCard.dataset.feed, false, btn, true);
+  if (!page) { if (REV_INDEX[k]) openReviewPage(k, false, btn); return; }   // the page, box unfocused (0.12)
   if (!CMT_OPEN[k]) { CMT_OPEN[k] = true; cmtRender(k); }
   const input = page.querySelector('.v3-cmt-input');
   if (input) input.focus();
@@ -2704,6 +2752,33 @@ function revCardInner(o) {
   const cmtHtml = o.big
     ? (typeof shareBtnHtml === 'function' ? shareBtnHtml('rev', o.key, 'sd-share-btn--hero') : '')
     : cmtBtnHtml(o.key, o.comments || 0, 'v3-up--sm v3-up--cmtcol');
+  /* SPLIT (0.12, 2026-10-02 — the layout Eric's friend drew, from a screenshot):
+     photo · name · time on the left of the top row, year · album over artist
+     right-aligned on the right of it; the review on the left; the record's
+     cover big on the right with the score and discs under it; the comment and
+     like counts at the foot on the left. The home feed's review cards only
+     (`split` + `record`); everything else keeps the card below. Cover and
+     titles open the album like the record line did (feedOpenArt). */
+  if (o.split && o.record) {
+    const open = o.feed != null ? `feedOpenArt(${o.feed})` : 'revCardArt(this)';
+    return `
+      <div class="v3-rev-card-top">
+        <div class="v3-rev-av" style="background-image:url('${o.face}')" data-user="${o.mine ? 'You' : sdAttr(o.name)}" onclick="sdPerson(this, event)"></div>
+        <div class="v3-rev-who">
+          <span class="v3-rev-name-row"><span class="v3-rev-name" data-user="${o.mine ? 'You' : sdAttr(o.name)}" onclick="sdPerson(this, event)">${o.name}</span>${o.ago ? `<span class="v3-rsp-time">${o.ago}</span>` : ''}${o.chip ? `<span class="v3-rev-pin-chip">${o.chip}</span>` : ''}</span>
+        </div>
+      </div>
+      <div class="v3-rsp-rec" onclick="event.stopPropagation(); ${open}">${splitRecordHtml(o.record)}</div>
+      ${o.text ? `<div class="v3-rev-text v3-rsp-text">${revNoWidow(o.text)}</div>` : ''}
+      <div class="v3-rsp-side">
+        <div class="v3-rsp-art" style="background-image:url('${o.record.image}')" onclick="event.stopPropagation(); ${open}"></div>
+        <div class="v3-rsp-score"><span class="v3-rev-big-n">${Number(o.rating || 0).toFixed(1)}</span>${halfStars(o.rating || 0, 12)}</div>
+      </div>
+      <div class="v3-rsp-acts">${cmtHtml}${likeHtml}</div>
+      ${o.share && typeof shareBtnHtml === 'function' ? `<div class="v3-rev-foot v3-rsp-foot">
+        <span class="v3-rev-acts">${shareBtnHtml('review', '')}<span class="v3-rev-share-lbl">Share your review</span></span>
+      </div>` : ''}`;
+  }
   return `
       <div class="v3-rev-card-top">
         <div class="v3-rev-av" style="background-image:url('${o.face}')" data-user="${o.mine ? 'You' : sdAttr(o.name)}" onclick="sdPerson(this, event)"></div>
@@ -2760,6 +2835,14 @@ function recordWhoHtml(r) {
   return `<span class="v3-rev-record-line">${lead ? `<span class="${cls}">${lead}</span>` : ''}<span class="v3-rev-record-album">${r.album}</span></span>` +
     (r.artist && r.artist !== r.album ? `<span class="v3-rev-record-artist">${r.artist}</span>` : '');
 }
+/* The split card's titles (0.12, 2026-10-02): the album with the YEAR to its
+   RIGHT (Eric), the artist under them — not leading the album name as
+   recordWhoHtml has it. */
+function splitRecordHtml(r) {
+  const artist = r.artist && r.artist !== r.album ? r.artist : '';
+  return `<span class="v3-rev-record-line"><span class="v3-rev-record-album">${r.album}</span>${r.year ? `<span class="v3-rev-record-year">${r.year}</span>` : ''}</span>` +
+    (artist ? `<span class="v3-rev-record-artist">${artist}</span>` : '');
+}
 function revCardHtml(o) {
   return `
     <div class="v3-rev-card${o.cls ? ' ' + o.cls : ''}" data-k="${_revAttr(o.key)}"${o.feed != null ? ` data-feed="${o.feed}"` : ''} onclick="cmtCardTap(this)">${revCardInner(o)}
@@ -2770,6 +2853,10 @@ function populateReviewList(scr, filter) {
   const a = scr._album || window.featuredAlbum;
   const list = scr && scr.querySelector('.v3-rev-list');
   if (!a || !list) return;
+  /* 0.12 (2026-10-02): the album page's cards (and the artist page's, which
+     is this list) wear the home feed's SPLIT card too (Eric) — so each one
+     carries the record: this page's album. */
+  const rec = { image: a.image, album: a.album, artist: a.artist, year: a.year };
   let revs = revsFor(a).slice();
   if (filter === 'popular') revs.sort((x, y) => (y.rating || 0) - (x.rating || 0));
   else if (filter === 'new') revs.reverse();
@@ -2784,7 +2871,7 @@ function populateReviewList(scr, filter) {
     rating: pin.rating || 4, text: pin.text || '', ago: pin.ago || '', likes: pin.likes || revUpvotes(pin, 0),
     comments: pin.comments || 0, pinned: true };
   const pinHtml = pin ? revCardHtml({
-    key: pinKey, cls: 'v3-rev-card--page v3-rev-card--pinned', name: pin.name || 'Listener', face: feedFace(pin.name || 'listener'),
+    key: pinKey, cls: 'v3-rev-card--page v3-rev-card--pinned v3-rev-card--split', split: true, record: rec, name: pin.name || 'Listener', face: feedFace(pin.name || 'listener'),
     ago: pin.ago || '', chip: 'from your feed', rating: pin.rating || 4, text: pin.text || '',
     likes: pin.likes || revUpvotes(pin, 0), comments: pin.comments || 0, timeRight: true, actsTop: true,
     previewTotal: pin.comments ? cmtCount(pinKey, pin.comments) : 0,   // the "View all" line only — no preview rows (Eric, 2026-09-18)
@@ -2801,7 +2888,7 @@ function populateReviewList(scr, filter) {
   REV_INDEX[myKey] = { key: myKey, album: a, name: 'You', mine: true, rating: mine.rating || 0, text: myText,
     ago: 'your review', likes: 0, comments: 0 };
   const mineHtml = (mine.rating || myText) ? revCardHtml({
-    key: myKey, cls: 'v3-rev-card--page v3-rev-card--mine', name: 'You', handle: (window.PROFILE || {}).handle || 'you',
+    key: myKey, cls: 'v3-rev-card--page v3-rev-card--mine v3-rev-card--split', split: true, record: rec, name: 'You', handle: (window.PROFILE || {}).handle || 'you',
     face: (window.PROFILE || {}).pic || 'images/rp-01.jpg', ago: 'your review',
     rating: mine.rating || 0, text: myText, likes: null, comments: 0, share: true, timeRight: true, actsTop: true,
   }) : '';
@@ -2819,7 +2906,7 @@ function populateReviewList(scr, filter) {
     REV_INDEX[key] = { key, album: a, name: r.name || 'Listener', init: r.init, grad: r.grad,
       rating: r.rating || 4, text: r.text || '', ago: m.ago, likes: revUpvotes(r, i), comments: m.comments };
     return revCardHtml({
-      key, cls: 'v3-rev-card--page', name: r.name || 'Listener', face: feedFace(r.name || 'listener'), ago: m.ago,
+      key, cls: 'v3-rev-card--page v3-rev-card--split', split: true, record: rec, name: r.name || 'Listener', face: feedFace(r.name || 'listener'), ago: m.ago,
       rating: r.rating || 4, text: r.text || '', likes: revUpvotes(r, i), comments: m.comments,
       timeRight: true, actsTop: true,
       // Just the "View all n comments" line (Eric, 2026-09-18) — the two
@@ -3047,7 +3134,7 @@ function feedEvents() {
    it renders), so the entry is written here from the feed event, under the
    SAME key the album page's card would use (feedRevKey) — one thread, one
    like, wherever you came in. */
-window.feedOpenReview = function (n, compose, trigger) {
+window.feedOpenReview = function (n, compose, trigger, asPage) {
   const e = feedEvents()[n];
   if (!e) return;
   if (!(e.type === 'review' || e.type === 'rating')) return feedOpen(n);
@@ -3063,6 +3150,8 @@ window.feedOpenReview = function (n, compose, trigger) {
   };
   // The REVIEW SHEET (Eric, 2026-09-24), not the page: it slides up over the
   // feed and drops back down, so the feed is still where you left it.
+  // `asPage` (0.12): the comment button wants the review page itself.
+  if (asPage && typeof openReviewPage === 'function') return openReviewPage(key, !!compose, trigger || null);
   openReviewSheet(key, !!compose, trigger || null);
 };
 window.feedOpen = function (n) {
@@ -3174,7 +3263,7 @@ function renderFriendFeed(screenEl) {
      page's card sits on the album's dark colour, this one sits on the screen
      bg, cream in the light theme. */
   const card = (e, n) => revCardHtml({
-    key: feedRevKey(e), cls: 'v3-rev-card--feed', feed: n,
+    key: feedRevKey(e), cls: 'v3-rev-card--feed v3-rev-card--split', feed: n, split: true,   // the split layout (0.12) — see revCardInner
     name: e.user, face: e.face, ago: e.ago, timeRight: true, actsTop: true,
     chip: e.popular ? 'popular review' : undefined,   // the community leaking in (see FB_POPULAR_PER_DEAL)
     /* No quote marks on the feed (Eric, 2026-09-15): the card's shape already
@@ -3190,7 +3279,19 @@ function renderFriendFeed(screenEl) {
   // One flat list (Eric, 2026-09-15). The inbox's Today / This week / Earlier
   // headers were tried here and read as clutter between cards that already
   // carry their own time — the feed is sorted newest-first, which says it.
-  container.innerHTML = events.map((e, n) => row(e, n)).join('');
+  /* PEOPLE YOU MAY KNOW, three cards down (0.11 — Eric, 2026-09-28). One
+     rail, once, between the third and fourth card (or at the end of a
+     shorter feed). See pymkHtml. */
+  const rows = events.map((e, n) => row(e, n));
+  // Counted in REVIEW cards, not rows — an activity row ("favourited …") in
+  // between must not move the rail up.
+  let pymkAt = rows.length, seen = 0;
+  for (let i = 0; i < events.length; i++) {
+    if (events[i].type === 'review' || events[i].type === 'rating') seen++;
+    if (seen === PYMK_AFTER) { pymkAt = i + 1; break; }
+  }
+  rows.splice(pymkAt, 0, pymkHtml());
+  container.innerHTML = rows.join('');
   // The cards' five-line fade, measured the way the album page measures it —
   // now and again after layout, since the other shell is display:none.
   markLongReviews(container);
@@ -3198,6 +3299,53 @@ function renderFriendFeed(screenEl) {
   setTimeout(() => markLongReviews(container), 600);
   tintFeedRecords(container);
 }
+
+/* ── PEOPLE YOU MAY KNOW (0.11 — Eric, 2026-09-28: "add a people u may know
+   like 3 reviews down") ────────────────────────────────────────────────────
+   A sideways rail of people who are NOT already in your feed: face, name,
+   "n mutual friends", Follow. The face and the name open that person's
+   profile (sdPerson, like every byline). Follow is session state
+   (PYMK_FOLLOWING) and every copy of a person's button — the dark and light
+   shells render side by side — flips together. The list is fixed and the
+   mutual counts are seeded off the name, so a person reads the same on every
+   deal. (The original's "you may know" rails, renderKnowRails, were deleted
+   long ago; this is new markup, `.v3-pymk*` in app.css.) */
+const PYMK_AFTER = 1;   // after the FIRST review card (Eric, 2026-10-02; was 3, then 2)
+const PYMK_PEOPLE = ['lena.fm', 'toshi_x', 'rrrei', 'mono.no', 'halfspeed', 'junebug', 'vinylghost', 'kaito.wav', 'softclip', 'b_side_betty'];
+const PYMK_FOLLOWING = new Set();
+function pymkHtml() {
+  const inFeed = new Set((window.FRIEND_ACTIVITY || []).map(f => f.user));
+  const people = PYMK_PEOPLE.filter(u => !inFeed.has(u)).slice(0, 8);
+  if (!people.length) return '';
+  return `
+              <div class="v3-pymk" onclick="event.stopPropagation()">
+                <div class="v3-pymk-hd">People you may know</div>
+                <div class="v3-pymk-rail">${people.map(u => {
+                  const n = 2 + Math.floor(seedRand('pymk::' + u)() * 11);
+                  const on = PYMK_FOLLOWING.has(u);
+                  return `
+                  <div class="v3-pymk-card v3-rev-card-top">
+                    <div class="v3-pymk-av v3-rev-av" style="background-image:url('${feedFace(u)}')" data-user="${sdAttr(u)}" onclick="sdPerson(this, event)"></div>
+                    <div class="v3-pymk-name" data-user="${sdAttr(u)}" onclick="sdPerson(this, event)">${u}</div>
+                    <div class="v3-pymk-sub">${n} mutual friends</div>
+                    <button class="v3-pymk-btn${on ? ' is-on' : ''}" type="button" data-user="${sdAttr(u)}" aria-pressed="${on}" onclick="pymkFollow(this, event)">${on ? 'Following' : 'Follow'}</button>
+                  </div>`;
+                }).join('')}
+                </div>
+              </div>`;
+}
+window.pymkFollow = function (btn, e) {
+  if (e) e.stopPropagation();
+  const u = btn.dataset.user;
+  const on = !PYMK_FOLLOWING.has(u);
+  if (on) PYMK_FOLLOWING.add(u); else PYMK_FOLLOWING.delete(u);
+  document.querySelectorAll('.v3-pymk-btn').forEach(b => {
+    if (b.dataset.user !== u) return;
+    b.classList.toggle('is-on', on);
+    b.setAttribute('aria-pressed', String(on));
+    b.textContent = on ? 'Following' : 'Follow';
+  });
+};
 
 /* ═══════════════════════════════════════════════════════════════════════
    csharpuser (2026-09-23) — THE FRIENDS DECK (markup: friendsBentoHtml)
@@ -3238,7 +3386,7 @@ function fbReviews() {
   if (FB_POPULAR_FIRST) { const i = list.findIndex(f => f.popular); if (i > 0) list.unshift(list.splice(i, 1)[0]); }
   return (window._FB_LIST = list);
 }
-const FB_POPULAR_FIRST = true;
+const FB_POPULAR_FIRST = false;   // 0.11 (Eric, 2026-09-28): a FRIEND leads the deck; the popular ones come after, where the deal put them
 // The album object the front review is about — the archive's record when it
 // has one (so the album page gets the real thing), else the review's own
 // fields, which carry everything the shell reads.
@@ -3388,6 +3536,8 @@ function fbGo(screenEl, i) {
   const list = fbListOf(screenEl);
   if (!list.length) return;
   const cur = ((i % list.length) + list.length) % list.length;
+  // Which way the deck stepped (0.11): +1 on, -1 back, 0 a repaint of the same card.
+  const fbDir = screenEl._fbCur == null ? 0 : Math.sign(fbDist(cur, screenEl._fbCur, list.length));
   screenEl._fbCur = cur;
   const f = list[cur];
   const album = fbAlbumOf(f);
@@ -3437,6 +3587,11 @@ function fbGo(screenEl, i) {
      count row was here for an hour and read as a second rating over the
      friend's — one rating on screen, and it is the friend's. */
   const strip = screenEl.querySelector('.v3-fb-strip');
+  /* 0.12 (Eric, 2026-10-02): "bring 0.12 to 0.1 homepage layout where we dont
+     have the box and its centered" — this block is 0.1's again, verbatim: the
+     centred `.v3-fbr` review (face, name, like · score · comment, the text,
+     View more), built once and updated in place. 0.11's boxed feed card is
+     gone from here; its CSS is neutralised at the end of app.css. */
   if (strip) {
     const key = feedRevKey(f);
     REV_INDEX[key] = { key, album, name: f.user, init: f.init, grad: f.grad, rating: f.rating || 0,
@@ -3686,7 +3841,10 @@ window.fbOpenFront = function (el, e) {
   // The REVIEW SHEET (Eric, 2026-09-24): the review, its comments and the
   // composer slide up over the deck. From the comment pill, the composer is
   // aimed. The entry was written by fbGo under the feed's key.
-  openReviewSheet(feedRevKey(f), el.classList.contains('v3-cmt-btn'), el);
+  /* 0.12 (2026-10-02): the comment pill no longer aims the composer either
+     (Eric) — the sheet opens on the review, the box unfocused, like the feed
+     cards' pill. */
+  openReviewSheet(feedRevKey(f), false, el);
 };
 
 /* A review of two lines or fewer under the deck reads better CENTRED (Eric,
@@ -6914,6 +7072,8 @@ function paintLogSave() {
   b.dataset.mode = dirty ? 'post' : (posted ? 'revise' : 'empty');
   b.disabled = !dirty && !posted;
   b.textContent = dirty ? 'Post' : (posted ? 'Revise' : 'Post');
+  const bar = document.querySelector('#sd-log .sd-log-savebar');
+  if (bar) bar.hidden = !dirty;   // the pinned Save changes: there while anything is unsaved
 }
 /* What the library tabs need to draw — and reopen — an album that has since
    left ARCHIVE (the rec pool is re-dealt every session). Albums only; a song's
@@ -7175,11 +7335,20 @@ function ensureLogSheet() {
         <div class="sd-log-songs-hd">Optional <span class="sd-log-songs-sub">only rated songs get logged</span></div>
         <div class="sd-log-songs-list"></div>
       </div>
+      <!-- SAVE CHANGES, pinned to the sheet's bottom (0.12, Eric 2026-10-02:
+           "anytime you make any changes a fixed save changes button appears at
+           the bottom so it's there even if you scroll"). Sticky inside the
+           sheet (the sheet is the scroller); shown only while SDLOG.dirty
+           (paintLogSave). It replaces the Post that rode the cover. -->
+      <div class="sd-log-savebar" hidden>
+        <button class="sd-log-savebtn" type="button">Save changes</button>
+      </div>
     </div>`;
 
   ov.addEventListener('click', e => { e.stopPropagation(); if (e.target === ov) closeLogSheet(); });
   ov.addEventListener('mousedown', e => e.stopPropagation());
   ov.querySelector('.sd-log-sheet').addEventListener('click', e => e.stopPropagation());
+  ov.querySelector('.sd-log-savebtn').addEventListener('click', e => { e.stopPropagation(); commitLog(); });
   ov.querySelector('.sd-log-save').addEventListener('click', function () {
     // Revise: nothing new to post — put the cursor back in the review.
     if (this.dataset.mode === 'revise') { const w = ov.querySelector('.sd-log-write'); if (w) { w.focus(); w.setSelectionRange(w.value.length, w.value.length); } return; }
@@ -7371,7 +7540,7 @@ window.openLogSheet = function(triggerEl, subject) {
     if (reviewBox) reviewBox.hidden = false;                // artist: vinyl + text review, no songs
   } else {
     if (reviewBox) reviewBox.hidden = false;
-    fillLogSongs(ov, album);
+    fillLogSongs(ov, subj.ref || album);   // `ref` (0.11): the + flow logs an album that is not the one on screen
   }
   const shareBtn = ov.querySelector('.sd-log-share');
   if (shareBtn) shareBtn.hidden = !!(subj.isSong || subj.isArtist);
@@ -7448,6 +7617,8 @@ window.closeLogSheet = function() {
   // (Not `forEach(syncQuickLog)` — that hands the array INDEX in as the album,
   // so the second shell read albumDraft(1) → {} and was wiped on every close.)
   homeShells().forEach(s => syncQuickLog(s));
+  // Onboarding's quick-review step (0.12) marks the row it just reviewed.
+  if (document.querySelector('.s-onboarding') && typeof obSync === 'function') obSync();
 };
 
 /* ⚠️ The fill's width is measured in RECORDS AND GAPS, not as a percentage of
@@ -7622,10 +7793,31 @@ function sdsZeroHtml(ov) {
       <div class="sds-sec-hd">Trending searches</div>
       ${rows}
     </div>
-    <div class="sds-sec">
-      <div class="sds-sec-hd">Trending now</div>
-      <div class="sds-rail">${railCards}</div>
-    </div>`;
+`;
+  /* 0.12 (Eric, 2026-10-02: "in the search can we take the albums out"): the
+     "Trending now" rail of album covers is off the zero state — just the
+     trending searches. `railCards` is still built (and ov._last still indexes
+     it) so putting the rail back is one section here. */
+}
+
+// One album row in the + flow's list. `why` is the song that found it.
+function sdsPickRowHtml(a, i) {
+  return `
+    <button class="sds-row sds-row--pick" data-type="album" data-i="${i}">
+      <span class="sds-thumb" style="background-image:url('${a.image}')"></span>
+      <span class="sds-row-main"><span class="sds-row-t">${_sdsEsc(a.album)}</span><span class="sds-row-s"><b>${_sdsEsc(a.artist)}</b>${a.year ? ' · ' + a.year : ''}${a.why ? ' · has &ldquo;' + _sdsEsc(a.why) + '&rdquo;' : ''}</span></span>
+      <span class="sds-row-go">Review</span>
+    </button>`;
+}
+/* The + flow's pick: the search closes and the LOG SHEET opens on that album
+   (rating, review, Post). A record Deezer found is adopted into ARCHIVE first
+   (the sheet's library snapshot reads it) and hydrated for its track count. */
+function sdsPickForReview(a, host) {
+  const rec = a && a.ref;
+  if (!rec) return;
+  if (rec._rec && typeof dzAdopt === 'function') dzAdopt([rec]);
+  const go = () => openLogSheet(host, { image: rec.image, title: rec.album, subtitle: rec.artist, year: rec.year || '', ref: rec });
+  if (rec._lite && typeof dzHydrate === 'function') dzHydrate(rec).then(go, go); else go();
 }
 
 function runSearch() {
@@ -7640,6 +7832,37 @@ function runSearch() {
 
   if (!q) {
     sugEl.innerHTML = '';
+    if (ov._mode === 'review') {         // the + flow: a short list of records to start from
+      /* RECOMMENDED ALBUMS, ONE ROW OF THREE (0.12 — Eric, 2026-10-02: "take
+         out ad space and fill it with just the top 3x1 row nothing else and
+         say it's recommended albums instead of trending or popular"). Was six
+         "Popular right now" in a 3×2 with an ad slot under it. Now: three
+         records, the persona's Deezer recommendations first (`_rec`, what
+         expandRecs dealt), topped up from the shelf by rating, shuffled per
+         open. No rank badges (a 1-2-3 says "popular"). Same `.wall2-cell`
+         markup as the wall; a cell's data-i reaches the overlay's one
+         delegated tap, which opens the log sheet. Typing replaces it. */
+      const arch = (window.ARCHIVE || []).filter(a => a && a.image);
+      const shuf = arr => { const x = arr.slice(); for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
+      const recs = shuf(arch.filter(a => a._rec)).concat(arch.filter(a => !a._rec).sort((a, b) => (b.rating || 0) - (a.rating || 0)));
+      const picks = recs.slice(0, 3).map(a => ({ album: a.album, artist: a.artist, image: a.image, year: a.year, ref: a }));
+      ov._last = { artists: [], albums: picks, songs: [] };
+      resEl.innerHTML = `
+        <div class="sds-sec">
+          <div class="sds-sec-hd">Recommended albums</div>
+          <div class="wall2-grid sds-pickgrid">${picks.map((p, i) => `
+            <button class="wall2-cell" type="button" data-type="album" data-i="${i}">
+              <div class="wall2-art" style="background-image:url('${p.image}')"></div>
+              <div class="wall2-meta">
+                <span class="wall2-album">${_sdsEsc(p.album)}</span>
+                <span class="wall2-artist">${_sdsEsc(p.artist)}</span>
+                <div class="wall2-rating">${halfStars(p.ref.rating || 0, 11)}<span class="wall2-score">${Number(p.ref.rating || 0).toFixed(1)}</span></div>
+              </div>
+            </button>`).join('')}
+          </div>
+        </div>`;
+      return;
+    }
     resEl.innerHTML = sdsZeroHtml(ov);   // sets ov._last for the rail
     return;
   }
@@ -7653,6 +7876,25 @@ function runSearch() {
   const albums  = rank(idx.albums, 'album');
   const songs   = rank(idx.songs, 'title');
   ov._last = { artists, albums, songs };
+
+  /* WRITE A REVIEW (the nav's +, 0.11): albums ONLY. An artist's name brings
+     up their albums and a song's title brings up the album it is on, so
+     whatever you type, what you pick is a record. Title matches first, then
+     the artist's records, then the ones found by a song; each album once. */
+  if (ov._mode === 'review') {
+    sugEl.innerHTML = '';
+    const seen = new Set(), picks = [];
+    const add = (ref, why) => { if (ref && !seen.has(ref)) { seen.add(ref); picks.push({ album: ref.album, artist: ref.artist, image: ref.image, year: ref.year, ref, why }); } };
+    albums.forEach(a => add(a.ref));
+    idx.albums.filter(a => _sdsRank(a.artist, q) >= 0).forEach(a => add(a.ref));
+    songs.forEach(s => add(s.ref, s.title));
+    ov._last = { artists: [], albums: picks, songs: [] };
+    resEl.innerHTML = picks.length
+      ? `<div class="sds-sec"><div class="sds-sec-hd">Albums</div>${picks.map(sdsPickRowHtml).join('')}</div>`
+      : `<div class="sds-empty">No albums for &ldquo;${_sdsEsc(q)}&rdquo; yet&hellip;</div>`;
+    if (typeof sdsRemoteSearch === 'function') sdsRemoteSearch(q, ov);
+    return;
+  }
 
   // ── Autocomplete suggestions (top 5) — only on the All tab ──
   if (cat === 'all') {
@@ -7717,7 +7959,9 @@ function runSearch() {
 function sdsOpenResult(type, i) {
   const ov = document.getElementById('sd-search');
   const last = (ov && ov._last) || {};
+  const host = ov && ov.parentNode;
   closeSearch();
+  if (ov && ov._mode === 'review') return sdsPickForReview((last.albums || [])[i], host);
   if (type === 'artist') { const a = (last.artists || [])[i]; if (a) window.openArtistPageFor(a.name); }
   else if (type === 'album') { const a = (last.albums || [])[i]; if (a && a.ref) window.openAlbumPage(a.ref); }
   else if (type === 'song') { const s = (last.songs || [])[i]; if (s && s.ref) window.openAlbumPage(s.ref); }
@@ -7741,6 +7985,11 @@ function ensureSearchOverlay() {
           <button class="sds-clear" aria-label="Clear search">✕</button>
         </div>
       </div>
+      <!-- The + flow's heading. It takes the TABS' row (Eric, 2026-09-28: "the
+           search bars are always in the same spot and the write a review text
+           will be below that"), so the field and the results start where they
+           do on the search page. No sub-line. -->
+      <div class="sds-mode">Write a review</div>
       <div class="sds-tabs">
         <button class="sds-tab active" data-cat="all">All</button>
         <button class="sds-tab" data-cat="artists">Artists</button>
@@ -7776,12 +8025,22 @@ function ensureSearchOverlay() {
   return ov;
 }
 
-window.openSearch = function (triggerEl) {
+/* `mode` (0.11): 'review' is the nav's + — the same overlay asking "which
+   album?", albums only, no tabs, and a pick opens the log sheet instead of
+   the album page (runSearch / sdsOpenResult read `ov._mode`). */
+window.openSearch = function (triggerEl, mode) {
   const host = (triggerEl && triggerEl.closest && triggerEl.closest('.app-screen'))
              || document.querySelector('.app-screen') || document.body;
-  // The nav's Search button while searching: put it away (Eric, 2026-09-24).
-  if (host.classList.contains('is-searching') && triggerEl && triggerEl.closest('.v3-bottom-nav')) { closeSearch(); return; }
+  mode = mode === 'review' ? 'review' : 'browse';
+  // The nav's Search button (or the +) while its own search is up: put it away
+  // (Eric, 2026-09-24). The OTHER one switches the overlay over instead.
+  const up = document.getElementById('sd-search');
+  if (host.classList.contains('is-searching') && triggerEl && triggerEl.closest('.v3-bottom-nav') && up && up._mode === mode) { closeSearch(); return; }
   const ov = ensureSearchOverlay();
+  ov._mode = mode;
+  ov.classList.toggle('sds-overlay--review', mode === 'review');
+  ov.querySelector('.sds-input').placeholder = mode === 'review' ? 'Album, artist or song' : 'Artists, albums, songs';
+  host.querySelectorAll('.v3-nav-item--add').forEach(b => b.classList.toggle('is-on', mode === 'review'));
   host.classList.add('is-searching');       // lifts the bottom nav over the overlay (app.css)
   ov.classList.toggle('sds-overlay--light', !!host.querySelector('.s-home-v3--light'));
   host.appendChild(ov);   // mount into the current phone screen so it stays in-frame
@@ -7796,12 +8055,19 @@ window.openSearch = function (triggerEl) {
 
 document.addEventListener('click', e => {
   const item = e.target.closest && e.target.closest('.is-searching .v3-bottom-nav .v3-nav-item');
-  if (item && !item.closest('.v3-nav-item[title="Search"]')) closeSearch();
+  if (item && !item.closest('.v3-nav-item[title="Search"], .v3-nav-item--add')) closeSearch();
 }, true);
+/* THE NAV'S + (0.11 — Eric, 2026-09-28: "a + icon in the center of the ui bar
+   … if u press it u can write a review, it starts with a search"). */
+window.openReviewSearch = function (btn, e) {
+  if (e) e.stopPropagation();
+  openSearch(btn, 'review');
+};
 window.closeSearch = function () {
   const ov = document.getElementById('sd-search');
   if (!ov) return;
   ov.classList.remove('open');
+  document.querySelectorAll('.v3-nav-item--add.is-on').forEach(b => b.classList.remove('is-on'));
   document.querySelectorAll('.is-searching').forEach(h => h.classList.remove('is-searching'));
   const inp = ov.querySelector('.sds-input'); if (inp) inp.blur();
 };
@@ -7822,13 +8088,20 @@ const OB = {
   artists:  new Set(),  // artist names
   albums:   new Set(),  // "artist – album" keys
   following:new Set(),  // handles
-  q: { artists: '', albums: '' },
-  genreView: 'wheel',   // step 3: 'wheel' (the mix dial) | 'list' (the same tree, flat)
+  q: { artists: '', albums: '', review: '' },
+  /* 0.12 (2026-10-02): the LIST only — the wheel is off (Eric: "get rid of
+     that wheel now for genres"). The dial code and its view are intact behind
+     this flag; obSetGenreView refuses 'wheel' and obSyncOne no longer builds it. */
+  genreView: 'list',    // step 3: 'wheel' (the mix dial) | 'list' (the same tree, flat)
   genreOpen: new Set(), // step 3 list: which mains are unfolded
 };
 
 // The tracking step only appears once a service is connected.
-function obActiveSteps() { return OB.service ? [0,1,2,3,4,5,6,7] : [0,1,3,4,5,6,7]; }
+/* 0.12 (2026-10-02): step 8, QUICK REVIEW, runs after the taste steps (genres ·
+   artists · albums) and before people. ⚠ Steps are IDS, not positions — the
+   order is this list, so the new one took the next free id rather than
+   renumbering 6 and 7 (which are hard-coded all over the footer and dock). */
+function obActiveSteps() { return OB.service ? [0,1,2,3,4,5,8,6,7] : [0,1,3,4,5,8,6,7]; }
 
 const obEsc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 // onclick-safe: survives HTML-decode then JS single-quote parse.
@@ -7840,8 +8113,8 @@ const obUserValid = () => /^[a-zA-Z0-9_]{4,18}$/.test(OB.username);
 window.obStart = function () {
   OB.step = 0; OB.username = ''; OB.service = null; OB.tracking = null;
   OB.genres.clear(); OB.artists.clear(); OB.albums.clear(); OB.following.clear();
-  OB.q.artists = ''; OB.q.albums = '';
-  OB.genreView = 'wheel'; OB.genreOpen.clear();
+  OB.q.artists = ''; OB.q.albums = ''; OB.q.review = '';
+  OB.genreView = 'list'; OB.genreOpen.clear();
   OB_MIX.at = null; OB_MIX.from = null;
   navigate('onboarding');
 };
@@ -7903,13 +8176,16 @@ function obSyncOne(root) {
     b.classList.toggle('ob-track-opt--on', OB.tracking !== null && ((+b.dataset.track === 1) === OB.tracking)));
   /* Step 3 — the dial is built into this instance on first sync, then only
      repainted; the list and the chips are re-rendered from OB.genres. */
-  obMixBuild(root);
-  root.querySelectorAll('.ob-mix .mix-inline').forEach(w => mixWrapSync(w, OB_MIX));
+  if (OB.genreView === 'wheel') {          // the wheel is off in 0.12 — don't build a dial nobody sees
+    obMixBuild(root);
+    root.querySelectorAll('.ob-mix .mix-inline').forEach(w => mixWrapSync(w, OB_MIX));
+  }
   obSyncGenres(root);
 
   obRenderWall(root, 'artists');
   obRenderWall(root, 'albums');
   obRenderPeople(root);
+  obRenderReview(root);
   obRenderProfile(root);
   obSyncFooter(root);
 }
@@ -8039,7 +8315,7 @@ function obSyncDock(root) {
      the people, the genre bubbles — so cards dissolve into the dock instead of
      being cut off at a hard edge above Skip and Continue. Not on the wheel:
      it is sized to fit, and a fade across its lower rim would read as a bug. */
-  root.classList.toggle('ob-stage-fade', step === 4 || step === 5 || step === 6 || (step === 3 && OB.genreView === 'list'));
+  root.classList.toggle('ob-stage-fade', step === 4 || step === 5 || step === 6 || step === 8 || (step === 3 && OB.genreView === 'list'));
 
   let html = '', hint = '';
   if (step === 3) {
@@ -8132,6 +8408,7 @@ function obMixArrive() {
    sometimes "previous step" is two buttons wearing one coat. */
 window.obMixBack = function () { if (OB_MIX.at) mixGoto(null, OB_MIX); };
 window.obSetGenreView = function (v) {
+  if (v === 'wheel') return;                // 0.12: list only
   if (OB.genreView === v) return;
   OB.genreView = v;
   obSync();
@@ -9200,6 +9477,42 @@ function obRenderWall(root, kind) {
   }
 }
 
+/* ── Step 8 · QUICK REVIEW (0.12, 2026-10-02) ─────────────────────────────
+   Eric: "a quick review search … have them search for an album and then
+   review it or skip". A search over the archive (title or artist), rows in
+   the app's own shape — cover · album over artist — and a tap opens the APP'S
+   rate & review sheet (openLogSheet), not a copy of it, so the review they
+   write here is a real saved review: it is on that album's page afterwards.
+   With no query the list leads with the albums they picked on step 5, then
+   the rest of the archive, so there is something to tap straight away.
+   A row they have reviewed shows their score and a check; Skip or Continue
+   moves on either way. closeLogSheet re-syncs the wizard so the row updates
+   the moment the sheet drops. */
+function obReviewSaved(a) {
+  const d = (typeof logDrafts === 'function' ? logDrafts() : {})[`album::${a.album}::${a.artist || ''}`];
+  return d && (d.rating || (d.text || '').trim()) ? d : null;
+}
+function obRenderReview(root) {
+  const box = root.querySelector('.ob-rlist'); if (!box) return;
+  const q = OB.q.review, all = obAlbumList();
+  let list;
+  if (q) list = all.filter(a => a.album.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q));
+  else list = [...all.filter(a => OB.albums.has(albumKey(a))), ...all.filter(a => !OB.albums.has(albumKey(a)))];
+  box.innerHTML = list.slice(0, 40).map(a => {
+    const d = obReviewSaved(a);
+    return `<button class="ob-rrow${d ? ' is-done' : ''}" type="button" onclick="obReviewOpen(this, '${obOc(albumKey(a))}')">
+      <span class="ob-rrow-art" style="background-image:url('${a.image}')"></span>
+      <span class="ob-rrow-who"><span class="ob-rrow-album">${obEsc(a.album)}</span><span class="ob-rrow-artist">${obEsc(a.artist)}</span></span>
+      <span class="ob-rrow-go">${d ? (d.rating ? Number(d.rating).toFixed(1) + ' ' : '') + '✓' : 'Review'}</span>
+    </button>`;
+  }).join('') || `<div class="ob-empty">No albums match “${obEsc(q)}”.</div>`;
+}
+window.obReviewOpen = function (el, key) {
+  const a = obAlbumList().find(x => albumKey(x) === key);
+  if (!a || typeof openLogSheet !== 'function') return;
+  openLogSheet(el, { image: a.image, title: a.album, subtitle: a.artist, year: a.year || '', ref: a });
+};
+
 function obRenderPeople(root) {
   const box = root.querySelector('.ob-people'); if (!box) return;
   box.innerHTML = obPeopleList().map(p => {
@@ -9254,7 +9567,10 @@ window.obToggleGenre  = function (a, b) { const name = b === undefined ? a : b; 
 window.obToggleArtist = function (name){ OB.artists.has(name) ? OB.artists.delete(name) : OB.artists.add(name); obSync(); };
 window.obToggleAlbum  = function (key) { OB.albums.has(key) ? OB.albums.delete(key) : OB.albums.add(key); obSync(); };
 window.obToggleFollow = function (user){ OB.following.has(user) ? OB.following.delete(user) : OB.following.add(user); obSync(); };
-window.obSearch       = function (kind, v) { OB.q[kind] = String(v).toLowerCase(); document.querySelectorAll('.s-onboarding').forEach(r => obRenderWall(r, kind)); };
+window.obSearch       = function (kind, v) {
+  OB.q[kind] = String(v).toLowerCase();
+  document.querySelectorAll('.s-onboarding').forEach(r => kind === 'review' ? obRenderReview(r) : obRenderWall(r, kind));
+};
 
 window.obNext = function (skip) {
   if (!skip && OB.step === 0 && !obUserValid()) return;   // username required — unless skipping (the rail's Skip passes true)
@@ -10633,18 +10949,13 @@ window.profFavTap = function (btn, e, slot, picker) {
     return;
   }
   if (picker) { openProfPicker(slot, btn); return; }
-  /* ⚠ The console, not the popup — same as the bento's CD. The profile screen is
-     an `.s-home-v3` and carries the same nav, so the plateau is right there. The
-     album comes from the SLOT: five discs share one screen, so `_album` (the
-     bento's notion of "current") means nothing here. */
-  const scr = btn.closest('.s-home-v3');
+  /* 0.12 (2026-10-02): the centred disc OPENS THE ALBUM PAGE (Eric). The nav
+     console is the album page's CD's alone now; it used to rise from here too.
+     The album comes from the SLOT: five discs share one screen, so `_album`
+     (the bento's notion of "current") means nothing here. */
   const name = ((window.PROFILE && window.PROFILE.favs) || [])[slot];
   const album = name && (window.ARCHIVE || []).find(a => a.album === name);
-  if (!scr || !album) return;
-  if (scr.classList.contains('s-home-v3--console') && scr._consoleAlbum === album) {
-    window.closeConsole(scr); return;          // same disc twice = put it away
-  }
-  window.openConsole(scr, album);
+  if (album && typeof openAlbumPage === 'function') openAlbumPage(album);
 };
 
 /* Scroll → which disc is centred → the panel underneath.
@@ -11572,15 +11883,45 @@ function sdsRemoteSearch(q, ov) {
   clearTimeout(SDS_REMOTE_T);
   if (!q || q.length < 2) return;
   SDS_REMOTE_T = setTimeout(function () {
+    const review = ov._mode === 'review';
     Promise.all([
-      dz('search/artist?limit=4&q=' + encodeURIComponent(q)),
+      review ? dz('search/track?limit=6&q=' + encodeURIComponent(q)) : dz('search/artist?limit=4&q=' + encodeURIComponent(q)),
       dz('search/album?limit=8&q=' + encodeURIComponent(q))
     ]).then(function (res) {
       const ar = res[0], al = res[1];
       const inp = ov.querySelector('.sds-input');
       if (!inp || inp.value.trim().toLowerCase() !== q) return;   // typed on since
+      if ((ov._mode === 'review') !== review) return;              // the overlay changed hands since
       const resEl = ov.querySelector('.sds-results');
       if (!resEl) return;
+      /* The + flow (0.11): albums only. Deezer's album search already matches
+         on the artist's name; its TRACK search is what turns a song title
+         into the album it is on. */
+      if (review) {
+        const last = ov._last || (ov._last = { artists: [], albums: [], songs: [] });
+        const known = new Set((last.albums || []).map(function (a) { return dzKey(a.artist, a.album); }));
+        const found = [];
+        const take = function (alb, artist, why) {
+          if (!alb || !alb.title || !artist || !artist.name) return;
+          const k = dzKey(artist.name, alb.title);
+          if (known.has(k)) return;
+          known.add(k);
+          const rec = dzRecord(alb, artist);
+          if (!rec.image) return;
+          found.push({ album: rec.album, artist: rec.artist, image: rec.image, year: rec.year, ref: rec, why: why });
+        };
+        (((al || {}).data) || []).forEach(function (a) { take(a, a.artist); });
+        (((ar || {}).data) || []).forEach(function (t) { take(t.album, t.artist, t.title); });
+        if (!found.length) return;
+        const off = (last.albums || []).length;
+        last.albums = (last.albums || []).concat(found);
+        const old = resEl.querySelector('.sds-sec--remote'); if (old) old.remove();
+        const empty = resEl.querySelector('.sds-empty'); if (empty) empty.remove();
+        resEl.insertAdjacentHTML('beforeend',
+          '<div class="sds-sec sds-sec--remote"><div class="sds-sec-hd">More albums</div>' +
+          found.map(function (a, i) { return sdsPickRowHtml(a, off + i); }).join('') + '</div>');
+        return;
+      }
 
       const last = ov._last || (ov._last = { artists: [], albums: [], songs: [] });
       const known = new Set((last.albums || []).map(function (a) {

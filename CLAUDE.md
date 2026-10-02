@@ -1,5 +1,169 @@
 # Spindeck — Music Review App Mockup
 
+> ## ⚠️ THIS IS **0.12** — `csharpuser/versions/0.12/`, THE PRIVATE WORK IN PROGRESS (2026-10-01)
+> Eric: "lets work on version 0.12 … copy 0.11 and we'll make changes".
+> A worktree on branch **`v0.12`**, made from `v0.11` + 0.11's uncommitted
+> files copied over, so it started byte-identical to 0.11. 0.11 stays as it
+> is. Open it at `/versions/0.12/index.html`. Everything below (0.11's notes
+> included) describes the code as copied; add 0.12's changes in a
+> "What 0.12 changes" list here.
+>
+> ### What 0.12 changes
+> - **2026-10-02 — ONE BACK: THE HEADER CARET.** The quick review page's bare
+>   "‹" (`.v3-hdr-back`, in both headers — appHeader and the home shell's)
+>   takes the notification bell's place on any screen with a way back: the
+>   album / artist page (`--review`), a review open in place (`--rvp`), and
+>   every screen with a back pill (notifications, settings, edit profile, the
+>   review page). The floating back pills and the album page's corner "Back"
+>   pill are hidden; `sdHeaderBack` does what each did (rvpBack → onLivePill
+>   → the screen's .plp-back-pill). CSS: THE BACK CARET block, end of app.css.
+> - **2026-10-02 — SAVE CHANGES, pinned to the rate & review sheet's bottom.**
+>   `.sd-log-savebar` (sticky in the sheet, which is the scroller) appears the
+>   moment anything is unsaved (`paintLogSave` toggles it off `SDLOG.dirty`)
+>   and saves + closes via `commitLog`. The Post that rode the cover is hidden
+>   (its button stays in the DOM; paintLogSave still drives it).
+> - **2026-10-02 — THE ROUND RATE BUTTON + SPINNING CDs on the album page.**
+>   The "Your review" bar (.v3-rev-yours) gave way to `rateGroupHtml()` shown
+>   as JUST THE CIRCLE (-0.11's rules, end of app.css): "Rate / album", your
+>   number over discs once rated, then the toggles you set (Listened · Listen
+>   later · Favourite) and "✎ Written review" if there's text; "Not rated" in
+>   place of the number when you only did the rest (`.v3-rg-did` / `.v3-rg-wrote`) — `syncRevCta`
+>   paints `.v3-rg-rate` (the bar's painter is `syncRevCtaBar`, kept). The
+>   album page's CD and the review record's CD spin again (12s), overriding
+>   MINIMAL MOTION for `.s-home-v3--album` only.
+> - **2026-10-02 — THE USER FLOW BOARD** (`flow.html`, `flow/`; "Flow" left of
+>   Feedback). 0.12 captured headless (puppeteer-core in the scratchpad against
+>   a local server): 31 pages, 42 arrows, each arrow starting at the real
+>   element's centre (flow/spots.json). Plans: **0.12** (everything, lanes like
+>   -1's flowplan1), **Review process** (+ → rate sheet; home deck / trending /
+>   search → album → rate) and **Discovery** (home deck + feed, search, the
+>   wall → album → artist → more). Page = -1's flow.html; arrows never land on
+>   or leave through a page's bottom (the nav). Re-capture after big changes.
+> - **2026-10-02 — comment button → the review PAGE, no focus** (`cmtCompose`
+>   → `feedOpenReview(n, false, btn, true)`); the card tap still opens the
+>   sheet. People you may know after the FIRST review (`PYMK_AFTER = 1`).
+> - **2026-10-02 — QUICK REVIEW'S EMPTY STATE: three "Recommended albums".**
+>   The + flow's zero state (`runSearch`, `ov._mode === 'review'`) is one 3×1
+>   row: the persona's Deezer recs (`_rec`) shuffled, topped up from the shelf
+>   by rating; no rank badges, no ad slot (it was 6 "Popular right now" + ad).
+> - **2026-10-02 — SEARCH WITHOUT ALBUMS, TRENDING WITHOUT THE DECK.** The
+>   search zero state is only "Trending searches" (`sdsZeroHtml` drops the
+>   "Trending now" cover rail; the cards are still built). The Trending wall is
+>   just the filters + the wall (`wallHtml` no longer emits
+>   `discoveryDeckHtml()`; `renderDiscoveryDeck` no-ops without it).
+> - **2026-10-02 — THE ALBUM WHEEL IS BACK ON THE PROFILE**: `profFavsHtml(P)`
+>   between the stats and the picks in `profileHtml` (the fork had dropped
+>   it; its code, CSS and `profFavBoot` were all still here). People you may
+>   know now sits after the SECOND review card (`PYMK_AFTER = 2`, counted in
+>   review cards, not rows). The split card's cover is 80px.
+> - **2026-10-02 — THE DECK'S REVIEW IS 0.1's AGAIN** (Eric: "bring 0.12 to 0.1
+>   homepage layout where we dont have the box and its centered"). `fbGo`'s
+>   `if (strip) {…}` block is 0.1's verbatim — the centred `.v3-fbr` (face,
+>   name, like · score · comment, text, View more), built once and updated in
+>   place. This UNDOES 0.11's "deck's review is the feed's card" (below): its
+>   panel CSS is neutralised by a block at the end of app.css; the swap
+>   animation went with it.
+> - **2026-10-02 — ONBOARDING: LIST-ONLY GENRES + A QUICK REVIEW STEP** (Eric).
+>   Step 3's wheel is off: `OB.genreView` is pinned to `'list'`, the Wheel |
+>   List switch and dial back are hidden, and the dial is no longer built (its
+>   code is intact). New **step 8 · Review an album** (`.ob-panel--review`,
+>   `obRenderReview` / `obReviewOpen`): a search over the archive, rows of
+>   cover · album / artist · "Review", a tap opens the app's own log sheet
+>   (`openLogSheet` with `ref`), so the review is a real saved one; a reviewed
+>   row shows your score + check (`closeLogSheet` re-runs `obSync`). Order is
+>   `obActiveSteps` — 8 is an id, slotted after albums (5) and before people (6).
+> - **2026-10-02 — THE SPLIT CARD EVERYWHERE** (Eric). The album page's review
+>   list (`populateReviewList`, also the artist page's "Popular reviews"), the
+>   just-posted card and the profile's pins + history now pass `split` +
+>   `record` too (the album page's record is the page's own album). Split
+>   cards carry your own card's share as `.v3-rsp-foot`; the album page's "View
+>   all n comments" line is gone with the old layout. `--page` split cards get
+>   light ink (dark surface) and `--light.--artist` re-inks — block just
+>   before "THE DECK'S REVIEW IS 0.1's AGAIN" in app.css. Same day: the album
+>   page's background is pinned to #111116 in BOTH themes (`--v3-box1-color`
+>   pinned with !important, so the cover flood is gone from page and bento
+>   fill alike); the artist page stays cream in light.
+> - **2026-10-02 — THE SPLIT FEED CARD** (from a screenshot of the layout Eric's
+>   friend drew). Home feed review cards only: `revCardInner` `split` (+
+>   `record`) → photo · name · time left / year · album over artist right on
+>   the top row; review left; cover 80px right with score + discs under it;
+>   comment + like counts bottom-left. CSS: THE SPLIT FEED CARD block at the
+>   end of app.css, (0,4,0) over the `.v3-rev-card--feed` rules. Activity rows,
+>   the deck, album page and profile cards are unchanged.
+> - **2026-10-01 — SNAP: copy the mockup as a PNG** (`snap.js`). Two small
+>   borderless buttons, upper-right of the viewer: **PNG** copies the phone as
+>   on screen (scroll kept), **3×** copies it grown to three phone heights so
+>   scrollers show what is below the fold. COPY ONLY, never a download: a
+>   refused write keeps the image and the button reads "Copy" for a second
+>   click; needs localhost/https (no clipboard on a LAN IP or file://). Like
+>   `versions.js` it is ONE IDENTICAL FILE IN EVERY VERSION (0.1 root, -0.1,
+>   -0.11, 0.11, 0.12), loaded last by each index.html, local addresses only;
+>   it injects its own CSS and lazy-loads modern-screenshot from jsdelivr
+>   (html2canvas drops masks). A new version = copy the file + its script line.
+>
+> ### Inherited from 0.11 (its banner, unchanged)
+> - A git worktree of the csharpuser repo on branch **`v0.11`**, started from
+>   0.1 (commit d79ebb3, tag `v0.1`). New work happens HERE. 0.1 is the folder
+>   two levels up (`main`, the public site) and stays as it is.
+> - **Never push this branch, never deploy this folder.** `main` ignores
+>   `versions/`. Going public later is a merge of `v0.11` into `main`.
+> - The "+" above the corner's sessions link (`versions.js`) switches between
+>   the versions (-0.1 the original app, 0.1, 0.11); local addresses only. Open this one at
+>   `/versions/0.11/index.html` with the csharpuser folder being served.
+> - `tools/` scripts write beside themselves, so run the copy in THIS folder
+>   to change this version's data. Its caches were not copied (gitignored).
+> - Everything below describes the code in this folder as it was at 0.1;
+>   document 0.11's changes in this file, not in the root's.
+>
+> ### What 0.11 changes (grep `0.11` in the sources)
+> - **2026-09-28 — the deck's review is THE FEED'S CARD.** Eric: "the
+>   different look is throwing people off". `fbGo` (app.js) renders
+>   `revCardInner` as `.v3-rev-card--feed.v3-rev-card--deck` into
+>   `.v3-fb-review`, with no record line (the record is the cover above).
+>   What ties it to the carousel: a raised panel with a notch pointing up at
+>   the cover, and a caption — "Your friend" or "Popular review", no album
+>   name (the cover says it). `FB_POPULAR_FIRST` is off: a friend leads the
+>   deck, the popular reviews come after. The centred
+>   `.v3-fbr` block, its face crossfade, count ticker and View more are gone
+>   from home; the review SHEET still uses `.v3-fbr--sheet`. The text is held
+>   at four lines so the feed doesn't jump as you flick. ⚠️ The Alts' Compact
+>   phone (`s-home-v3--fb-left`) styled the old block, so it now looks like
+>   the regular one.
+> - **2026-09-28 — PEOPLE YOU MAY KNOW**, after the third feed card
+>   (`PYMK_AFTER`): `pymkHtml` / `pymkFollow` / `PYMK_PEOPLE` in app.js,
+>   `.v3-pymk*` in app.css. People not already in the feed; face and name
+>   open the profile (`sdPerson`); Follow is session-only and syncs both
+>   shells.
+> - **2026-09-28 — THE NAV'S +**, the middle of five items
+>   (`.v3-nav-item--add`, `bottomNav`): `openReviewSearch` →
+>   `openSearch(btn, 'review')`. Same overlay, `ov._mode = 'review'`: a
+>   "Write a review" heading, no tabs, ALBUMS ONLY — a title match, an
+>   artist's records, and the album a matching song is on (`runSearch`);
+>   Deezer adds more through its album and TRACK searches
+>   (`sdsRemoteSearch`). A pick (`sdsPickForReview`) closes the search and
+>   opens the LOG SHEET on that album; `openLogSheet`'s subject takes a `ref`
+>   (the album object) so the song rows are that album's, not the one on
+>   screen. Nothing on home shows the review after Post yet.
+> - **2026-09-28 — the deck's panel FITS its review and the swap is
+>   ANIMATED.** No four-line hold any more: a short review makes a small box.
+>   On a step `fbGo` pins the old height and transitions to the new one
+>   (`.is-sizing`), and the title strip and the card's contents slide in 14px
+>   from the side the deck moved from (`.is-swap`, `--fb-dir`, keyframe
+>   `fb-swap`, fill `backwards`). These sit ABOVE the MINIMAL MOTION block and
+>   are not listed in it, on purpose — Eric asked for them.
+> - **2026-09-28 — THE PROFILE'S HEAD is plain flow** (`profHeadHtml`,
+>   `.prof-head*`): round centred picture, name, @handle, bio, location, tags,
+>   then the Edit profile / Follow button; the stats row follows. The traced
+>   SVG card (`profCanvasHtml`) is unused but kept, CSS and all. Gone with it
+>   from the page: the name banner, the Furry ears on the profile. Edit
+>   Profile is untouched.
+> - **2026-09-28 — the + flow's zero state**: six top-rated albums in the
+>   wall's 3x2 grid, then an empty 300x250 ad slot (`.sds-ad`).
+> - **2026-09-28 — feed cards' top row**: counts 11px and LEFT of their icons,
+>   heart 3px from the time, 4px between comment and like (block 1b in app.css).
+> - 2026-09-28: the three were written without a look in the browser
+>   (syntax-checked only) — first thing to do is look.
+
 > ## ⚠️ THIS IS `csharpuser/` — THE REVIEW-ONLY FORK (2026-09-22)
 > A full copy of `c-sharp/` made after user testing said the app was **too
 > complicated**. The original is untouched next door; this copy strips the
