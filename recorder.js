@@ -34,6 +34,10 @@ const REC_CFG = {
   if (!REC_CFG.url || !REC_CFG.anonKey) { console.info('[rec] not configured — no recording'); return; }
 
   const NAME_KEY = 'spindeck-tester';
+  /* 0.13: the first-time name card also asks "skip onboarding?", so the app's
+     own skip popup stays out of the way when this card is coming. Set while
+     this file parses, before app.js's init runs on DOMContentLoaded. */
+  try { window.SD_REC_WILL_ASK = !localStorage.getItem(NAME_KEY); } catch (e) { window.SD_REC_WILL_ASK = false; }
   const FLUSH_MS = 8000, FLUSH_RAW = 150000, KEEPALIVE_MAX = 60000;
   const LIBS = [
     'https://cdn.jsdelivr.net/npm/rrweb@1.1.3/dist/rrweb.min.js',
@@ -191,8 +195,9 @@ const REC_CFG = {
         <div class="rec-title">Before you start</div>
         <label class="rec-lbl" for="rec-name">What's your name?</label>
         <input class="rec-input" id="rec-name" type="text" autocomplete="name" maxlength="40" placeholder="Your name" required>
-        <p class="rec-note">Your taps and the screens you visit are recorded (no camera, no mic) so we can see how the app gets used and improve it. By pressing Start you approve of this recording.</p>
-        <button class="rec-go" type="submit">Start</button>
+        <p class="rec-note">Your taps and the screens you visit are recorded (no camera, no mic) so we can see how the app gets used and improve it. By continuing you approve of this recording.</p>
+        <button class="rec-go" type="submit" value="onboard">Start with onboarding</button>
+        <button class="rec-skip" type="submit" value="skip">Skip onboarding</button>
       </form>`;
     document.body.appendChild(ov);
     const inp = ov.querySelector('input');
@@ -203,6 +208,8 @@ const REC_CFG = {
       try { localStorage.setItem(NAME_KEY, name); } catch (err) {}
       ov.remove();
       begin(name);
+      // 0.13: the card's second button skips straight to the app.
+      if (e.submitter && e.submitter.value === 'skip' && window.sdSkipOnboarding) window.sdSkipOnboarding();
     });
   }
 

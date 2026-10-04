@@ -12994,3 +12994,12 @@ html.sd-wire .wall2-art--artist[style*="url("] {
   background-image: var(--wf-artist) !important; background-color: #303038 !important;
   background-size: cover !important; background-position: center !important; background-repeat: no-repeat !important;
 }
+
+/* 0.13: the "Skip onboarding?" card (sdAskSkipOnboarding) — the feedback
+   popup's card, with a quiet second choice under the main button. */
+.sd-obskip-note { margin: -4px 0 16px; font-size: 13px; line-height: 1.5; color: #9a9a9a; }
+.sd-obskip-stay {
+  width: 100%; margin-top: 8px; padding: 11px; border: 1px solid #3a3a3a; border-radius: 8px;
+  background: transparent; color: #e8e8e8; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.sd-obskip-stay:hover { border-color: #6a6a6a; }

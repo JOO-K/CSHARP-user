@@ -1141,3 +1141,7 @@ body:not(.sd-tools) #phone-container.multi-variant { align-items: center; paddin
 .sd-ver-it:hover { color: #e8e8e8; background: rgba(255,255,255,0.06); }
 .sd-ver-it.is-here { color: #e8e8e8; font-weight: 700; }
 
+
+/* 0.13: the name card's second choice — skip onboarding. */
+.rec-skip { width: 100%; margin-top: 8px; padding: 11px; border: 1px solid #3a3a3a; border-radius: 8px; background: transparent; color: #e8e8e8; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.rec-skip:hover { border-color: #6a6a6a; }

@@ -36,6 +36,11 @@
 >   `wallArtists` / `wallArtistsHtml` in screens.js) lists every shelf artist,
 >   most-reviewed first, as ROUND photos (`.wall2-art--artist`) with album count
 >   + average; a tap opens the artist page. The controversial ranking is kept.
+> - **Boots on ONBOARDING** (init: no `?screen` / `?tools` → onboarding,
+>   `SD_BOOT_ONBOARDING`). A first-time tester answers "skip onboarding?" on the
+>   name card (recorder.js: Start with onboarding / Skip onboarding;
+>   `SD_REC_WILL_ASK` set while it parses); anyone else gets the
+>   `sdAskSkipOnboarding` card over step 1. Skip = `sdSkipOnboarding` → home.
 >
 > ---
 >
