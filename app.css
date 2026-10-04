@@ -13003,3 +13003,11 @@ html.sd-wire .wall2-art--artist[style*="url("] {
   background: transparent; color: #e8e8e8; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
 }
 .sd-obskip-stay:hover { border-color: #6a6a6a; }
+
+/* 0.13 (Eric, 2026-10-03): the rate & review sheet's score is STACKED — the
+   big number centred over the five discs, which are a bit larger (46 → 56).
+   The song rows' discs are larger too and tighter (20/4 → 24/1). --rec /
+   --gap are what recFillWidth measures the fill in, so the fill follows. */
+.sd-log-rate { flex-direction: column; gap: 10px; --rec: 56px; --gap: 4px; }
+.sd-log-num { font-size: 44px; min-width: 0; text-align: center; }
+.sd-log-song-rate-track { --rec: 24px; --gap: 1px; }

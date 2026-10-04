@@ -41,6 +41,8 @@
 >   name card (recorder.js: Start with onboarding / Skip onboarding;
 >   `SD_REC_WILL_ASK` set while it parses); anyone else gets the
 >   `sdAskSkipOnboarding` card over step 1. Skip = `sdSkipOnboarding` → home.
+> - **Rate & review sheet**: the score number (44px) is centred ABOVE the five
+>   discs (56px); song-row discs 24px, 1px apart (end of app.css).
 >
 > ---
 >
