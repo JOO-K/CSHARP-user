@@ -165,7 +165,21 @@ const REC_CFG = {
     console.info('[rec] recording as', name, S.sid);
     /* Feedback's Post (patchnotes.js): a `feedback` line in this session's
        transcript, sent straight away rather than on the next tick. */
-    window.sdRecPost = text => { if (S.dead || !S.sid) return false; log('feedback', String(text).slice(0, 2000)); flush(false); return true; };
+    /* 0.13 (2026-10-03): …and a small `fb-<ms>.json` beside the chunks
+       (Eric: "see which sessions have feedback" in sessions.html). The list
+       there reads only file NAMES, so the fb- file is what flags a session —
+       and the Feedback view downloads just those, never the recordings.
+       `info` (the in-app popup) carries the area and the bare text. */
+    window.sdRecPost = (text, info) => {
+      if (S.dead || !S.sid) return false;
+      const t = Date.now() - S.startedAt;
+      log('feedback', String(text).slice(0, 2000)); flush(false);
+      const i = info || {};
+      const note = { sid: S.sid, name: S.meta && S.meta.name, at: new Date().toISOString(), t,
+        area: i.area || 'General', screen: i.screen || screenState(), text: String(i.text || text).slice(0, 2000) };
+      upload(`${S.sid}/fb-${Date.now()}.json`, fflate.strToU8(JSON.stringify(note)), false);
+      return true;
+    };
   }
 
   /* ── The name prompt ─────────────────────────────────────── */

@@ -518,6 +518,13 @@ function homeShellHtml(light, coversUp, cls) {
               <button class="v3-bubble v3-bubble--settings" title="Settings" aria-label="Settings" onclick="navigate('settings')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               </button>
+              <!-- FEEDBACK (0.13, Eric 2026-10-03): the gear lives on your profile
+                   only; every other screen shows this bubble in its place — a
+                   speech bubble with three dots that opens the feedback popup
+                   (sdFeedbackOpen, app.js). Which one shows is app.css's call. -->
+              <button class="v3-bubble v3-bubble--feedback" title="Send feedback" aria-label="Send feedback" onclick="event.stopPropagation(); sdFeedbackOpen(this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="8" cy="10" r=".6" fill="currentColor"/><circle cx="12" cy="10" r=".6" fill="currentColor"/><circle cx="16" cy="10" r=".6" fill="currentColor"/></svg>
+              </button>
             </div>
           </div>
 
@@ -886,6 +893,13 @@ function appHeader(subtitle) {
             <div class="v3-header-right">
               <button class="v3-bubble v3-bubble--settings" title="Settings" aria-label="Settings" onclick="navigate('settings')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </button>
+              <!-- FEEDBACK (0.13, Eric 2026-10-03): the gear lives on your profile
+                   only; every other screen shows this bubble in its place — a
+                   speech bubble with three dots that opens the feedback popup
+                   (sdFeedbackOpen, app.js). Which one shows is app.css's call. -->
+              <button class="v3-bubble v3-bubble--feedback" title="Send feedback" aria-label="Send feedback" onclick="event.stopPropagation(); sdFeedbackOpen(this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="8" cy="10" r=".6" fill="currentColor"/><circle cx="12" cy="10" r=".6" fill="currentColor"/><circle cx="16" cy="10" r=".6" fill="currentColor"/></svg>
               </button>
             </div>
             ${userEl}
@@ -2241,7 +2255,7 @@ function profileHtml(light) {
      Listened · Listen later as one segmented picker (`profPicksHtml`). */
 
   return `
-      <div class="app-screen s-home-v3 s-prof2${light ? ' s-home-v3--light' : ''}"
+      <div class="app-screen s-home-v3 s-prof2${window.PROFILE_GUEST ? ' s-prof2--guest' : ''}${light ? ' s-home-v3--light' : ''}"
            style="${window.profSkinCss ? profSkinCss(P) : ''}">
         ${appHeader()}
         <div class="v3-body">
@@ -2511,6 +2525,7 @@ function wallItems() {
    re-rendering the whole screen (which would drop the dropdowns and the scroll
    position). Reads `wallItems()`, so it always reflects the active sort. */
 function wallGridHtml() {
+  if (window.WALL_SORT === 'artists') return wallArtistsHtml();
   return wallItems().slice(0, 24).map((a, i) => `
               <div class="wall2-cell" ${sdAlbumData(a)} onclick="openAlbumByData(this, event)">
                 <div class="wall2-art" style="background-image:url('${a.image}')">${i < 3 ? `<span class="wall2-rank">${i + 1}</span>` : ''}</div>
@@ -2518,6 +2533,38 @@ function wallGridHtml() {
                   <span class="wall2-album">${a.album}</span>
                   <span class="wall2-artist">${a.artist}</span>
                   <div class="wall2-rating">${halfStars(a.rating, 11)}<span class="wall2-score">${a.rating.toFixed(1)}</span></div>
+                </div>
+              </div>`).join('');
+}
+
+/* ARTISTS (0.13, Eric 2026-10-03: "replace popular with albums and
+   controversial with artists … artist circle not rect"). The wall's second
+   tab: every artist on the shelf, most-reviewed first, as a ROUND photo with
+   the name, their album count and their albums' average under it. A tap opens
+   the artist page. No artist photo → their best record's cover stands in. */
+function wallArtists() {
+  const by = new Map();
+  (window.ARCHIVE || []).forEach(a => {
+    if (!a || !a.artist) return;
+    const x = by.get(a.artist) || { name: a.artist, albums: [], reviews: 0, sum: 0 };
+    x.albums.push(a); x.reviews += a.reviewCount || 0; x.sum += +a.rating || 0;
+    by.set(a.artist, x);
+  });
+  const img = window.ARTIST_IMG || {};
+  return [...by.values()].map(x => {
+    const top = x.albums.slice().sort((p, q) => (q.rating || 0) - (p.rating || 0))[0];
+    return { name: x.name, n: x.albums.length, reviews: x.reviews, rating: x.sum / x.albums.length, image: img[x.name] || (top && top.image) || '' };
+  }).sort((p, q) => (q.reviews - p.reviews) || (q.rating - p.rating));
+}
+function wallArtistsHtml() {
+  const esc = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  return wallArtists().slice(0, 24).map((r, i) => `
+              <div class="wall2-cell wall2-cell--artist" onclick="openArtistPageFor('${esc(r.name)}')">
+                <div class="wall2-art wall2-art--artist" style="background-image:url('${r.image}')">${i < 3 ? `<span class="wall2-rank">${i + 1}</span>` : ''}</div>
+                <div class="wall2-meta">
+                  <span class="wall2-album">${r.name}</span>
+                  <span class="wall2-artist">${r.n} album${r.n === 1 ? '' : 's'}</span>
+                  <div class="wall2-rating">${halfStars(r.rating, 11)}<span class="wall2-score">${r.rating.toFixed(1)}</span></div>
                 </div>
               </div>`).join('');
 }
@@ -2554,9 +2601,12 @@ function wallHtml(light) {
                  discoveryDeckHtml + renderDiscoveryDeck are kept; the render is a no-op without it. -->
             <div class="wall2-bar">
               <button class="wall2-cat wall2-sort${WALL_SORT === 'popular' ? ' active' : ''}" data-sort="popular"
-                      onclick="event.stopPropagation(); pickWallSort(this)">Popular</button>
-              <button class="wall2-cat wall2-sort${WALL_SORT === 'controversial' ? ' active' : ''}" data-sort="controversial"
-                      onclick="event.stopPropagation(); pickWallSort(this)">Controversial</button>
+                      onclick="event.stopPropagation(); pickWallSort(this)">Albums</button>
+              <!-- 0.13 (Eric, 2026-10-03): Popular → Albums, Controversial → Artists.
+                   'popular' is still the albums sort's value; wallItems' controversial
+                   ranking stays for a bring-back. -->
+              <button class="wall2-cat wall2-sort${WALL_SORT === 'artists' ? ' active' : ''}" data-sort="artists"
+                      onclick="event.stopPropagation(); pickWallSort(this)">Artists</button>
               <div class="wall2-menuwrap">
                 <button class="wall2-cat wall2-drop-btn" onclick="event.stopPropagation(); toggleWallPanel(this)">Genres <span class="wall2-chev">▾</span></button>
                 <div class="wall2-menu wall2-menu--genres" hidden>
@@ -3340,6 +3390,17 @@ function notificationsHtml(light) {
                 <button class="ntf-readall" onclick="event.stopPropagation(); ntfMarkAll(this)">Mark all read</button>
               </div>
             </div>
+
+            <!-- WIREFRAME MODE (0.13, Eric 2026-10-03): placeholders for every
+                 album / artist / profile picture, or the real images. -->
+            ${(() => { const wire = document.documentElement.classList.contains('sd-wire'); return `
+            <div class="sd-viewmode">
+              <span class="sd-viewmode-lbl">Pictures<span class="sd-viewmode-sub">Wireframe shows placeholders</span></span>
+              <span class="sd-viewmode-seg" role="group" aria-label="Pictures">
+                <button type="button" data-mode="wire" class="${wire ? 'is-on' : ''}" aria-pressed="${wire}" onclick="event.stopPropagation(); sdSetViewMode('wire')">Wireframe</button>
+                <button type="button" data-mode="images" class="${wire ? '' : 'is-on'}" aria-pressed="${!wire}" onclick="event.stopPropagation(); sdSetViewMode('images')">Images</button>
+              </span>
+            </div>`; })()}
 
             ${groups}
 

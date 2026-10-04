@@ -1,6 +1,45 @@
 # Spindeck — Music Review App Mockup
 
-> ## ⚠️ THIS IS **0.12** — `csharpuser/versions/0.12/`, THE PRIVATE WORK IN PROGRESS (2026-10-01)
+> ## ⚠️ THIS IS **0.13** — `csharpuser/versions/0.13/`, THE PRIVATE WORK IN PROGRESS (2026-10-03)
+> Eric: "lets make a 0.13 version and we'll work on that".
+> A worktree on branch **`v0.13`**, made from `v0.12` (14643b1, the live
+> site) + 0.12's untracked files (flow.html, flow/, snap.js) copied over, so it
+> started byte-identical to 0.12. 0.12 stays as it is. Open it at
+> `/versions/0.13/index.html`. Everything below (0.12's notes included)
+> describes the code as copied; add 0.13's changes in a "What 0.13 changes"
+> list here.
+>
+> ### What 0.13 changes
+> - **Home's top review byline** like the feed's: 36px face, name + time beside
+>   it, the pair centred (name moved inside `.v3-fbr-head` in fbGo's markup).
+> - **No big score number** on `--feed` split cards (home + profile) — discs only.
+> - **People you may know** off home (`rows.splice(… pymkHtml())` commented out).
+> - **Quick review (+)**: 5 recommended albums as search rows (`sdsPickRowHtml`), not the 3×1 grid.
+> - **Gear only on your own profile**; every other screen has a FEEDBACK bubble
+>   (speech bubble + 3 dots, both headers in screens.js; `s-prof2--guest` on a
+>   friend's profile). It opens `sdFeedbackOpen` (end of app.js): area dropdown
+>   (General first/default, Review flow, Discovery flow, pages…), a box, Send.
+>   `sdRecPost(body, {area, screen, text})` logs it in the session AND uploads
+>   `<sid>/fb-<ms>.json`; sessions.html reads those for a feedback badge per
+>   session, "With feedback" / "Longest first" filters, and a Feedback tab.
+> - **Rate circle, rated** = gold OUTLINE, not a gold fill; **artist page** cards lose the big number.
+> - **+ flow, no flash of home**: the list stays up until the rate sheet covers it (sdsPickForReview).
+> - **WIREFRAME MODE** (default ON): `html.sd-wire` (set in index.html's head,
+>   `sd-view-mode` in localStorage) paints every album / artist / face picture
+>   as a placeholder — pure CSS matching inline background-image paths
+>   (`images/album-|playlist-`, `/images/cover/` → Album Image; `images/artist-`,
+>   `/images/artist/`, the artist page's banner → Artist Image; `-av` / `-face`
+>   / `-pic` classes + `images/rp-` → silhouette). The switch (Wireframe |
+>   Images) is at the top of Notifications → `sdSetViewMode`.
+> - **Trending wall tabs: Albums · Artists** (were Popular · Controversial).
+>   Albums is the old 'popular' sort; Artists (`WALL_SORT = 'artists'`,
+>   `wallArtists` / `wallArtistsHtml` in screens.js) lists every shelf artist,
+>   most-reviewed first, as ROUND photos (`.wall2-art--artist`) with album count
+>   + average; a tap opens the artist page. The controversial ranking is kept.
+>
+> ---
+>
+> ## (inherited) THIS WAS **0.12** — `csharpuser/versions/0.12/` (2026-10-01)
 > Eric: "lets work on version 0.12 … copy 0.11 and we'll make changes".
 > A worktree on branch **`v0.12`**, made from `v0.11` + 0.11's uncommitted
 > files copied over, so it started byte-identical to 0.11. 0.11 stays as it

@@ -22,10 +22,10 @@
 
 (function () {
   const ROOT_VERSION = '0.1';
-  const WIP_VERSIONS = ['-1', '-0.1', '-0.11', '0.11', '0.12'];
+  const WIP_VERSIONS = ['-1', '-0.1', '-0.11', '0.11', '0.12', '0.13'];
   // The order the list is shown in, oldest first. -0.1 is the ORIGINAL app
   // (c-sharp, before the review-only fork), brought in on 2026-09-28.
-  const ORDER = ['-1', '-0.1', '-0.11', '0.1', '0.11', '0.12'];   // -1 (2026-10-01): the original c-sharp app at 1c44670, untouched. -0.11 (2026-09-29): -0.1 with one For You card, no stack
+  const ORDER = ['-1', '-0.1', '-0.11', '0.1', '0.11', '0.12', '0.13'];   // -1 (2026-10-01): the original c-sharp app at 1c44670, untouched. -0.11 (2026-09-29): -0.1 with one For You card, no stack
 
   const isFile = location.protocol === 'file:';
   const isLocal = isFile ||

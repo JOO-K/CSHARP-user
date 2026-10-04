@@ -12812,3 +12812,185 @@ body.sd-return .s-home-v3--review .v3-body,
 .app-screen .plp-back-pill { display: none !important; }
 .s-home-v3--review .v3-live-pill,
 .s-home-v3--rvp .v3-live-pill { display: none !important; }
+
+/* ══ 0.13 (Eric, 2026-10-03): THE TOP REVIEW'S BYLINE, LIKE THE FEED'S ══════
+   "make the profile name on the right side of the profile image like the
+   other ones … the same size image as well". Home's deck review (.v3-fbr,
+   not the review sheet's --sheet) puts its name INSIDE .v3-fbr-head (see
+   fbGo), so the head is the feed card's top row: the 36px face (.v3-rev-av)
+   with the name and the time beside it, 9px apart — the pair CENTRED over
+   the score (Eric, same day: "have it centered … just the one at the top";
+   the feed's cards stay left). */
+.s-home-v3 .v3-fbr:not(.v3-fbr--sheet) .v3-fbr-head {
+  align-self: center; max-width: 100%;
+  justify-content: center; gap: 9px; margin-bottom: 2px;
+}
+.s-home-v3 .v3-fbr:not(.v3-fbr--sheet) .v3-fbr-av-wrap,
+.s-home-v3 .v3-fbr:not(.v3-fbr--sheet) .v3-fbr-av { width: 36px; height: 36px; }
+.s-home-v3 .v3-fbr:not(.v3-fbr--sheet) .v3-fbr-av { box-shadow: 0 0 0 1px var(--sd-line, rgba(255,255,255,0.08)); }   /* the feed face's hairline, no drop shadow */
+.s-home-v3 .v3-fbr:not(.v3-fbr--sheet) .v3-fbr-name {
+  display: flex; align-items: baseline; gap: 9px; min-width: 0;
+  font-size: 12.5px; white-space: nowrap;
+}
+.s-home-v3 .v3-fbr:not(.v3-fbr--sheet) .v3-fbr-who { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.s-home-v3 .v3-fbr:not(.v3-fbr--sheet) .v3-fbr-name .v3-fbr-ago {   /* the feed's time: mono 11, light */
+  margin-left: 0; flex-shrink: 0; font-size: 11px; font-weight: 400; letter-spacing: .04em;
+}
+/* 0.13 (Eric, 2026-10-03): on the FEED's split cards (cover on the right) —
+   home's feed and the profile's pinned + history, all `--feed` — the big
+   score number is gone, just the discs under the cover. The top review
+   (.v3-fbr) and the album / artist pages (`--page`) keep their number. */
+.s-home-v3 .v3-rev-card--feed.v3-rev-card--split .v3-rsp-score .v3-rev-big-n { display: none; }
+
+/* ══ 0.13 (Eric, 2026-10-03): THE GEAR ON YOUR PROFILE, FEEDBACK EVERYWHERE ELSE
+   Both headers carry both bubbles (screens.js); this picks one. A friend's
+   profile (`s-prof2--guest`) is "everywhere else" — the settings are yours. */
+.v3-bubble--settings { display: none; }
+.s-prof2:not(.s-prof2--guest) .v3-bubble--settings { display: flex; }
+.s-prof2:not(.s-prof2--guest) .v3-bubble--feedback { display: none; }
+.v3-bubble--feedback svg { width: 18px; height: 18px; }
+
+/* The popup: a card inside the phone over a dimmed screen — the name prompt's
+   look (style.css .rec-*), DM Sans throughout. */
+.sd-fb {
+  position: absolute; inset: 0; z-index: 9000;
+  display: flex; align-items: center; justify-content: center; padding: 18px;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  opacity: 0; transition: opacity .18s ease;
+}
+.sd-fb.open { opacity: 1; }
+.sd-fb-card {
+  width: 100%; max-width: 360px; box-sizing: border-box;
+  padding: 18px; border-radius: 14px;
+  background: #1c1c1c; border: 1px solid #303030; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  color: #e8e8e8; font-family: 'DM Sans', var(--font-main), system-ui, sans-serif;
+  transform: translateY(10px) scale(.98); transition: transform .2s cubic-bezier(.22, 1, .36, 1);
+}
+.sd-fb.open .sd-fb-card { transform: none; }
+.sd-fb-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.sd-fb-title { font-size: 18px; font-weight: 700; }
+.sd-fb-x {
+  width: 30px; height: 30px; margin: -4px -6px -4px 0; padding: 0; border: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; color: #9a9a9a; cursor: pointer;
+}
+.sd-fb-x:hover { background: rgba(255,255,255,0.08); color: #e8e8e8; }
+.sd-fb-x svg { width: 16px; height: 16px; }
+.sd-fb-lbl { display: block; margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #8a8a8a; }
+.sd-fb-selwrap { position: relative; margin-bottom: 14px; }
+.sd-fb-sel {
+  width: 100%; box-sizing: border-box; appearance: none; -webkit-appearance: none;
+  padding: 10px 34px 10px 12px; border-radius: 8px; border: 1px solid #3a3a3a;
+  background: #121212; color: #fff; font: inherit; font-size: 14px; cursor: pointer;
+}
+.sd-fb-selwrap svg { position: absolute; right: 11px; top: 50%; width: 16px; height: 16px; margin-top: -8px; color: #8a8a8a; pointer-events: none; }
+.sd-fb-text {
+  width: 100%; box-sizing: border-box; resize: none;
+  padding: 10px 12px; border-radius: 8px; border: 1px solid #3a3a3a;
+  background: #121212; color: #fff; font: inherit; font-size: 14px; line-height: 1.45;
+}
+.sd-fb-sel:focus, .sd-fb-text:focus { outline: none; border-color: #6a6a6a; }
+.sd-fb-text::placeholder { color: #6a6a6a; }
+.sd-fb-status { min-height: 16px; margin: 6px 0 8px; font-size: 12px; color: #f0c674; }
+.sd-fb-send {
+  width: 100%; padding: 11px; border: 0; border-radius: 8px;
+  background: #e8e8e8; color: #111; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.sd-fb-send:hover { background: #fff; }
+.sd-fb-card.is-sent .sd-fb-send { background: #7ed69a; }
+
+/* 0.13 (Eric, 2026-10-03): the album page's round rate button, once RATED, is
+   no longer filled gold — the disc keeps its resting fill and wears a gold
+   OUTLINE; the number, the discs and what-you-did go back to light ink. */
+.v3-rate-group:has(.v3-rg-rate.is-rated) .v3-rg-disc {
+  fill: rgba(232,226,214,0.06); stroke: var(--star, #e8a83c); stroke-width: 2.5px;
+}
+.v3-rg-rate.is-rated { color: rgba(232,226,214,0.92); --vinyl-empty: rgba(232,226,214,0.28); --star: inherit; }
+.v3-rg-rate.is-rated .v3-rg-did,
+.v3-rg-rate.is-rated .v3-rg-wrote { color: rgba(232,226,214,0.82); }
+/* 0.13 (Eric, same day): the ARTIST page's review cards lose the big score
+   number too, like home and the profile — discs only under the cover. The
+   album page's cards (no cover there) keep theirs. */
+.s-home-v3--artist .v3-rev-card--split .v3-rsp-score .v3-rev-big-n { display: none; }
+
+/* 0.13: the + flow's handoff (sdsPickForReview) — the rate sheet rises OVER the
+   still-open quick review list, which then closes underneath with no fade. */
+.sd-log-overlay.sd-log-overlay--over { z-index: 220; }
+.sds-overlay.sds-overlay--cut { transition: none !important; }
+
+/* ══ WIREFRAME MODE (0.13, Eric 2026-10-03) ═════════════════════════════════
+   "for all artist, album, and profile images can we replace them with a
+   placeholder text like Artist Image, Album Image, and for profile we have the
+   default silhouette, just so we can see the flow easier … toggle this in the
+   notifications and we start at wireframes mode and u can switch to image mode".
+   `html.sd-wire` (set before first paint in index.html; sdSetViewMode flips
+   it, remembered as `sd-view-mode`). Pure CSS, nothing re-rendered: every
+   picture in the app is an inline background-image, so it is matched by WHAT
+   it shows — the path of the file — and painted over with a placeholder.
+   FACES go by the element's class (avatars, faces, profile pics), because a
+   profile picture can be any file (the default persona's is a playlist photo).
+   The album's colours (applyAlbumColors) still come from the real cover. */
+html.sd-wire {
+  --wf-album: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%232c2c33'/%3E%3Cpath d='M0 0L100 100M100 0L0 100' stroke='%2338383f' stroke-width='1'/%3E%3Crect x='22' y='38' width='56' height='26' rx='4' fill='%232c2c33'/%3E%3Ctext x='50' y='49' text-anchor='middle' font-family='DM Sans,Arial,sans-serif' font-size='10' font-weight='700' fill='%238b8b96'%3EAlbum%3C/text%3E%3Ctext x='50' y='60' text-anchor='middle' font-family='DM Sans,Arial,sans-serif' font-size='10' font-weight='700' fill='%238b8b96'%3EImage%3C/text%3E%3C/svg%3E");
+  --wf-artist: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23303038'/%3E%3Cpath d='M0 0L100 100M100 0L0 100' stroke='%233c3c44' stroke-width='1'/%3E%3Crect x='22' y='38' width='56' height='26' rx='4' fill='%23303038'/%3E%3Ctext x='50' y='49' text-anchor='middle' font-family='DM Sans,Arial,sans-serif' font-size='10' font-weight='700' fill='%238b8b96'%3EArtist%3C/text%3E%3Ctext x='50' y='60' text-anchor='middle' font-family='DM Sans,Arial,sans-serif' font-size='10' font-weight='700' fill='%238b8b96'%3EImage%3C/text%3E%3C/svg%3E");
+  --wf-face: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%233a3a43'/%3E%3Ccircle cx='50' cy='39' r='17' fill='%23767682'/%3E%3Cpath d='M16 100c0-21 15-34 34-34s34 13 34 34z' fill='%23767682'/%3E%3C/svg%3E");
+}
+html.sd-wire [style*="images/album-"],
+html.sd-wire [style*="images/playlist-"],
+html.sd-wire [style*="/images/cover/"] {
+  background-image: var(--wf-album) !important;
+  background-color: #2c2c33 !important;
+  background-size: contain !important; background-position: center !important; background-repeat: no-repeat !important;
+}
+html.sd-wire [style*="images/artist-"],
+html.sd-wire [style*="/images/artist/"] {
+  background-image: var(--wf-artist) !important;
+  background-color: #303038 !important;
+  background-size: contain !important; background-position: center !important; background-repeat: no-repeat !important;
+}
+/* The ARTIST page's banner is one of their covers (the bento's .v3-album), but
+   the slot is the artist's — it reads as Artist Image. */
+html.sd-wire .s-home-v3--artist .v3-album[style*="url("] {
+  background-image: var(--wf-artist) !important; background-color: #303038 !important;
+  background-size: contain !important; background-position: center !important; background-repeat: no-repeat !important;
+}
+/* Faces: the silhouette. Listed after the album rules and more specific, so a
+   profile picture that happens to be an album or playlist file still reads as
+   a person. A notification's system row wears the album as its avatar — that
+   one stays an album. */
+html.sd-wire [style*="images/rp-"],
+html.sd-wire [class*="-av"]:not(.ntf-ava--art)[style*="url("],
+html.sd-wire [class*="-face"][style*="url("],
+html.sd-wire [class*="-pic"][style*="url("] {
+  background-image: var(--wf-face) !important;
+  background-color: #3a3a43 !important;
+  background-size: cover !important; background-position: center !important; background-repeat: no-repeat !important;
+}
+
+/* THE SWITCH, at the top of Notifications: Wireframe | Images. */
+.sd-viewmode {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 4px 0 14px; padding: 10px 12px; border-radius: 12px;
+  background: var(--sd-card, rgba(255,255,255,0.05)); box-shadow: 0 0 0 1px var(--sd-line, rgba(255,255,255,0.08));
+  font-family: var(--font-main);
+}
+.sd-viewmode-lbl { font-size: 13px; font-weight: 700; color: var(--sd-ink, #e8e2d6); }
+.sd-viewmode-sub { display: block; font-size: 11px; font-weight: 400; color: var(--sd-ink3, rgba(232,226,214,0.45)); margin-top: 1px; }
+.sd-viewmode-seg { display: flex; padding: 3px; border-radius: 999px; background: var(--sd-pill, rgba(255,255,255,0.07)); flex-shrink: 0; }
+.sd-viewmode-seg button {
+  border: 0; background: none; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+  font: 700 12px var(--font-main); color: var(--sd-ink3, rgba(232,226,214,0.5));
+}
+.sd-viewmode-seg button.is-on { background: var(--sd-ink, #e8e2d6); color: var(--sd-bg, #111116); }
+
+/* 0.13 (Eric, 2026-10-03): the wall's ARTISTS tab — round photos, not squares.
+   The cell's meta centres under the circle. In wireframe mode the photo reads
+   Artist Image, even where a cover stands in for a missing artist photo. */
+.wall2-art.wall2-art--artist { border-radius: 50%; }
+.wall2-cell--artist .wall2-meta { align-items: center; text-align: center; }
+.wall2-cell--artist .wall2-rating { justify-content: center; }
+.wall2-art--artist .wall2-rank { border-radius: 999px; }
+html.sd-wire .wall2-art--artist[style*="url("] {
+  background-image: var(--wf-artist) !important; background-color: #303038 !important;
+  background-size: cover !important; background-position: center !important; background-repeat: no-repeat !important;
+}

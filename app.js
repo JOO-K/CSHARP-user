@@ -3290,7 +3290,9 @@ function renderFriendFeed(screenEl) {
     if (events[i].type === 'review' || events[i].type === 'rating') seen++;
     if (seen === PYMK_AFTER) { pymkAt = i + 1; break; }
   }
-  rows.splice(pymkAt, 0, pymkHtml());
+  // 0.13 (Eric, 2026-10-03: "on the homepage can we get rid of the people u
+  // may know"): the rail is off. pymkHtml / pymkFollow stay for a bring-back.
+  // rows.splice(pymkAt, 0, pymkHtml());
   container.innerHTML = rows.join('');
   // The cards' five-line fade, measured the way the album page measures it —
   // now and again after layout, since the other shell is display:none.
@@ -3627,8 +3629,10 @@ function fbGo(screenEl, i) {
                   <div class="v3-fbr-av-wrap">
                     <div class="v3-fbr-av" onclick="sdPerson(this, event)"></div>
                   </div>
+                  <!-- 0.13 (Eric, 2026-10-03): the name RIGHT of the face, like the
+                       feed's cards — inside the head now (the review sheet keeps it under). -->
+                  <div class="v3-fbr-name"><span class="v3-fbr-who" onclick="sdPerson(this, event)"></span><span class="v3-fbr-ago"></span></div>
                 </div>
-                <div class="v3-fbr-name"><span class="v3-fbr-who" onclick="sdPerson(this, event)"></span><span class="v3-fbr-ago"></span></div>
                 <!-- The like and the comment flank the SCORE now, not the face (Eric, 2026-09-23). -->
                 <!-- .v3-fbr-acts groups the comment · like · when for the compact layout
                      (one grid cell); the centred layout sets it display:contents and
@@ -7825,11 +7829,27 @@ function sdsPickRowHtml(a, i) {
 /* The + flow's pick: the search closes and the LOG SHEET opens on that album
    (rating, review, Post). A record Deezer found is adopted into ARCHIVE first
    (the sheet's library snapshot reads it) and hydrated for its track count. */
+/* NO FLASH OF HOME (0.13, Eric 2026-10-03: "the album page pops up for a sec
+   before the review page … go directly to the review page"). The list used to
+   close first, and the screen under it showed while the record hydrated and
+   the sheet rose. Now the list STAYS until the sheet is fully up over it
+   (`--over` lifts the sheet above the search for the handoff), then it closes
+   underneath without a fade, out of sight. */
 function sdsPickForReview(a, host) {
   const rec = a && a.ref;
-  if (!rec) return;
+  if (!rec) { closeSearch(); return; }
   if (rec._rec && typeof dzAdopt === 'function') dzAdopt([rec]);
-  const go = () => openLogSheet(host, { image: rec.image, title: rec.album, subtitle: rec.artist, year: rec.year || '', ref: rec });
+  const go = () => {
+    const lg = typeof ensureLogSheet === 'function' ? ensureLogSheet() : null;
+    if (lg) lg.classList.add('sd-log-overlay--over');
+    openLogSheet(host, { image: rec.image, title: rec.album, subtitle: rec.artist, year: rec.year || '', ref: rec });
+    setTimeout(() => {
+      const so = document.getElementById('sd-search');
+      if (so) so.classList.add('sds-overlay--cut');   // no fade: it is already covered
+      closeSearch();
+      setTimeout(() => { if (so) so.classList.remove('sds-overlay--cut'); if (lg) lg.classList.remove('sd-log-overlay--over'); }, 60);
+    }, 340);   // the sheet's .3s rise, and a beat
+  };
   if (rec._lite && typeof dzHydrate === 'function') dzHydrate(rec).then(go, go); else go();
 }
 
@@ -7858,21 +7878,16 @@ function runSearch() {
       const arch = (window.ARCHIVE || []).filter(a => a && a.image);
       const shuf = arr => { const x = arr.slice(); for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
       const recs = shuf(arch.filter(a => a._rec)).concat(arch.filter(a => !a._rec).sort((a, b) => (b.rating || 0) - (a.rating || 0)));
-      const picks = recs.slice(0, 3).map(a => ({ album: a.album, artist: a.artist, image: a.image, year: a.year, ref: a }));
+      /* 0.13 (Eric, 2026-10-03: "instead of the 3x1 can we get like 5
+         suggestions of that style … that horizontal card"): FIVE records, as
+         the same rows a search returns (sdsPickRowHtml — cover · album over
+         artist · year · a "Review" pill), not the wall's 3-across cells. */
+      const picks = recs.slice(0, 5).map(a => ({ album: a.album, artist: a.artist, image: a.image, year: a.year, ref: a }));
       ov._last = { artists: [], albums: picks, songs: [] };
       resEl.innerHTML = `
         <div class="sds-sec">
           <div class="sds-sec-hd">Recommended albums</div>
-          <div class="wall2-grid sds-pickgrid">${picks.map((p, i) => `
-            <button class="wall2-cell" type="button" data-type="album" data-i="${i}">
-              <div class="wall2-art" style="background-image:url('${p.image}')"></div>
-              <div class="wall2-meta">
-                <span class="wall2-album">${_sdsEsc(p.album)}</span>
-                <span class="wall2-artist">${_sdsEsc(p.artist)}</span>
-                <div class="wall2-rating">${halfStars(p.ref.rating || 0, 11)}<span class="wall2-score">${Number(p.ref.rating || 0).toFixed(1)}</span></div>
-              </div>
-            </button>`).join('')}
-          </div>
+          ${picks.map(sdsPickRowHtml).join('')}
         </div>`;
       return;
     }
@@ -7973,8 +7988,9 @@ function sdsOpenResult(type, i) {
   const ov = document.getElementById('sd-search');
   const last = (ov && ov._last) || {};
   const host = ov && ov.parentNode;
-  closeSearch();
+  // The + flow keeps the list up until the sheet has covered it (0.13 — see sdsPickForReview).
   if (ov && ov._mode === 'review') return sdsPickForReview((last.albums || [])[i], host);
+  closeSearch();
   if (type === 'artist') { const a = (last.artists || [])[i]; if (a) window.openArtistPageFor(a.name); }
   else if (type === 'album') { const a = (last.albums || [])[i]; if (a && a.ref) window.openAlbumPage(a.ref); }
   else if (type === 'song') { const s = (last.songs || [])[i]; if (s && s.ref) window.openAlbumPage(s.ref); }
@@ -12138,3 +12154,88 @@ function initRecBox() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+/* ══ FEEDBACK (0.13, Eric 2026-10-03) ═══════════════════════════════════════
+   "instead of having the settings in the upper right we're just gonna have
+   it in the profile page and on the other pages we want a feedback button …
+   a speech bubble with 3 dots … a popup … send feedback … say what feature
+   specifically with a dropdown … review flow and discovery flow".
+   The header's .v3-bubble--feedback opens a card inside the phone: WHAT IT'S
+   ABOUT (a dropdown, General first and picked), a box, Send feedback. It
+   posts the way the viewer's toolbar Feedback does — a `feedback` line in the
+   tester's session (recorder.js `sdRecPost`, read in sessions.html), headed
+   with the area and the screen; not recording → the clipboard. */
+const SD_FB_AREAS = [
+  ['general',   'General'],   // first and the default (Eric, 2026-10-03)
+  ['review',    'Review flow — rating & writing a review'],
+  ['discovery', 'Discovery flow — finding new albums'],
+  ['home',      'Home feed'],
+  ['album',     'Album / artist page'],
+  ['profile',   'Profile'],
+  ['search',    'Search'],
+  ['notifs',    'Notifications'],
+  ['onboard',   'Sign-up / onboarding'],
+  ['other',     'Something else'],
+];
+window.sdFeedbackOpen = function (btn) {
+  // Mounted in the screen, like the search and the log sheet (the phone frame
+  // is 0×0 on a real phone, where the screen itself fills the viewport).
+  const host = (btn && btn.closest('.app-screen')) || document.querySelector('.var-active .app-screen') || document.body;
+  let ov = host.querySelector('.sd-fb');
+  if (ov) ov.remove();
+  ov = document.createElement('div');
+  ov.className = 'sd-fb';
+  ov.innerHTML = `
+    <form class="sd-fb-card" role="dialog" aria-modal="true" aria-label="Send feedback">
+      <div class="sd-fb-hd">
+        <span class="sd-fb-title">Send feedback</span>
+        <button class="sd-fb-x" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <label class="sd-fb-lbl" for="sd-fb-area">What's it about?</label>
+      <div class="sd-fb-selwrap">
+        <select class="sd-fb-sel" id="sd-fb-area">${SD_FB_AREAS.map(([k, t]) => `<option value="${k}"${k === 'general' ? ' selected' : ''}>${t}</option>`).join('')}</select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <label class="sd-fb-lbl" for="sd-fb-text">Your feedback</label>
+      <textarea class="sd-fb-text" id="sd-fb-text" rows="9" maxlength="2000" placeholder="What worked, what didn't, what you expected…"></textarea>
+      <div class="sd-fb-status" aria-live="polite"></div>
+      <button class="sd-fb-send" type="submit">Send feedback</button>
+    </form>`;
+  host.appendChild(ov);
+  const close = () => { ov.classList.remove('open'); setTimeout(() => ov.remove(), 200); };
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  ov.querySelector('.sd-fb-x').addEventListener('click', close);
+  ov.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  const ta = ov.querySelector('.sd-fb-text'), st = ov.querySelector('.sd-fb-status'), sel = ov.querySelector('.sd-fb-sel');
+  ov.querySelector('form').addEventListener('submit', e => {
+    e.preventDefault();
+    const text = ta.value.trim();
+    if (!text) { st.textContent = 'Write something first.'; ta.focus(); return; }
+    const area = (SD_FB_AREAS.find(a => a[0] === sel.value) || ['', 'Something else'])[1].split(' — ')[0];
+    const scr = (typeof SCREENS !== 'undefined' && typeof currentIdx !== 'undefined' && SCREENS[currentIdx]) ? SCREENS[currentIdx].name : '';
+    const body = `[${area}]${scr ? ' · screen: ' + scr : ''}\n${text}`;
+    const sent = () => { st.textContent = ''; ov.querySelector('.sd-fb-card').classList.add('is-sent'); ov.querySelector('.sd-fb-send').textContent = 'Thanks — sent!'; setTimeout(close, 900); };
+    if (window.sdRecPost && window.sdRecPost(body, { area, screen: scr, text })) { sent(); return; }
+    // Not recording (?tools / ?norec / blocked): the clipboard, like the toolbar's Feedback.
+    const copied = () => { st.textContent = 'Copied — paste it to Eric.'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(body).then(copied, () => { st.textContent = "Couldn't send — try again."; });
+    else st.textContent = "Couldn't send — try again.";
+  });
+  requestAnimationFrame(() => ov.classList.add('open'));
+  setTimeout(() => ta.focus(), 220);
+};
+
+/* WIREFRAME MODE (0.13, Eric 2026-10-03) — the switch at the top of
+   Notifications. 'wire' (the default) puts `sd-wire` on <html>, and app.css
+   paints every album / artist / profile picture as a placeholder. */
+window.sdSetViewMode = function (mode) {
+  const wire = mode !== 'images';
+  document.documentElement.classList.toggle('sd-wire', wire);
+  try { localStorage.setItem('sd-view-mode', wire ? 'wire' : 'images'); } catch (e) {}
+  document.querySelectorAll('.sd-viewmode-seg button').forEach(b => {
+    const on = (b.dataset.mode === 'wire') === wire;
+    b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', String(on));
+  });
+};

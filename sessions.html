@@ -60,6 +60,35 @@
     .row .meta { color: var(--dim); font-size: 11px; }
     .row .dur { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--dim); text-align: right; }
     .row .dur small { display: block; font-size: 10px; color: #555; }
+    /* FEEDBACK (0.13, Eric 2026-10-03: "see feedback in the sessions tab … and
+       if a session has feedback … so i can quickly see which sessions are
+       feedback and longer"). The list's head is two tabs — Sessions · Feedback
+       — and, under Sessions, two filters: only the ones with feedback, and
+       longest first. A session with notes wears a gold edge and a count; a
+       long one (2 min+) its time in full ink. */
+    .tabs { display: flex; gap: 4px; align-items: center; }
+    .tab { background: none; border: 0; padding: 3px 8px; border-radius: 6px; color: var(--dim); font: inherit; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; cursor: pointer; }
+    .tab:hover { color: var(--text); }
+    .tab.is-on { background: rgba(255,255,255,.08); color: var(--text); }
+    .tab .c { margin-left: 4px; color: #f0c674; }
+    .filters { display: flex; gap: 6px; margin-top: 8px; text-transform: none; letter-spacing: 0; }
+    .chip { background: none; border: 1px solid #333; color: var(--dim); border-radius: 999px; padding: 3px 10px; font: inherit; font-size: 11.5px; cursor: pointer; }
+    .chip:hover { border-color: #555; color: var(--text); }
+    .chip.is-on { border-color: #f0c674; color: #f0c674; background: rgba(240,198,116,.08); }
+    .chip.chip--sort.is-on { border-color: var(--hi); color: #9cc2ff; background: rgba(59,130,246,.1); }
+    .row.has-fb { box-shadow: inset 3px 0 0 #f0c674; }
+    .fbc { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: rgba(240,198,116,.14); color: #f0c674; font-size: 10.5px; font-weight: 700; vertical-align: 1px; }
+    .fbc svg { width: 11px; height: 11px; }
+    .row .dur.is-long { color: var(--text); font-weight: 700; }
+    .note { padding: 11px 14px; border-bottom: 1px solid #202020; cursor: pointer; }
+    .note:hover { background: rgba(255,255,255,.03); }
+    .note.is-on { background: rgba(59,130,246,.14); }
+    .note .top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .note .area { padding: 1px 8px; border-radius: 999px; background: rgba(240,198,116,.14); color: #f0c674; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+    .note .who { font-weight: 700; font-size: 12px; }
+    .note .when { margin-left: auto; color: var(--dim); font-size: 11px; white-space: nowrap; }
+    .note .txt { white-space: pre-wrap; font-size: 12.5px; line-height: 1.45; }
+    .note .scr { margin-top: 4px; color: #555; font-size: 10.5px; font-family: ui-monospace, Menlo, monospace; }
     /* middle: the replay */
     #stage { position: fixed; left: 362px; right: 352px; top: 16px; bottom: 16px; display: flex; align-items: center; justify-content: center; }
     #head { position: absolute; left: 0; top: 0; padding: 4px 8px; font-size: 11.5px; color: var(--dim); }
@@ -206,12 +235,14 @@
         const folders = (await listDir('')).filter(o => !o.id && !o.name.startsWith('_'));   // a folder comes back with no id; _x are setup checks
         let n = 0;
         const jobs = folders.map(f => async () => {
-          const files = (await listDir(f.name + '/')).filter(o => o.id).sort((a, b) => a.name.localeCompare(b.name));
+          const all = (await listDir(f.name + '/')).filter(o => o.id).sort((a, b) => a.name.localeCompare(b.name));
+          const files = all.filter(o => !o.name.startsWith('fb-'));   // the recording's chunks
+          const fb = all.filter(o => o.name.startsWith('fb-')).map(o => o.name);   // feedback notes (0.13)
           const p = parseSid(f.name) || { startedAt: new Date(files[0] ? files[0].created_at : 0), name: f.name };
           const last = files.length ? new Date(files[files.length - 1].created_at) : p.startedAt;
           INDEX[f.name] = Object.assign(INDEX[f.name] || {}, {
             sid: f.name, name: p.name, startedAt: p.startedAt, ms: last - p.startedAt,
-            bytes: files.reduce((s, o) => s + ((o.metadata && o.metadata.size) || 0), 0), files: files.map(o => o.name),
+            bytes: files.reduce((s, o) => s + ((o.metadata && o.metadata.size) || 0), 0), files: files.map(o => o.name), fb,
           });
           status(`Listed ${++n} of ${folders.length}…`);
         });
@@ -280,18 +311,44 @@
     });
 
     /* ── The list (newest first) ───────────────────────────── */
+    const VIEW = { tab: 'sessions', onlyFb: false, longest: false };
+    try { Object.assign(VIEW, JSON.parse(localStorage.getItem('sess-view') || '{}')); } catch (e) {}
+    const saveView = () => { try { localStorage.setItem('sess-view', JSON.stringify(VIEW)); } catch (e) {} };
+    const LONG_MS = 120000;   // "longer": two minutes and up
+    const BUBBLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+    function listHead(total, nFb) {
+      return `<div class="hd">
+        <div class="tabs">
+          <button class="tab${VIEW.tab === 'sessions' ? ' is-on' : ''}" data-tab="sessions">${total ? total + ' ' : ''}Session${total === 1 ? '' : 's'}</button>
+          <button class="tab${VIEW.tab === 'feedback' ? ' is-on' : ''}" data-tab="feedback">Feedback${nFb ? `<span class="c">${nFb}</span>` : ''}</button>
+        </div>
+        ${VIEW.tab === 'sessions' ? `<div class="filters">
+          <button class="chip${VIEW.onlyFb ? ' is-on' : ''}" data-f="onlyFb">With feedback</button>
+          <button class="chip chip--sort${VIEW.longest ? ' is-on' : ''}" data-f="longest">Longest first</button>
+        </div>` : ''}
+      </div>`;
+    }
+    function wireHead(el) {
+      el.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { VIEW.tab = b.dataset.tab; saveView(); renderList(); }));
+      el.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { VIEW[b.dataset.f] = !VIEW[b.dataset.f]; saveView(); renderList(); }));
+    }
     function renderList() {
       const list = Object.values(INDEX).sort((x, y) => x.startedAt - y.startedAt);
       list.forEach((s, i) => s.n = i + 1);
       list.reverse();
+      const nFb = list.reduce((t, s) => t + ((s.fb && s.fb.length) || 0), 0);
       const el = $('list');
-      el.innerHTML = `<div class="hd">${list.length ? `${list.length} session${list.length === 1 ? '' : 's'}` : 'Sessions'}</div>` +
-        (list.length ? list.map(s => `<div class="row${current === s.sid ? ' is-on' : ''}" data-sid="${s.sid}">
+      if (VIEW.tab === 'feedback') { el.innerHTML = listHead(list.length, nFb) + '<div id="notes"><div class="empty">Loading feedback…</div></div>'; wireHead(el); renderNotes(list); return; }
+      let shown = VIEW.onlyFb ? list.filter(s => s.fb && s.fb.length) : list.slice();
+      if (VIEW.longest) shown.sort((x, y) => y.ms - x.ms);
+      el.innerHTML = listHead(list.length, nFb) +
+        (shown.length ? shown.map(s => `<div class="row${current === s.sid ? ' is-on' : ''}${s.fb && s.fb.length ? ' has-fb' : ''}" data-sid="${s.sid}">
           <span class="n">#${s.n}</span>
-          <span><span class="who">${esc(s.name)}</span><br><span class="meta">${s.startedAt.getTime() ? s.startedAt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '?'}${s.local ? ' · from disk' : ''}</span></span>
-          <span class="dur">${fmt(s.ms)}<small>${s.bytes ? kb(s.bytes) : ''}</small></span>
+          <span><span class="who">${esc(s.name)}</span>${s.fb && s.fb.length ? `<span class="fbc" title="${s.fb.length} feedback note${s.fb.length === 1 ? '' : 's'}">${BUBBLE}${s.fb.length}</span>` : ''}<br><span class="meta">${s.startedAt.getTime() ? s.startedAt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '?'}${s.local ? ' · from disk' : ''}</span></span>
+          <span class="dur${s.ms >= LONG_MS ? ' is-long' : ''}">${fmt(s.ms)}<small>${s.bytes ? kb(s.bytes) : ''}</small></span>
           ${s.local ? '<span></span>' : `<button class="x" title="Delete this session" data-x="${s.sid}">×</button>`}
-        </div>`).join('') : `<div class="drop" id="drop">Sign in on the right to list the sessions,<br>or drop session files here.</div>`);
+        </div>`).join('') : list.length ? '<div class="empty">No sessions with feedback yet.</div>' : `<div class="drop" id="drop">Sign in on the right to list the sessions,<br>or drop session files here.</div>`);
+      wireHead(el);
       el.querySelectorAll('.row').forEach(r => r.addEventListener('click', () => open(r.dataset.sid)));
       el.querySelectorAll('.row .x').forEach(x => x.addEventListener('click', e => {
         e.stopPropagation();
@@ -299,6 +356,26 @@
         if (!x.classList.contains('is-armed')) { disarm(); x.classList.add('is-armed'); x.textContent = 'sure?'; x.title = 'Press again to delete for good'; armed = x; armT = setTimeout(disarm, 4000); return; }
         disarm();
         deleteSessions([s.sid]);
+      }));
+    }
+    const NOTES = {};   // 'sid/fb-x.json' → note
+    async function renderNotes(list) {
+      const want = [];
+      list.forEach(s => (s.fb || []).forEach(f => { const k = s.sid + '/' + f; if (!NOTES[k]) want.push(k); }));
+      for (let i = 0; i < want.length; i += 6) await Promise.all(want.slice(i, i + 6).map(async k => {
+        try { NOTES[k] = await (await sb(`/storage/v1/object/${BUCKET}/${k}`)).json(); } catch (e) { NOTES[k] = { text: '(could not load: ' + e.message + ')', at: '', area: '?' }; }
+      }));
+      const box = $('notes'); if (!box || VIEW.tab !== 'feedback') return;
+      const items = list.flatMap(s => (s.fb || []).map(f => Object.assign({ sid: s.sid, who: s.name, n: s.n }, NOTES[s.sid + '/' + f])))
+        .sort((a, b) => String(b.at).localeCompare(String(a.at)));
+      box.innerHTML = items.length ? items.map(x => `<div class="note${current === x.sid ? ' is-on' : ''}" data-sid="${x.sid}" data-t="${x.t || 0}">
+          <div class="top"><span class="area">${esc(x.area || 'General')}</span><span class="who">${esc(x.who)} <span class="n">#${x.n}</span></span><span class="when">${x.at ? new Date(x.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : ''}</span></div>
+          <div class="txt">${esc(x.text || '')}</div>
+          ${x.screen ? `<div class="scr">${esc(x.screen)} · ${fmt(x.t || 0)} in</div>` : ''}
+        </div>`).join('') : '<div class="empty">No feedback yet. Notes sent from the app\'s feedback button show up here.</div>';
+      box.querySelectorAll('.note').forEach(r => r.addEventListener('click', async () => {
+        await open(r.dataset.sid);
+        if (player) player.goto(Math.max(0, +r.dataset.t - 3000), true);   // a beat before the note, so you see what led to it
       }));
     }
     let armed = null, armT = 0;
