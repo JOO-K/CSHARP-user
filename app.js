@@ -7489,14 +7489,7 @@ function ensureLogSheet() {
       homeShells().forEach(sc => refreshSongFavs(sc));
       return;
     }
-    const rt = e.target.closest('.sd-log-song-rate-track');
-    if (rt) {
-      const row = rt.closest('.sd-log-song');
-      const r = rt.getBoundingClientRect();
-      const x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
-      setSongRating(+row.dataset.i, Math.max(0.5, Math.min(5, Math.ceil((x / r.width) * 10) / 2)));
-      return;
-    }
+    if (e.target.closest('.sd-log-song-rate-track')) return;   // the pointer pair below already rated it
     const nb = e.target.closest('.sd-log-song-note-btn');
     if (nb) {
       const row = nb.closest('.sd-log-song');
@@ -7504,6 +7497,72 @@ function ensureLogSheet() {
       const inp = row.querySelector('.sd-log-song-note');
       if (row.classList.contains('open-note') && inp) inp.focus();
     }
+  });
+  /* 0.13 (Eric, 2026-10-03: "make the songs' vinyl review the same exact
+     feeling as the vinyl scoring above for the album"). Each song's discs take
+     the album control's gesture, one row at a time: a TAP is that whole
+     record, the same record again drops to the half; a SLIDE reads halves off
+     the finger; sliding off the left clears; it buzzes on each step, the fill
+     and the number follow live, and only the release saves. Delegated, since
+     fillLogSongs rebuilds the rows for every album. */
+  let songDown = null;                      // { rt, i, x0, last, slid } while a finger is on a row
+  const songVal = (rt, clientX) => {
+    const r = rt.getBoundingClientRect(), x = clientX - r.left;
+    if (x < -8) return 0;
+    const cell = r.width / 5, k = Math.max(0, Math.min(4, Math.floor(x / cell)));
+    return Math.min(5, k + ((x - k * cell) < cell / 2 ? 0.5 : 1));
+  };
+  const songDisc = (rt, clientX) => {
+    const r = rt.getBoundingClientRect();
+    return Math.max(1, Math.min(5, Math.floor((clientX - r.left) / (r.width / 5)) + 1));
+  };
+  songs.addEventListener('pointerdown', e => {
+    const rt = e.target.closest('.sd-log-song-rate-track');
+    if (!rt || !SDLOG) return;
+    const i = +rt.closest('.sd-log-song').dataset.i;
+    const s = SDLOG.songs[i]; if (!s) return;
+    e.preventDefault(); e.stopPropagation();
+    try { rt.setPointerCapture(e.pointerId); } catch (x) {}
+    const v = tapValue(songDisc(rt, e.clientX), s.rating || 0);
+    songDown = { rt, i, x0: e.clientX, last: v, slid: false };
+    rt.classList.add('is-rating');
+    paintSongRating(i, v); buzz();
+  });
+  songs.addEventListener('pointermove', e => {
+    if (!songDown) return;
+    if (!songDown.slid && Math.abs(e.clientX - songDown.x0) < TAP_SLOP) return;   // still a tap
+    songDown.slid = true;
+    const v = songVal(songDown.rt, e.clientX);
+    if (v === songDown.last) return;
+    songDown.last = v;
+    paintSongRating(songDown.i, v); buzz();
+  });
+  songs.addEventListener('pointerup', () => {
+    if (!songDown) return;
+    const d = songDown; songDown = null;
+    d.rt.classList.remove('is-rating');
+    setSongRating(d.i, d.last);
+  });
+  songs.addEventListener('pointercancel', () => {
+    if (!songDown) return;
+    const d = songDown; songDown = null;
+    d.rt.classList.remove('is-rating');
+    paintSongRating(d.i, (SDLOG && SDLOG.songs[d.i] && SDLOG.songs[d.i].rating) || 0);
+  });
+  songs.addEventListener('keydown', e => {
+    const rt = e.target.closest('.sd-log-song-rate-track');
+    if (!rt || !SDLOG) return;
+    const i = +rt.closest('.sd-log-song').dataset.i;
+    const cur = (SDLOG.songs[i] && SDLOG.songs[i].rating) || 0;
+    let v = null;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp')   v = Math.min(5, cur + 0.5);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowDown') v = Math.max(0, cur - 0.5);
+    if (e.key === 'Home') v = 0.5;
+    if (e.key === 'End')  v = 5;
+    if (e.key === 'Delete' || e.key === 'Backspace') v = 0;
+    if (v === null) return;
+    e.preventDefault();
+    setSongRating(i, v);
   });
   songs.addEventListener('input', e => {
     const inp = e.target.closest('.sd-log-song-note');
@@ -7603,7 +7662,7 @@ function fillLogSongs(ov, album) {
       <span class="sd-log-song-title">${s.title}</span>
       <button class="sd-log-song-fav${songIsFav(album, s.title) ? ' on' : ''}" type="button" aria-label="Favourite">${heart}</button>
       <span class="sd-log-song-val is-blank">0.0</span>
-      <span class="sd-log-song-rate-track">
+      <span class="sd-log-song-rate-track" role="slider" tabindex="0" aria-label="Rate ${s.title}" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0">
         <span class="sd-log-song-empty">${SDLOG_RECS}</span>
         <span class="sd-log-song-fill" style="width:0">${SDLOG_RECS}</span>
       </span>
@@ -7612,16 +7671,24 @@ function fillLogSongs(ov, album) {
   if (SDLOG) SDLOG.songs.forEach((s, i) => { if (s.rating) setSongRating(i, s.rating); });
 }
 
-function setSongRating(i, v) {
-  if (!SDLOG || !SDLOG.songs[i]) return;
-  SDLOG.songs[i].rating = v;
+// Paint only (the fill, the number, ARIA) — live while a finger is on a row.
+function paintSongRating(i, v) {
   const ov = document.getElementById('sd-log');
   const row = ov && ov.querySelector(`.sd-log-song[data-i="${i}"]`);
-  if (!row) return;
+  if (!row) return null;
   const fill = row.querySelector('.sd-log-song-fill');
   if (fill) fill.style.width = recFillWidth(v);
   const val = row.querySelector('.sd-log-song-val');
   if (val) { val.textContent = v ? Number(v).toFixed(1) : '0.0'; val.classList.toggle('is-blank', !v); }   // the big number's rule, per song
+  const rt = row.querySelector('.sd-log-song-rate-track');
+  if (rt) { rt.setAttribute('aria-valuenow', String(v || 0)); rt.setAttribute('aria-valuetext', v ? `${String(v).replace(/\.0$/, '')} of 5` : 'No rating'); }
+  return row;
+}
+function setSongRating(i, v) {
+  if (!SDLOG || !SDLOG.songs[i]) return;
+  SDLOG.songs[i].rating = v;
+  const row = paintSongRating(i, v);
+  if (!row) return;
   markSongLogged(row, i);
   saveLog(true);
 }

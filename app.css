@@ -13011,3 +13011,18 @@ html.sd-wire .wall2-art--artist[style*="url("] {
 .sd-log-rate { flex-direction: column; gap: 10px; --rec: 56px; --gap: 4px; }
 .sd-log-num { font-size: 44px; min-width: 0; text-align: center; }
 .sd-log-song-rate-track { --rec: 24px; --gap: 1px; }
+
+/* 0.13: the song rows' discs take the album control's gesture (see the
+   pointer handlers by fillLogSongs): a taller hit area, no scroll while
+   sliding, and the same little press on the discs while a finger is down. */
+.sd-log-song-rate-track { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; outline: none; }
+.sd-log-song-rate-track::before { content: ''; position: absolute; inset: -10px -2px; }
+.sd-log-song-rate-track:focus-visible { box-shadow: 0 0 0 2px rgba(232,168,60,0.5); border-radius: 6px; }
+.sd-log-song .sd-rec { transition: transform .12s ease-out; }
+.sd-log-song-rate-track.is-rating .sd-rec { transform: scale(1.06); }
+.sd-log-song-fill { transition: width .12s ease-out; }
+.sd-log-song-rate-track.is-rating .sd-log-song-fill { transition: width .06s linear; }
+@media (prefers-reduced-motion: reduce) {
+  .sd-log-song .sd-rec, .sd-log-song-fill { transition: none; }
+  .sd-log-song-rate-track.is-rating .sd-rec { transform: none; }
+}

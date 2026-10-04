@@ -42,6 +42,11 @@
 >   `SD_REC_WILL_ASK` set while it parses); anyone else gets the
 >   `sdAskSkipOnboarding` card over step 1. Skip = `sdSkipOnboarding` → home.
 > - **Rate & review sheet**: the score number (44px) is centred ABOVE the five
+>   discs (56px); song-row discs 24px, 1px apart. The song rows now take the
+>   album control's GESTURE (pointer handlers beside fillLogSongs): tap = whole
+>   record, again = half, slide reads halves, off the left clears, buzz, live
+>   paint (`paintSongRating`), save on release (`setSongRating`), keyboard.
+> - **Rate & review sheet**: the score number (44px) is centred ABOVE the five
 >   discs (56px); song-row discs 24px, 1px apart (end of app.css).
 >
 > ---
