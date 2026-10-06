@@ -60,6 +60,38 @@
 > "What 0.12 changes" list here.
 >
 > ### What 0.12 changes
+> - **2026-10-05 — THE CAROUSEL: A FREE FINGER, A TAXED FLING, OUR OWN GLIDE**
+>   (`app.js` — `fbTarget` / `fbSwipe` / `fbPaintDeck`; `app.js?v=411`). Eric:
+>   "if u swipe hard can we get it to go more than 1 album … but also have that
+>   stickyness bc most people would want to go to next album not like the fifth
+>   one later … it being perma stuck at 1 is a bit frust", and "it loads and
+>   stutters for a sec when u swipe".
+>   · **The drag is no longer clamped to ±1** — the old `clampP` rubber-band was
+>   what made it feel stuck. The finger's travel counts in full, so a long pull
+>   walks the deck across covers.
+>   · **The stickiness is a TAX on the fling's coast, not a cap** (`fbTarget`,
+>   pure and therefore testable): under `FB_COAST1` a fling claims no extra
+>   cover and the old commit rule gives it the one; past that each further
+>   cover costs `FB_STICK`, up to `FB_FLING_MAX`. Measured: a 60px flick → 1 ·
+>   a firm 100px swipe → 1 · a hard 150px fling → 2 · very hard → 3 · never
+>   past 4.
+>   · ⚠️ **The settle is ours (rAF), not the .46s CSS tween.** A fixed tween
+>   carries neither a release speed nor a four-cover journey — and the old code
+>   called `fbGo` the *instant* the finger lifted, so the strip rebuild, the
+>   face crossfade and the cover's colour extraction all landed on the settle's
+>   first frames. That was the stutter. The glide paints through the drag's own
+>   path with `is-dragging` left on (it is what turns the CSS tween off), and
+>   `fbGo` runs ONCE, at rest. The glide also lets go if `_fbCur` changes under
+>   it (a re-render owns the position then).
+>   · **`is-front` follows the nearest cover, fraction or not.** It needed an
+>   exact integer before, so every card lost it the moment a drag began —
+>   losing the front cover's tighter shadow and shorter reflection, which
+>   popped back on landing.
+>   · **fbPaintDeck writes only what changed** (each card remembers its last
+>   transform / opacity / veil / pointer-events): 18 cards × 5 properties a
+>   frame was invalidating the whole deck even for cards that had not moved.
+>   · A deck caught in flight is taken from where it is, and that touch counts
+>   as a swipe rather than a tap on the cover under the finger.
 > - **2026-10-05 — SESSIONS: FEEDBACK IS ITS OWN TAB, AND A JUMP KEEPS PAUSE**
 >   (`sessions.html`, no other file). Eric: "i cant read it atall … feedback
 >   should be easily readable in another tab instead of having to scroll to

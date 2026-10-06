@@ -3532,12 +3532,22 @@ function fbPaintDeck(screenEl, curF) {
   const n = list.length, ci = Math.round(curF), frac = curF - ci;
   screenEl.querySelectorAll('.v3-fb-card').forEach(card => {
     const k = Number(card.dataset.i);
-    const L = fbLayout(fbDist(k, ((ci % n) + n) % n, n) - frac);
-    card.style.transform = L.t;
-    card.style.opacity = L.o > 0 ? 1 : 0;
-    card.style.setProperty('--fb-veil', L.veil.toFixed(3));
-    card.style.pointerEvents = L.o ? '' : 'none';
-    card.classList.toggle('is-front', !frac && fbDist(k, ((ci % n) + n) % n, n) === 0);
+    const d = fbDist(k, ((ci % n) + n) % n, n) - frac;
+    const L = fbLayout(d);
+    /* 0.14 — WRITE ONLY WHAT CHANGED. Eighteen cards × five properties on
+       every frame invalidated style for the whole deck even when a far card's
+       pose was identical. Each card remembers what it was last given. */
+    const o = L.o > 0 ? '1' : '0', veil = L.veil.toFixed(3), pe = L.o ? '' : 'none';
+    if (card._fbT !== L.t) { card.style.transform = L.t; card._fbT = L.t; }
+    if (card._fbO !== o) { card.style.opacity = o; card._fbO = o; }
+    if (card._fbV !== veil) { card.style.setProperty('--fb-veil', veil); card._fbV = veil; }
+    if (card._fbP !== pe) { card.style.pointerEvents = pe; card._fbP = pe; }
+    /* 0.14 (Eric: "the swipe feels a bit finnicky"): `is-front` used to need
+       an EXACT integer position, so the moment a drag began every card lost
+       it — and with it the front cover's tighter shadow and its shorter
+       reflection, which popped back on landing. The nearest cover is the
+       front one, fraction or not, so the look hands over as covers cross. */
+    card.classList.toggle('is-front', Math.abs(d) <= 0.5);
   });
 }
 
@@ -4052,29 +4062,116 @@ window.rshRecordTap = function (el) {
 /* THE SWIPE IS TACTILE (Eric, 2026-09-23: "follows the swipe amount … a
    point where it just goes when you let go"). While the finger is down the
    deck RIDES it: FB_DRAG_PX of travel is one card, and every card is painted
-   at that fractional position (fbPaintDeck), transitions off. On release it
-   decides: past FB_COMMIT of a card, or flicked faster than FB_FLICK, it
-   goes on to the next (or previous); otherwise it springs back. Either way
-   the transitions come back on for the settle, and only then is the strip
-   repainted (fbGo) — the review under the deck changes when the cover has
-   landed, not while you're dragging it. One card per gesture: the travel is
-   clamped to ±1, with a little give past it so a long pull still answers.
-   `touch-action: pan-y` (app.css) keeps the page's vertical scroll; the
-   gesture claims the horizontal once it is clearly sideways. */
+   at that fractional position (fbPaintDeck), transitions off.
+   `touch-action: none` (app.css) gives the deck both axes; the gesture claims
+   the horizontal once it is clearly sideways.
+
+   0.14 (2026-10-05) — THE FINGER IS FREE AND THE FLING IS TAXED. Eric: "if u
+   swipe hard can we get it to go more than 1 album … but also have that
+   stickyness bc most people would want to go to next album not like the fifth
+   one later … it being perma stuck at 1 is a bit frust". Three changes:
+     · THE DRAG IS NO LONGER CLAMPED to ±1 card (the old `clampP` rubber-band,
+       which is what made it feel stuck): the finger's own travel counts in
+       full, so a long pull walks the deck across covers under the thumb.
+     · THE FLING'S COAST IS TAXED, which is where the stickiness lives — see
+       fbTarget. An ordinary swipe lands on the NEXT cover; only a hard one
+       travels, and never more than FB_FLING_MAX past where the finger got.
+     · THE SETTLE IS OURS, not a CSS tween (Eric: "it loads and stutters for a
+       sec when u swipe so it doesnt look that smooth"). A fixed .46s tween
+       cannot carry a release speed or a four-cover journey, and the old code
+       called `fbGo` the instant the finger lifted — so the strip rebuild, the
+       face crossfade and the cover's colour extraction all landed ON the
+       first frames of the settle. Now the deck glides under rAF (the same
+       cheap paint path as the drag, duration from the distance), and `fbGo`
+       runs ONCE, at rest, when there is no animation left to stutter.
+   A moving deck can be CAUGHT: a finger down mid-glide takes it from wherever
+   it is, and that touch counts as a swipe, not as a tap on the cover under
+   it. */
 const FB_DRAG_PX = 150, FB_COMMIT = 0.37, FB_FLICK = 0.5;    // px per card · fraction · px/ms (commit 0.32 → 0.37, Eric: "a little less sensitive")
+/* THE FLING. `FB_PROJ_MS` of coast is projected from the release speed, then
+   TAXED: a coast under FB_COAST1 claims no extra cover at all (the commit
+   rule still gives it the one), and past that each further cover costs
+   FB_STICK of coast, up to FB_FLING_MAX. The glide takes FB_GLIDE_MIN for one
+   cover and FB_GLIDE_PER for each one after, capped at FB_GLIDE_MAX.
+   Worked through, at 150px a cover: a 60px flick → 1 · a firm 100px swipe →
+   1 · a hard 150px fling → 2 · a very hard one → 3 · never past 4. */
+const FB_PROJ_MS = 170, FB_COAST1 = 1.2, FB_STICK = 1.3, FB_FLING_MAX = 3;
+const FB_GLIDE_MIN = 260, FB_GLIDE_PER = 110, FB_GLIDE_MAX = 620;
+/* Where a release lands, in cards from the cover the deck is on. `p` is how
+   far the finger took it (signed, + = toward the next cover), `vx` the
+   release speed in px/ms (negative = dragging left = going on). Pure, so the
+   feel can be checked without a phone. */
+function fbTarget(p, vx) {
+  const coast = (-vx / FB_DRAG_PX) * FB_PROJ_MS;
+  const sign = Math.sign(coast);
+  const tax = Math.abs(coast) < FB_COAST1 ? 0
+            : sign * Math.min(FB_FLING_MAX, 1 + Math.floor((Math.abs(coast) - FB_COAST1) / FB_STICK));
+  let target = Math.round(p) + tax;
+  // A short, committed swipe still goes: past FB_COMMIT of a cover, or faster
+  // than FB_FLICK, is the one step it always was.
+  if (!target && (Math.abs(p) >= FB_COMMIT || Math.abs(vx) >= FB_FLICK)) target = Math.sign(p) || (vx < 0 ? 1 : -1);
+  return target;
+}
 function fbSwipe(screenEl, flow) {
   let x0 = 0, y0 = 0, on = false, claimed = false, p = 0, lastX = 0, lastT = 0, vx = 0;
-  const clampP = v => { const m = Math.abs(v); return Math.sign(v) * (m <= 1 ? m : 1 + (m - 1) * 0.25); };
+  let restP = 0;          // where a caught glide left the deck, in cards from _fbCur
   /* ONE PAINT PER FRAME (Eric, 2026-09-26: "so not smooth, it's laggy"): a
      phone reports a moving finger far more often than it draws, and every
      report was a full repaint of eighteen 3D cards. The moves now only note
      where the finger is; the deck is painted once, on the next frame. */
   let raf = 0, pendingP = 0;
   const paint = () => { raf = 0; fbPaintDeck(screenEl, (screenEl._fbCur || 0) + pendingP); };
+
+  /* ── THE GLIDE ─────────────────────────────────────────────
+     Our own ease-out, painted through the drag's path so the settle and the
+     drag are the same code. `is-dragging` stays ON for the duration: it is
+     what turns the CSS tween off, and these frames ARE the animation. */
+  let glide = 0, gFrom = 0, gTo = 0, gT0 = 0, gDur = 0;
+  const glidePos = () => {
+    const t = Math.min(1, gDur > 0 ? (performance.now() - gT0) / gDur : 1);
+    return gFrom + (gTo - gFrom) * (1 - Math.pow(1 - t, 4));
+  };
+  function catchGlide() {
+    if (!glide) return 0;
+    cancelAnimationFrame(glide); glide = 0;
+    return glidePos();
+  }
+  function settle(from, target) {
+    const cur = screenEl._fbCur || 0;
+    gFrom = from; gTo = target; gT0 = performance.now();
+    gDur = Math.min(FB_GLIDE_MAX, FB_GLIDE_MIN + FB_GLIDE_PER * Math.max(0, Math.abs(target - from) - 1));
+    flow.classList.add('is-dragging');
+    const tick = () => {
+      /* Let go of a deck that moved under us: a re-render (pull-to-refresh, a
+         persona switch) or anything else calling fbGo owns the position now. */
+      if (!flow.isConnected || (screenEl._fbCur || 0) !== cur) { glide = 0; flow.classList.remove('is-dragging'); return; }
+      if ((performance.now() - gT0) >= gDur) {
+        glide = 0;
+        fbPaintDeck(screenEl, cur + target);
+        flow.classList.remove('is-dragging');
+        /* AT REST, and only now: the strip, the friend's review, the face
+           crossfade and the cover's colours. Nothing is animating, so the
+           work has a frame to itself. */
+        fbGo(screenEl, cur + target);
+        return;
+      }
+      fbPaintDeck(screenEl, cur + glidePos());
+      glide = requestAnimationFrame(tick);
+    };
+    glide = requestAnimationFrame(tick);
+  }
+
   flow.addEventListener('pointerdown', e => {
+    const caught = !!glide;
+    restP = caught ? catchGlide() : 0;
     x0 = lastX = e.clientX; y0 = e.clientY; lastT = performance.now();
-    on = true; claimed = false; p = 0; vx = 0;
-    flow._swiped = false;
+    on = true; p = restP; vx = 0;
+    // A deck caught in flight is already the gesture: no 8px threshold, and
+    // the release must not read as a tap on whichever cover was under the
+    // finger.
+    claimed = caught;
+    flow._swiped = caught;
+    if (caught) { flow.classList.add('is-dragging'); try { flow.setPointerCapture(e.pointerId); } catch (_) {} }
   });
   flow.addEventListener('pointermove', e => {
     if (!on) return;
@@ -4087,7 +4184,7 @@ function fbSwipe(screenEl, flow) {
     }
     const now = performance.now(), dt = now - lastT;
     if (dt > 0) { vx = 0.6 * vx + 0.4 * ((e.clientX - lastX) / dt); lastX = e.clientX; lastT = now; }
-    p = clampP(-dx / FB_DRAG_PX);                   // drag left → the next card comes
+    p = restP - dx / FB_DRAG_PX;                    // drag left → the next card comes
     pendingP = p;
     if (!raf) raf = requestAnimationFrame(paint);
   });
@@ -4096,12 +4193,7 @@ function fbSwipe(screenEl, flow) {
     on = false;
     if (!claimed) return;
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
-    flow.classList.remove('is-dragging');
-    const cur = screenEl._fbCur || 0;
-    let step = 0;
-    if (Math.abs(p) >= FB_COMMIT) step = Math.sign(p);
-    else if (Math.abs(vx) >= FB_FLICK) step = vx < 0 ? 1 : -1;
-    fbGo(screenEl, cur + step);                     // settles with the transition on
+    settle(p, fbTarget(p, vx));                     // the glide takes it from here
     setTimeout(() => { flow._swiped = false; }, 60);   // let the click after a drag see the flag
   };
   flow.addEventListener('pointerup', end);
