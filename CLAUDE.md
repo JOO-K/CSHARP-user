@@ -60,6 +60,24 @@
 > "What 0.12 changes" list here.
 >
 > ### What 0.12 changes
+> - **2026-10-05 — SESSIONS: FEEDBACK IS ITS OWN TAB, AND A JUMP KEEPS PAUSE**
+>   (`sessions.html`, no other file). Eric: "i cant read it atall … feedback
+>   should be easily readable in another tab instead of having to scroll to
+>   the part of the transcript", and "i cant even pause … if a video is paused
+>   and u scrub to another part it stays paused … only play if its playing".
+>   The right panel is now **Transcript · Feedback (n)** for the open session;
+>   `notesFor()` merges the `fb-*.json` notes with any `feedback` lines in the
+>   transcript, so notes from before the fb- files existed are still readable.
+>   **Nothing in the viewer writes or deletes a note** (Eric: "we cannot
+>   delete the previous feedback") — the delete path is untouched and still
+>   session-at-a-time. ⚠️ The play bug was OURS, not the library's:
+>   rrweb-player's `goto(t, play)` keeps the current state unless `play` is a
+>   **boolean**, which is why its own scrub bar passes nothing — we passed
+>   `true` from the transcript and from a note, so any click resumed a paused
+>   replay. `jump()` passes one argument. Space toggles, ← → step 5s. Also
+>   fixed: a note's `screen` is recorder.js's screenState() **object**
+>   (patchnotes.js calls `sdRecPost(text)` with no `info`), so the list's
+>   Feedback tab printed "[object Object]" — `screenLine()` handles both.
 > - **2026-10-02 — ONE BACK: THE HEADER CARET.** The quick review page's bare
 >   "‹" (`.v3-hdr-back`, in both headers — appHeader and the home shell's)
 >   takes the notification bell's place on any screen with a way back: the

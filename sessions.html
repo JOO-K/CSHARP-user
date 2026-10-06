@@ -19,7 +19,14 @@
        this browser's localStorage and refreshes itself.
        rrweb-player 0.7.x is the player for rrweb 1.x recordings (recorder.js
        records with rrweb 1.1.3); its white controller is repainted dark below.
-       Files from disk can still be dropped anywhere on the page. -->
+       Files from disk can still be dropped anywhere on the page.
+       0.14 (2026-10-05): the right panel is Transcript / FEEDBACK, so a note
+       is read in its own tab instead of scrolling the transcript to the
+       moment it was written - and it merges the fb-*.json notes with any
+       `feedback` lines in the transcript, so notes recorded before those
+       files existed are still readable. Nothing here writes or deletes a
+       note. A jump - a transcript line, a note, the scrub bar - now KEEPS
+       play or pause; Space toggles and the arrows step five seconds. -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@0.7.14/dist/style.css">
   <style>
     :root { --bg: #0c0c0c; --panel: rgba(22,22,22,0.9); --border: #2a2a2a; --text: #e8e8e8; --dim: #8a8a8a; --accent: #8892a4; --hi: #3b82f6; }
@@ -89,6 +96,12 @@
     .note .when { margin-left: auto; color: var(--dim); font-size: 11px; white-space: nowrap; }
     .note .txt { white-space: pre-wrap; font-size: 12.5px; line-height: 1.45; }
     .note .scr { margin-top: 4px; color: #555; font-size: 10.5px; font-family: ui-monospace, Menlo, monospace; }
+    /* 0.14 (Eric, 2026-10-05: "feedback should be easily readable in another
+       tab instead of having to scroll to the part of the transcript"): the
+       right panel is two tabs - Transcript / Feedback - reusing .hd/.tabs and
+       the .note look from the list. */
+    #tl-body .note .txt { font-size: 13px; }
+    #tl-body .note .when { font-family: ui-monospace, Menlo, monospace; }
     /* middle: the replay */
     #stage { position: fixed; left: 362px; right: 352px; top: 16px; bottom: 16px; display: flex; align-items: center; justify-content: center; }
     #head { position: absolute; left: 0; top: 0; padding: 4px 8px; font-size: 11.5px; color: var(--dim); }
@@ -168,6 +181,8 @@
     const INDEX = {};      // sid → { sid, name, startedAt, ms, bytes, files: [names] | null, local }
     const LOADED = {};     // sid → { meta, chunks: {seq: body} }  (only once opened)
     let player = null, current = null;
+    let CUR = null;   // the open session: { sid, a } - what the right panel paints
+    let NOW = 0;      // where the replay is, from the player's own time event
     const status = (s, err) => { const el = $('status'); el.textContent = s; el.classList.toggle('err', !!err); };
     const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const fmt = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
@@ -311,7 +326,7 @@
     });
 
     /* ── The list (newest first) ───────────────────────────── */
-    const VIEW = { tab: 'sessions', onlyFb: false, longest: false };
+    const VIEW = { tab: 'sessions', rtab: 'transcript', onlyFb: false, longest: false };
     try { Object.assign(VIEW, JSON.parse(localStorage.getItem('sess-view') || '{}')); } catch (e) {}
     const saveView = () => { try { localStorage.setItem('sess-view', JSON.stringify(VIEW)); } catch (e) {} };
     const LONG_MS = 120000;   // "longer": two minutes and up
@@ -359,23 +374,55 @@
       }));
     }
     const NOTES = {};   // 'sid/fb-x.json' → note
-    async function renderNotes(list) {
+    /* READ ONLY. A note's file is downloaded once and cached here; nothing in
+       this view ever rewrites or removes one (Eric: "we cannot delete the
+       previous feedback"). */
+    async function loadNotes(sessions) {
       const want = [];
-      list.forEach(s => (s.fb || []).forEach(f => { const k = s.sid + '/' + f; if (!NOTES[k]) want.push(k); }));
+      sessions.forEach(s => s && (s.fb || []).forEach(f => { const k = s.sid + '/' + f; if (!NOTES[k]) want.push(k); }));
       for (let i = 0; i < want.length; i += 6) await Promise.all(want.slice(i, i + 6).map(async k => {
         try { NOTES[k] = await (await sb(`/storage/v1/object/${BUCKET}/${k}`)).json(); } catch (e) { NOTES[k] = { text: '(could not load: ' + e.message + ')', at: '', area: '?' }; }
       }));
+    }
+    /* `screen` on a note is whatever the app sent. patchnotes.js calls
+       sdRecPost(text) with no second argument, so recorder.js fills it with
+       its own screenState() OBJECT - which printed as "[object Object]".
+       An older string value still reads as itself. */
+    const screenLine = s => !s ? '' : typeof s === 'string' ? s
+      : [s.mobile ? 'phone' : 'desktop', s.w && s.h ? s.w + '×' + s.h : '',
+         String(s.href || '').replace(/^https?:\/\//, '')].filter(Boolean).join(' · ');
+    /* The notes of ONE session, oldest first. The fb-*.json file is the good
+       copy - it carries the area and the wall clock - but a session recorded
+       before those files existed has its notes ONLY as `feedback` lines in
+       the transcript, so those are merged in rather than lost. The same note
+       from both sources is matched on its first 80 characters. */
+    function notesFor(sid, a) {
+      const ix = INDEX[sid] || {};
+      const out = (ix.fb || []).map(f => NOTES[sid + '/' + f]).filter(Boolean).map(x => ({
+        t: +x.t || 0, text: String(x.text || ''), area: x.area || 'General', at: x.at || '', screen: x.screen }));
+      const seen = new Set(out.map(x => x.text.trim().slice(0, 80)));
+      ((a && a.log) || []).forEach(l => {
+        if (l.k !== 'feedback') return;
+        const key = String(l.v || '').trim().slice(0, 80);
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({ t: +l.t || 0, text: String(l.v || ''), area: 'General', at: '', fromLog: true });
+      });
+      return out.sort((x, y) => x.t - y.t);
+    }
+    async function renderNotes(list) {
+      await loadNotes(list);
       const box = $('notes'); if (!box || VIEW.tab !== 'feedback') return;
       const items = list.flatMap(s => (s.fb || []).map(f => Object.assign({ sid: s.sid, who: s.name, n: s.n }, NOTES[s.sid + '/' + f])))
         .sort((a, b) => String(b.at).localeCompare(String(a.at)));
       box.innerHTML = items.length ? items.map(x => `<div class="note${current === x.sid ? ' is-on' : ''}" data-sid="${x.sid}" data-t="${x.t || 0}">
           <div class="top"><span class="area">${esc(x.area || 'General')}</span><span class="who">${esc(x.who)} <span class="n">#${x.n}</span></span><span class="when">${x.at ? new Date(x.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : ''}</span></div>
           <div class="txt">${esc(x.text || '')}</div>
-          ${x.screen ? `<div class="scr">${esc(x.screen)} · ${fmt(x.t || 0)} in</div>` : ''}
+          <div class="scr">${esc([screenLine(x.screen), fmt(x.t || 0) + ' in'].filter(Boolean).join(' · '))}</div>
         </div>`).join('') : '<div class="empty">No feedback yet. Notes sent from the app\'s feedback button show up here.</div>';
       box.querySelectorAll('.note').forEach(r => r.addEventListener('click', async () => {
         await open(r.dataset.sid);
-        if (player) player.goto(Math.max(0, +r.dataset.t - 3000), true);   // a beat before the note, so you see what led to it
+        jump(+r.dataset.t - 3000);   // a beat before the note, so you see what led to it
       }));
     }
     let armed = null, armT = 0;
@@ -398,7 +445,7 @@
           const left = (await listDir(sid + '/')).filter(o => o.id);
           if (left.length) { status('Nothing was deleted — run the DELETING part of tools/supabase-login.sql in Supabase first.', true); return; }
           delete INDEX[sid]; delete LOADED[sid];
-          if (current === sid) { current = null; if (player) { try { player.pause(); } catch (e) {} player = null; } $('player').innerHTML = '<div class="empty">Pick a session on the left.</div>'; $('head').innerHTML = ''; $('tl-body').innerHTML = '<div class="hd">Transcript</div>'; }
+          if (current === sid) { current = null; if (player) { try { player.pause(); } catch (e) {} player = null; } $('player').innerHTML = '<div class="empty">Pick a session on the left.</div>'; $('head').innerHTML = ''; CUR = null; paintRight(); }
         } catch (e) { status('Could not delete: ' + e.message, true); renderList(); return; }
       }
       renderList();
@@ -452,15 +499,58 @@
           player.addEventListener('ui-update-current-time', ev => markNow(ev.payload));
         } catch (e) { console.error(e); host.innerHTML = '<div class="empty">Could not build the replay: ' + esc(e.message || e) + '</div>'; player = null; }
       }
-      const tl = $('tl-body');
-      tl.innerHTML = '<div class="hd">Transcript</div>' + (a.log.map((l, i) => {
-        const v = l.k === 'input' ? `${esc(l.v)} <small>“${esc(l.val || '')}”</small>` : esc(l.v);
-        return `<div class="tl-row k-${l.k}" data-t="${l.t}" data-i="${i}"><span class="t">${fmt(l.t)}</span><span class="k">${l.k}</span><span class="v">${v}</span></div>`;
-      }).join('') || '<div class="empty">No log.</div>');
-      // A tap on a line jumps there AND plays, paused or not (Eric).
-      tl.querySelectorAll('.tl-row').forEach(r => r.addEventListener('click', () => { if (player) player.goto(+r.dataset.t, true); }));
+      CUR = { sid, a };
+      paintRight();
+      // The notes are small files. Fetch them and repaint, so the tab shows
+      // its count even while Transcript is the tab on screen.
+      loadNotes([INDEX[sid]]).then(() => { if (CUR && CUR.sid === sid) paintRight(); }, () => {});
     }
+    /* ── The right panel: Transcript · Feedback ──────────── */
+    function paintRight() {
+      const tl = $('tl-body'); if (!tl) return;
+      if (!CUR) { tl.innerHTML = '<div class="hd">Transcript</div>'; return; }
+      const sid = CUR.sid, a = CUR.a, notes = notesFor(sid, a), fb = VIEW.rtab === 'feedback';
+      const head = `<div class="hd"><div class="tabs">
+          <button class="tab${fb ? '' : ' is-on'}" data-rtab="transcript">Transcript</button>
+          <button class="tab${fb ? ' is-on' : ''}" data-rtab="feedback">Feedback${notes.length ? `<span class="c">${notes.length}</span>` : ''}</button>
+        </div></div>`;
+      if (fb) {
+        tl.innerHTML = head + (notes.length ? notes.map(x => `<div class="note" data-t="${x.t}" title="Jump to this moment">
+            <div class="top"><span class="area">${esc(x.area)}</span><span class="when">${fmt(x.t)} in${x.fromLog ? ' · from the transcript' : ''}</span></div>
+            <div class="txt">${esc(x.text)}</div>
+            ${x.at || x.screen ? `<div class="scr">${esc([x.at ? new Date(x.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '', screenLine(x.screen)].filter(Boolean).join(' · '))}</div>` : ''}
+          </div>`).join('') : '<div class="empty">No feedback in this session.</div>');
+        tl.querySelectorAll('.note').forEach(r => r.addEventListener('click', () => jump(+r.dataset.t - 3000)));
+      } else {
+        tl.innerHTML = head + (a.log.map((l, i) => {
+          const v = l.k === 'input' ? `${esc(l.v)} <small>“${esc(l.val || '')}”</small>` : esc(l.v);
+          return `<div class="tl-row k-${l.k}" data-t="${l.t}" data-i="${i}"><span class="t">${fmt(l.t)}</span><span class="k">${l.k}</span><span class="v">${v}</span></div>`;
+        }).join('') || '<div class="empty">No log.</div>');
+        tl.querySelectorAll('.tl-row').forEach(r => r.addEventListener('click', () => jump(+r.dataset.t)));
+      }
+      tl.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { VIEW.rtab = b.dataset.rtab; saveView(); paintRight(); }));
+    }
+    /* ── Jumping, WITHOUT taking the replay off pause ─────── */
+    /* rrweb-player's goto(t, play) keeps the CURRENT state unless `play` is a
+       boolean - its own scrub bar relies on exactly that. We used to pass
+       `true` from the transcript and from a feedback note, so a paused replay
+       started playing the moment you clicked anything (Eric, 2026-10-05: "if
+       a video is paused and u scrub to another part it stays paused ... only
+       play if its playing if its paused pls pause"). Pass nothing and a jump
+       inherits play or pause, the way YouTube does. */
+    const jump = ms => { if (player) try { player.goto(Math.max(0, ms)); } catch (e) {} };
+    /* The controller's own buttons are small and easy to miss, so: Space
+       toggles, ← → step five seconds. Ignored while typing in the sign-in
+       boxes. */
+    document.addEventListener('keydown', e => {
+      if (!player || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '')) return;
+      if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); try { player.toggle(); } catch (err) {} }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); jump(NOW - 5000); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); jump(NOW + 5000); }
+    });
     function markNow(ms) {
+      NOW = ms;
       const rows = [...document.querySelectorAll('.tl-row')]; let hit = null;
       for (const r of rows) { if (+r.dataset.t <= ms) hit = r; else break; }
       rows.forEach(r => r.classList.toggle('is-now', r === hit));
