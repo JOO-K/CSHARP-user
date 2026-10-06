@@ -4141,11 +4141,12 @@ function fbSwipe(screenEl, flow) {
   const easeOut = t => 1 - Math.pow(1 - t, 3);
   /* The tap's curve is a SINE in-out, not a cubic one. Both start and end at
      a standstill, but what you feel in the middle is the peak speed, and a
-     cubic in-out peaks at 2x its average where a sine peaks at pi/2 = 1.57x
-     (Eric: "the sides clicks are a little too fast ... make it like the same
-     speed as a swipe which takes a bit longer and is smoother"). Flatter peak
-     + the longer FB_GLIDE_REST puts the quickest moment of a tap ~37% below
-     what it was, with the ends as gentle as before. */
+     cubic in-out peaks at 3x its average (12t^2 at the midpoint) where a sine
+     peaks at pi/2 = 1.57x (Eric: "the sides clicks are a little too fast ...
+     make it like the same speed as a swipe which takes a bit longer and is
+     smoother"). Flatter peak + the longer FB_GLIDE_REST puts the quickest
+     moment of a tap 58% below what it was — 2.7 covers/sec against 6.5 —
+     with the ends as gentle as before. Both peaks were computed, not assumed. */
   const easeTap = t => (1 - Math.cos(Math.PI * t)) / 2;
   let glide = 0, gFrom = 0, gTo = 0, gT0 = 0, gDur = 0, gEase = easeOut;
   const glidePos = () => {
