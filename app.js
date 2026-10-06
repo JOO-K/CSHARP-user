@@ -4099,14 +4099,14 @@ window.rshRecordTap = function (el) {
    it is, and that touch counts as a swipe, not as a tap on the cover under
    it. */
 const FB_DRAG_PX = 150, FB_COMMIT = 0.37, FB_FLICK = 0.5;    // px per card · fraction · px/ms (commit 0.32 → 0.37, Eric: "a little less sensitive")
-/* THE GLIDE'S TIMING. A tap from rest takes FB_GLIDE_REST, eased in and out
+/* THE GLIDE'S TIMING. A tap from rest takes FB_GLIDE_REST, on the sine curve
    — long enough not to snap, short enough not to feel slow. A release takes
    FB_GLIDE_SLOW when the finger was barely moving, down to FB_GLIDE_FAST for
    a hard flick (FB_FLICK_FULL px/ms is "as fast as it gets"), eased out, so
    the deck carries the speed it was given. Both scale with how far there is
    left to go, so a 10% spring-back is quick and a whole cover is the full
    time. */
-const FB_GLIDE_REST = 460, FB_GLIDE_SLOW = 420, FB_GLIDE_FAST = 250, FB_FLICK_FULL = 1.6;
+const FB_GLIDE_REST = 580, FB_GLIDE_SLOW = 420, FB_GLIDE_FAST = 250, FB_FLICK_FULL = 1.6;
 /* Where a release lands, in cards from the cover the deck is on — ONE cover
    at most, by Eric's call (see above). `p` is how far the finger took it
    (signed, + = toward the next cover), `vx` the release speed in px/ms
@@ -4139,7 +4139,14 @@ function fbSwipe(screenEl, flow) {
      (it continues the motion it was handed), a tap eases IN AND OUT (nothing
      was moving, so it has to get going gently). */
   const easeOut = t => 1 - Math.pow(1 - t, 3);
-  const easeInOut = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  /* The tap's curve is a SINE in-out, not a cubic one. Both start and end at
+     a standstill, but what you feel in the middle is the peak speed, and a
+     cubic in-out peaks at 2x its average where a sine peaks at pi/2 = 1.57x
+     (Eric: "the sides clicks are a little too fast ... make it like the same
+     speed as a swipe which takes a bit longer and is smoother"). Flatter peak
+     + the longer FB_GLIDE_REST puts the quickest moment of a tap ~37% below
+     what it was, with the ends as gentle as before. */
+  const easeTap = t => (1 - Math.cos(Math.PI * t)) / 2;
   let glide = 0, gFrom = 0, gTo = 0, gT0 = 0, gDur = 0, gEase = easeOut;
   const glidePos = () => {
     const t = Math.min(1, gDur > 0 ? (performance.now() - gT0) / gDur : 1);
@@ -4158,7 +4165,7 @@ function fbSwipe(screenEl, flow) {
     const fast = Math.min(1, Math.abs(vx || 0) / FB_FLICK_FULL);
     const base = rest ? FB_GLIDE_REST : FB_GLIDE_SLOW + (FB_GLIDE_FAST - FB_GLIDE_SLOW) * fast;
     gFrom = from; gTo = target; gT0 = performance.now();
-    gEase = rest ? easeInOut : easeOut;
+    gEase = rest ? easeTap : easeOut;
     gDur = Math.max(120, base * Math.min(1, Math.max(0.35, Math.abs(target - from))));
     flow.classList.add('is-dragging');
     const tick = () => {

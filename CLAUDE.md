@@ -85,6 +85,14 @@
 >   tween (.46s in the sheet, **.2s** under the testing build's motion cap)
 >   starting at full speed from a standstill. It goes through the glide now,
 >   and the strip changes when the cover has landed.
+>   · **A side tap is a SINE in-out over `FB_GLIDE_REST` (580ms), not a cubic
+>   one over 460** (Eric: "the sides clicks are a little too fast … make it
+>   like the same speed as a swipe which takes a bit longer and is smoother").
+>   Both curves start and end at a standstill, so what you feel is the PEAK:
+>   a cubic in-out peaks at 3× its average (12t² at the midpoint), a sine at
+>   π/2 = 1.57×. Flatter peak plus the longer time = the quickest moment of a
+>   tap is 58% calmer, 2.7 covers/sec against 6.5. Measured by sampling the
+>   painted transform, not estimated.
 >   · **`is-front` follows the nearest cover, fraction or not.** It needed an
 >   exact integer before, so every card lost it the moment a drag began — with
 >   it the front cover's tighter shadow and shorter reflection, which popped
