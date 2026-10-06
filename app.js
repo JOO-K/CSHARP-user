@@ -4106,7 +4106,7 @@ const FB_DRAG_PX = 150, FB_COMMIT = 0.37, FB_FLICK = 0.5;    // px per card · f
    the deck carries the speed it was given. Both scale with how far there is
    left to go, so a 10% spring-back is quick and a whole cover is the full
    time. */
-const FB_GLIDE_REST = 580, FB_GLIDE_SLOW = 420, FB_GLIDE_FAST = 250, FB_FLICK_FULL = 1.6;
+const FB_GLIDE_REST = 480, FB_GLIDE_SLOW = 420, FB_GLIDE_FAST = 250, FB_FLICK_FULL = 1.6;
 /* Where a release lands, in cards from the cover the deck is on — ONE cover
    at most, by Eric's call (see above). `p` is how far the finger took it
    (signed, + = toward the next cover), `vx` the release speed in px/ms
@@ -4145,7 +4145,7 @@ function fbSwipe(screenEl, flow) {
      peaks at pi/2 = 1.57x (Eric: "the sides clicks are a little too fast ...
      make it like the same speed as a swipe which takes a bit longer and is
      smoother"). Flatter peak + the longer FB_GLIDE_REST puts the quickest
-     moment of a tap 58% below what it was — 2.7 covers/sec against 6.5 —
+     moment of a tap 50% below what it was — 3.3 covers/sec against 6.5 —
      with the ends as gentle as before. Both peaks were computed, not assumed. */
   const easeTap = t => (1 - Math.cos(Math.PI * t)) / 2;
   let glide = 0, gFrom = 0, gTo = 0, gT0 = 0, gDur = 0, gEase = easeOut;
