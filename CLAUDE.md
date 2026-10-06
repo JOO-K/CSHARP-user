@@ -60,33 +60,35 @@
 > "What 0.12 changes" list here.
 >
 > ### What 0.12 changes
-> - **2026-10-05 — THE CAROUSEL: A FREE FINGER, A TAXED FLING, OUR OWN GLIDE**
->   (`app.js` — `fbTarget` / `fbSwipe` / `fbPaintDeck`; `app.js?v=411`). Eric:
->   "if u swipe hard can we get it to go more than 1 album … but also have that
->   stickyness bc most people would want to go to next album not like the fifth
->   one later … it being perma stuck at 1 is a bit frust", and "it loads and
->   stutters for a sec when u swipe".
->   · **The drag is no longer clamped to ±1** — the old `clampP` rubber-band was
->   what made it feel stuck. The finger's travel counts in full, so a long pull
->   walks the deck across covers.
->   · **The stickiness is a TAX on the fling's coast, not a cap** (`fbTarget`,
->   pure and therefore testable): under `FB_COAST1` a fling claims no extra
->   cover and the old commit rule gives it the one; past that each further
->   cover costs `FB_STICK`, up to `FB_FLING_MAX`. Measured: a 60px flick → 1 ·
->   a firm 100px swipe → 1 · a hard 150px fling → 2 · very hard → 3 · never
->   past 4.
->   · ⚠️ **The settle is ours (rAF), not the .46s CSS tween.** A fixed tween
->   carries neither a release speed nor a four-cover journey — and the old code
+> - **2026-10-05 — THE CAROUSEL: ONE COVER A SWIPE, BUT SMOOTH** (`app.js` —
+>   `fbTarget` / `fbSwipe` / `fbSideStep` / `fbPaintDeck`; `app.js?v=411`).
+>   ⚠️ **A MULTI-COVER FLING WAS BUILT AND TAKEN BACK OUT THE SAME DAY.** Eric
+>   asked for it — "if u swipe hard can we get it to go more than 1 album …
+>   but also have that stickyness" — saw it, and cut it: "its like really rare
+>   anyone would want that … lets keep it at one not several albums swiping but
+>   make that smoother". Don't rebuild it. The deck moves ONE cover per
+>   gesture, the drag is rubber-banded at ±1 (`clampP`), and `fbTarget` only
+>   decides whether that one cover turns — past `FB_COMMIT`, or faster than
+>   `FB_FLICK`.
+>   What the attempt left behind is the part that mattered:
+>   · ⚠️ **The settle is ours (rAF), not the .46s CSS tween.** The old code
 >   called `fbGo` the *instant* the finger lifted, so the strip rebuild, the
 >   face crossfade and the cover's colour extraction all landed on the settle's
->   first frames. That was the stutter. The glide paints through the drag's own
->   path with `is-dragging` left on (it is what turns the CSS tween off), and
->   `fbGo` runs ONCE, at rest. The glide also lets go if `_fbCur` changes under
->   it (a re-render owns the position then).
+>   first frames — that was the "it loads and stutters for a sec when u swipe".
+>   `fbGo` now runs ONCE, at rest. The glide also lets go if `_fbCur` changes
+>   under it (a re-render owns the position then).
+>   · **Two curves, by where the motion came from.** A release eases OUT and a
+>   fast flick lands sooner (`FB_GLIDE_SLOW`→`FB_GLIDE_FAST`); a TAP eases IN
+>   AND OUT over `FB_GLIDE_REST`, because nothing was moving. That is the fix
+>   for "when i click the left or right side its a bit fast and jarring" —
+>   `fbSideStep` called `fbGo` straight out, so a side tap moved on the CSS
+>   tween (.46s in the sheet, **.2s** under the testing build's motion cap)
+>   starting at full speed from a standstill. It goes through the glide now,
+>   and the strip changes when the cover has landed.
 >   · **`is-front` follows the nearest cover, fraction or not.** It needed an
->   exact integer before, so every card lost it the moment a drag began —
->   losing the front cover's tighter shadow and shorter reflection, which
->   popped back on landing.
+>   exact integer before, so every card lost it the moment a drag began — with
+>   it the front cover's tighter shadow and shorter reflection, which popped
+>   back on landing.
 >   · **fbPaintDeck writes only what changed** (each card remembers its last
 >   transform / opacity / veil / pointer-events): 18 cards × 5 properties a
 >   frame was invalidating the whole deck even for cards that had not moved.

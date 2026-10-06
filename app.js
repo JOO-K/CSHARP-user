@@ -3706,10 +3706,18 @@ function fbGo(screenEl, i) {
    back one, right of it steps on one — whichever cover was under the finger,
    or none. Only the FRONT cover opens its review. Same rule for a tap on the
    flow's empty floor (fbFlowTap, on the flow itself). */
+/* A tap on a side cover. It used to call `fbGo` straight out, which moves the
+   deck on the CSS tween — .46s in the stylesheet but .2s under the testing
+   build's motion cap — starting at full speed from a standstill. Eric: "when
+   i click the left or right side its a bit fast and jarring". It now goes
+   through the deck's glide (eased in and out, from rest), the same path a
+   swipe settles on, so the strip changes when the cover has landed. */
 function fbSideStep(scr, flow, e) {
   const r = flow.getBoundingClientRect();
   const x = e && e.clientX != null ? e.clientX : r.left + r.width / 2;
-  fbGo(scr, (scr._fbCur || 0) + (x < r.left + r.width / 2 ? -1 : 1));
+  const dir = x < r.left + r.width / 2 ? -1 : 1;
+  if (flow && flow._fbGlide) flow._fbGlide(dir);
+  else fbGo(scr, (scr._fbCur || 0) + dir);
 }
 window.fbCardTap = function (el, e) {
   if (e) e.stopPropagation();
@@ -4066,55 +4074,55 @@ window.rshRecordTap = function (el) {
    `touch-action: none` (app.css) gives the deck both axes; the gesture claims
    the horizontal once it is clearly sideways.
 
-   0.14 (2026-10-05) — THE FINGER IS FREE AND THE FLING IS TAXED. Eric: "if u
-   swipe hard can we get it to go more than 1 album … but also have that
-   stickyness bc most people would want to go to next album not like the fifth
-   one later … it being perma stuck at 1 is a bit frust". Three changes:
-     · THE DRAG IS NO LONGER CLAMPED to ±1 card (the old `clampP` rubber-band,
-       which is what made it feel stuck): the finger's own travel counts in
-       full, so a long pull walks the deck across covers under the thumb.
-     · THE FLING'S COAST IS TAXED, which is where the stickiness lives — see
-       fbTarget. An ordinary swipe lands on the NEXT cover; only a hard one
-       travels, and never more than FB_FLING_MAX past where the finger got.
-     · THE SETTLE IS OURS, not a CSS tween (Eric: "it loads and stutters for a
-       sec when u swipe so it doesnt look that smooth"). A fixed .46s tween
-       cannot carry a release speed or a four-cover journey, and the old code
-       called `fbGo` the instant the finger lifted — so the strip rebuild, the
-       face crossfade and the cover's colour extraction all landed ON the
-       first frames of the settle. Now the deck glides under rAF (the same
-       cheap paint path as the drag, duration from the distance), and `fbGo`
-       runs ONCE, at rest, when there is no animation left to stutter.
+   0.14 (2026-10-05) — ONE COVER A SWIPE, SMOOTHLY.
+   ⚠ A multi-cover fling was built here and TAKEN BACK OUT the same day —
+   Eric: "its like really rare anyone would want that … lets keep it at one
+   not several albums swiping but make that smoother". Don't rebuild it: the
+   deck moves ONE cover per gesture, the finger's travel is rubber-banded at
+   ±1 (`clampP`), and the only question on release is whether that one cover
+   turns — past FB_COMMIT, or flicked faster than FB_FLICK (`fbTarget`).
+   What the fling attempt left behind, and what is worth keeping:
+     · THE SETTLE IS OURS, not a CSS tween (Eric: "it loads and stutters for
+       a sec when u swipe so it doesnt look that smooth"). The old code called
+       `fbGo` the instant the finger lifted, so the strip rebuild, the face
+       crossfade and the cover's colour extraction all landed ON the first
+       frames of the settle — that was the stutter. Now the deck glides under
+       rAF (the same cheap paint path as the drag) and `fbGo` runs ONCE, at
+       rest, when there is no animation left to stutter.
+     · THE EASE DEPENDS ON WHERE THE MOTION CAME FROM. A release continues a
+       moving finger, so it eases OUT and a fast flick lands sooner. A TAP has
+       no motion to continue, so it eases IN AND OUT — Eric, on tapping a side
+       cover: "its a bit fast and jarring", which is what a .2s tween starting
+       at full speed from a standstill feels like. `fbSideStep` comes through
+       this glide now, not through the bare `fbGo`.
    A moving deck can be CAUGHT: a finger down mid-glide takes it from wherever
    it is, and that touch counts as a swipe, not as a tap on the cover under
    it. */
 const FB_DRAG_PX = 150, FB_COMMIT = 0.37, FB_FLICK = 0.5;    // px per card · fraction · px/ms (commit 0.32 → 0.37, Eric: "a little less sensitive")
-/* THE FLING. `FB_PROJ_MS` of coast is projected from the release speed, then
-   TAXED: a coast under FB_COAST1 claims no extra cover at all (the commit
-   rule still gives it the one), and past that each further cover costs
-   FB_STICK of coast, up to FB_FLING_MAX. The glide takes FB_GLIDE_MIN for one
-   cover and FB_GLIDE_PER for each one after, capped at FB_GLIDE_MAX.
-   Worked through, at 150px a cover: a 60px flick → 1 · a firm 100px swipe →
-   1 · a hard 150px fling → 2 · a very hard one → 3 · never past 4. */
-const FB_PROJ_MS = 170, FB_COAST1 = 1.2, FB_STICK = 1.3, FB_FLING_MAX = 3;
-const FB_GLIDE_MIN = 260, FB_GLIDE_PER = 110, FB_GLIDE_MAX = 620;
-/* Where a release lands, in cards from the cover the deck is on. `p` is how
-   far the finger took it (signed, + = toward the next cover), `vx` the
-   release speed in px/ms (negative = dragging left = going on). Pure, so the
-   feel can be checked without a phone. */
+/* THE GLIDE'S TIMING. A tap from rest takes FB_GLIDE_REST, eased in and out
+   — long enough not to snap, short enough not to feel slow. A release takes
+   FB_GLIDE_SLOW when the finger was barely moving, down to FB_GLIDE_FAST for
+   a hard flick (FB_FLICK_FULL px/ms is "as fast as it gets"), eased out, so
+   the deck carries the speed it was given. Both scale with how far there is
+   left to go, so a 10% spring-back is quick and a whole cover is the full
+   time. */
+const FB_GLIDE_REST = 460, FB_GLIDE_SLOW = 420, FB_GLIDE_FAST = 250, FB_FLICK_FULL = 1.6;
+/* Where a release lands, in cards from the cover the deck is on — ONE cover
+   at most, by Eric's call (see above). `p` is how far the finger took it
+   (signed, + = toward the next cover), `vx` the release speed in px/ms
+   (negative = dragging left = going on). Pure, so the feel can be checked
+   without a phone. */
 function fbTarget(p, vx) {
-  const coast = (-vx / FB_DRAG_PX) * FB_PROJ_MS;
-  const sign = Math.sign(coast);
-  const tax = Math.abs(coast) < FB_COAST1 ? 0
-            : sign * Math.min(FB_FLING_MAX, 1 + Math.floor((Math.abs(coast) - FB_COAST1) / FB_STICK));
-  let target = Math.round(p) + tax;
-  // A short, committed swipe still goes: past FB_COMMIT of a cover, or faster
-  // than FB_FLICK, is the one step it always was.
-  if (!target && (Math.abs(p) >= FB_COMMIT || Math.abs(vx) >= FB_FLICK)) target = Math.sign(p) || (vx < 0 ? 1 : -1);
-  return target;
+  if (Math.abs(p) >= FB_COMMIT) return Math.sign(p);
+  if (Math.abs(vx) >= FB_FLICK) return vx < 0 ? 1 : -1;
+  return 0;
 }
 function fbSwipe(screenEl, flow) {
   let x0 = 0, y0 = 0, on = false, claimed = false, p = 0, lastX = 0, lastT = 0, vx = 0;
   let restP = 0;          // where a caught glide left the deck, in cards from _fbCur
+  /* ONE COVER, with a little give past it so a long pull still answers the
+     finger (the multi-cover fling was taken back out — see the note above). */
+  const clampP = v => { const m = Math.abs(v); return Math.sign(v) * (m <= 1 ? m : 1 + (m - 1) * 0.25); };
   /* ONE PAINT PER FRAME (Eric, 2026-09-26: "so not smooth, it's laggy"): a
      phone reports a moving finger far more often than it draws, and every
      report was a full repaint of eighteen 3D cards. The moves now only note
@@ -4126,20 +4134,32 @@ function fbSwipe(screenEl, flow) {
      Our own ease-out, painted through the drag's path so the settle and the
      drag are the same code. `is-dragging` stays ON for the duration: it is
      what turns the CSS tween off, and these frames ARE the animation. */
-  let glide = 0, gFrom = 0, gTo = 0, gT0 = 0, gDur = 0;
+  /* TWO CURVES, because a glide that follows a moving finger and one that
+     starts from a standstill are different animations: a release eases OUT
+     (it continues the motion it was handed), a tap eases IN AND OUT (nothing
+     was moving, so it has to get going gently). */
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+  const easeInOut = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  let glide = 0, gFrom = 0, gTo = 0, gT0 = 0, gDur = 0, gEase = easeOut;
   const glidePos = () => {
     const t = Math.min(1, gDur > 0 ? (performance.now() - gT0) / gDur : 1);
-    return gFrom + (gTo - gFrom) * (1 - Math.pow(1 - t, 4));
+    return gFrom + (gTo - gFrom) * gEase(t);
   };
   function catchGlide() {
     if (!glide) return 0;
     cancelAnimationFrame(glide); glide = 0;
     return glidePos();
   }
-  function settle(from, target) {
+  /* `vx` is the release speed, or 0 for a tap — which is also what picks the
+     curve. The distance only ever shortens the time, never lengthens it. */
+  function settle(from, target, vx) {
     const cur = screenEl._fbCur || 0;
+    const rest = !vx;
+    const fast = Math.min(1, Math.abs(vx || 0) / FB_FLICK_FULL);
+    const base = rest ? FB_GLIDE_REST : FB_GLIDE_SLOW + (FB_GLIDE_FAST - FB_GLIDE_SLOW) * fast;
     gFrom = from; gTo = target; gT0 = performance.now();
-    gDur = Math.min(FB_GLIDE_MAX, FB_GLIDE_MIN + FB_GLIDE_PER * Math.max(0, Math.abs(target - from) - 1));
+    gEase = rest ? easeInOut : easeOut;
+    gDur = Math.max(120, base * Math.min(1, Math.max(0.35, Math.abs(target - from))));
     flow.classList.add('is-dragging');
     const tick = () => {
       /* Let go of a deck that moved under us: a re-render (pull-to-refresh, a
@@ -4184,7 +4204,7 @@ function fbSwipe(screenEl, flow) {
     }
     const now = performance.now(), dt = now - lastT;
     if (dt > 0) { vx = 0.6 * vx + 0.4 * ((e.clientX - lastX) / dt); lastX = e.clientX; lastT = now; }
-    p = restP - dx / FB_DRAG_PX;                    // drag left → the next card comes
+    p = clampP(restP - dx / FB_DRAG_PX);                    // drag left → the next card comes
     pendingP = p;
     if (!raf) raf = requestAnimationFrame(paint);
   });
@@ -4193,11 +4213,16 @@ function fbSwipe(screenEl, flow) {
     on = false;
     if (!claimed) return;
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
-    settle(p, fbTarget(p, vx));                     // the glide takes it from here
+    settle(p, fbTarget(p, vx), vx);                     // the glide takes it from here
     setTimeout(() => { flow._swiped = false; }, 60);   // let the click after a drag see the flag
   };
   flow.addEventListener('pointerup', end);
   flow.addEventListener('pointercancel', end);
+  /* The deck's own way to move WITHOUT a finger — a tap on a side cover
+     (fbSideStep), and anything else that wants the glide rather than the bare
+     `fbGo`. `dir` is in covers from where the deck is now; a glide already
+     running is caught and continued, so two taps in a row flow together. */
+  flow._fbGlide = dir => settle(glide ? catchGlide() : 0, dir, 0);
 }
 
 /* Each card's discs take the colour of ITS OWN cover (Eric, 2026-09-18), not
