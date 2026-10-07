@@ -1487,6 +1487,11 @@
    inline per-cover `--star` (tintFeedRecords) re-tints a rating any more.
    The hearts and the histogram still follow the album. */
 .s-home-v3        { --vinyl-gold: #e8a83c; }
+/* YOURS vs THE ALBUM'S, on a tracklist row (0.14): the gold --star above is
+   the aggregate, and a song you have reviewed yourself reads GREEN. Light
+   needs its own, deeper green — the dark one on paper is barely a colour. */
+.s-home-v3        { --mine: #4ec97a; }
+.s-home-v3--light { --mine: #2f9c5c; }
 .s-home-v3--light { --vinyl-gold: #c08818; }
 
 /* ============================================================
@@ -5331,6 +5336,13 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
   width: var(--song-rate-w); justify-content: flex-end;
   color: var(--star); font-size: 11.5px; font-weight: 700; font-family: var(--font-mono);
 }
+/* YOUR rating, green, with the gold aggregate one tap away (0.14). The cell
+   gets a little padding so the tap target is not just the glyphs, pulled back
+   out on the right so the column still ends where the header label does. */
+.v3-song-rate.is-mine { color: var(--mine, #4ec97a); }
+.v3-song-rate--tap { cursor: pointer; padding: 2px 5px; margin-right: -5px; border-radius: 5px; }
+.v3-song-rate--tap:hover { background: rgba(232,226,214,0.09); }
+.v3-song-rate--tap:active { background: rgba(232,226,214,0.14); }
 /* A favourited song's TRACK NUMBER is a heart (Eric, 2026-09-18), in the
    number cell, so the columns hold. */
 /* THE HEART'S HOLE APPEARS WHEN YOU LIKE (Eric, 2026-09-23). RVP_HEART ships

@@ -1973,6 +1973,59 @@ function songIsFav(album, title) {
   const d = logDrafts()[`song::${title}::${album.album}`];
   return !!(d && d.fav);
 }
+/* YOUR RATING ON A TRACKLIST ROW (0.14, Eric 2026-10-06: "if u review a song
+   in the album the songs rating changes to your rating and it turns green and
+   if u press it it switches to the aggregate yellow score").
+   The source is the COMMITTED song draft — `song::<title>::<album>`, the same
+   one the song sheet restores and the row's heart reads — so a sheet left open
+   with an unposted rating does not change the list; posting it does.
+   The cell carries BOTH numbers (`data-mine` / `data-agg`) so the flip is pure
+   DOM with no lookup, and `data-show` says which side is up. The flip is
+   deliberately NOT remembered: it is a peek at the album's score, and the row
+   goes back to showing yours next time the page is built.
+   ⚠️ The row itself is a <button> that opens the song's sheet, so the cell is a
+   plain <span> (a nested button would be invalid) and its click stops
+   propagating. That also means the flip is a pointer affordance only — the
+   row stays keyboard-reachable for what it does, which is open the sheet. */
+function songMyRating(album, title) {
+  const d = logDrafts()[`song::${title}::${album ? album.album : ''}`];
+  const r = d && Number(d.rating);
+  return r > 0 ? r : 0;
+}
+function songRateHtml(album, song, show) {
+  const agg = Number(song.rating) || 0;
+  const mine = songMyRating(album, song.title);
+  // Nothing of your own on this song → the album's score, exactly as before.
+  if (!mine) return `<span class="v3-song-rate">${agg.toFixed(1)}</span>`;
+  const onAgg = show === 'agg';
+  return `<span class="v3-song-rate v3-song-rate--tap${onAgg ? '' : ' is-mine'}"`
+       + ` data-show="${onAgg ? 'agg' : 'mine'}" data-mine="${mine.toFixed(1)}" data-agg="${agg.toFixed(1)}"`
+       + ` title="${onAgg ? 'The album\u2019s score \u2014 tap for yours' : 'Your rating \u2014 tap for the album\u2019s score'}"`
+       + ` onclick="event.stopPropagation(); songRateFlip(this)">${(onAgg ? agg : mine).toFixed(1)}</span>`;
+}
+window.songRateFlip = function (el) {
+  const toAgg = el.dataset.show !== 'agg';
+  el.dataset.show = toAgg ? 'agg' : 'mine';
+  el.textContent = toAgg ? el.dataset.agg : el.dataset.mine;
+  el.classList.toggle('is-mine', !toAgg);
+  el.title = toAgg ? 'The album\u2019s score \u2014 tap for yours' : 'Your rating \u2014 tap for the album\u2019s score';
+  if (typeof buzz === 'function') buzz();
+};
+/* The rate cells after a post, without rebuilding the list — and whichever
+   side a row is showing is kept, so posting a review for song 3 does not
+   flip song 5 back under the reader's thumb. */
+function refreshSongRatings(scr) {
+  const a = scr && scr._album; if (!a) return;
+  const songs = typeof songsFor === 'function' ? songsFor(a) : [];
+  scr.querySelectorAll('.v3-song-row').forEach(row => {
+    const cell = row.querySelector('.v3-song-rate'); if (!cell) return;
+    const s = songs.find(x => x.title === row.dataset.title); if (!s) return;
+    const box = document.createElement('div');
+    box.innerHTML = songRateHtml(a, s, cell.dataset.show);
+    const next = box.firstElementChild;
+    if (next && cell.outerHTML !== next.outerHTML) cell.replaceWith(next);
+  });
+}
 function songNumHtml(album, title, i) {
   return songIsFav(album, title)
     ? `<span class="v3-song-fav">${typeof RVP_HEART !== 'undefined' ? RVP_HEART : '♥'}</span>`
@@ -2014,7 +2067,7 @@ function populateSongList(scr, all) {
       <span class="v3-song-num">${songNumHtml(a, s.title, i)}</span>
       <span class="v3-song-title">${s.title}</span>
       <span class="v3-song-dur">${s.dur}</span>
-      <span class="v3-song-rate">${s.rating.toFixed(1)}</span>
+      ${songRateHtml(a, s)}
     </button>`).join('') + `</div>` + (more > 0 ? `
     <button class="v3-songs-more" onclick="event.stopPropagation(); expandSongList(this)">View all ${songs.length} songs</button>` : '');
 }
@@ -7191,6 +7244,7 @@ function flashLogSaved() {
   paintLogSave();
   homeShells().forEach(s => syncQuickLog(s));
   homeShells().forEach(s => refreshSongFavs(s));   // the tracklist's hearts follow a song's favourite live
+  homeShells().forEach(s => refreshSongRatings(s));   // ...and the row shows YOUR score the moment it is posted
   if (typeof populateReviewList === 'function') homeShells().forEach(s => {
     const active = s.querySelector('.v3-rev-filter.active');       // keep the tab the user chose
     populateReviewList(s, active ? active.dataset.f : 'popular');

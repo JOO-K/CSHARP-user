@@ -60,6 +60,28 @@
 > "What 0.12 changes" list here.
 >
 > ### What 0.12 changes
+> - **2026-10-06 — A SONG YOU HAVE REVIEWED READS GREEN, AND THE ALBUM'S
+>   SCORE IS ONE TAP AWAY** (`app.js` — `songMyRating` / `songRateHtml` /
+>   `songRateFlip` / `refreshSongRatings`; `app.css`; `app.js?v=412`,
+>   `app.css?v=672`). Eric: "if u review a song in the album the songs rating
+>   changes to your rating and it turns green and if u press it it switches to
+>   the aggregate yellow score".
+>   · The source is the **committed** song draft — `song::<title>::<album>`,
+>   the same key the song's sheet restores and the row's heart reads — so a
+>   sheet left open with an unposted rating does not change the list; posting
+>   does, live, through `flashLogSaved` → `refreshSongRatings`.
+>   · The cell carries BOTH numbers (`data-mine` / `data-agg`) and `data-show`,
+>   so the flip is pure DOM with no lookup. The peek is deliberately **not**
+>   remembered — a rebuilt list shows yours again — but a live refresh keeps
+>   whichever side is up, so posting on song 3 cannot flip song 5 under the
+>   reader's thumb.
+>   · Green is `--mine` beside `--star`, with its own deeper value for light
+>   (`#2f9c5c`): the dark green on paper is barely a colour. A song with no
+>   rating of your own is untouched — plain gold aggregate, not tappable.
+>   · ⚠️ The row is a `<button>` that opens the song's sheet, so the cell is a
+>   `<span>` whose click stops propagating — a nested button would be invalid
+>   markup. The flip is therefore a pointer affordance; the row stays
+>   keyboard-reachable for what it does, which is open the sheet.
 > - **2026-10-05 — THE CAROUSEL: ONE COVER A SWIPE, BUT SMOOTH** (`app.js` —
 >   `fbTarget` / `fbSwipe` / `fbSideStep` / `fbPaintDeck`; `app.js?v=411`).
 >   ⚠️ **A MULTI-COVER FLING WAS BUILT AND TAKEN BACK OUT THE SAME DAY.** Eric
