@@ -70,6 +70,18 @@
 >   the same key the song's sheet restores and the row's heart reads — so a
 >   sheet left open with an unposted rating does not change the list; posting
 >   does, live, through `flashLogSaved` → `refreshSongRatings`.
+>   · ⚠️ **A SONG RATING LIVES IN TWO PLACES** and the first cut read only
+>   one, so it never turned green for the way Eric actually rates ("uhhh its
+>   not working"): the SONG's own sheet saves under `song::<title>::<album>`,
+>   but the ALBUM's sheet rates songs in its own per-song rows and those ride
+>   along in the ALBUM draft's `songs[]` (`album::<album>::<artist>`, written by
+>   `setSongRating` → `logSnapshot`). `songMyRating` checks both, matching by
+>   TITLE the way `fillLogSongs` merges them back, and when a song carries one
+>   of each the more recently saved draft wins.
+>   · **The rating column is never the row's tap**, rated or not (Eric: "can we
+>   make it so that the rating area isnt part of that") — an unrated cell still
+>   stops the click, it just has nothing to flip to and so carries no pointer
+>   affordance. The rest of the row opens the song's sheet as before.
 >   · The cell carries BOTH numbers (`data-mine` / `data-agg`) and `data-show`,
 >   so the flip is pure DOM with no lookup. The peek is deliberately **not**
 >   remembered — a rebuilt list shows yours again — but a live refresh keeps

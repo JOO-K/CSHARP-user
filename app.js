@@ -1987,16 +1987,37 @@ function songIsFav(album, title) {
    plain <span> (a nested button would be invalid) and its click stops
    propagating. That also means the flip is a pointer affordance only — the
    row stays keyboard-reachable for what it does, which is open the sheet. */
+/* ⚠️ A SONG RATING LIVES IN TWO PLACES, and the first version of this read
+   only one of them, so it never turned green for the way Eric actually rates
+   (Eric, 2026-10-06: "uhhh its not working"):
+     · the SONG's own sheet (tap the row) saves under `song::<title>::<album>`;
+     · the ALBUM's sheet rates songs in its own per-song rows, and those ride
+       along in the ALBUM draft's `songs[]` (`album::<album>::<artist>`) —
+       `setSongRating` writes SDLOG.songs[i], which `logSnapshot` keeps.
+   Both are checked, and when a song carries one of each the MORE RECENTLY
+   SAVED draft wins, so re-rating in either sheet is what shows. Matching is by
+   TITLE, the way fillLogSongs merges them back — the draft only keeps the
+   tracks that were touched, so its indices are not the tracklist's. */
 function songMyRating(album, title) {
-  const d = logDrafts()[`song::${title}::${album ? album.album : ''}`];
-  const r = d && Number(d.rating);
-  return r > 0 ? r : 0;
+  if (!album) return 0;
+  const all = logDrafts();
+  const own = all[`song::${title}::${album.album}`];
+  const alb = all[`album::${album.album}::${album.artist || ''}`];
+  const row = alb && (alb.songs || []).find(x => x && x.title === title);
+  const a = own && Number(own.rating) > 0 ? { r: Number(own.rating), at: own.updated || 0 } : null;
+  const b = row && Number(row.rating) > 0 ? { r: Number(row.rating), at: alb.updated || 0 } : null;
+  if (a && b) return (b.at > a.at ? b : a).r;
+  return (a || b || { r: 0 }).r;
 }
 function songRateHtml(album, song, show) {
   const agg = Number(song.rating) || 0;
   const mine = songMyRating(album, song.title);
-  // Nothing of your own on this song → the album's score, exactly as before.
-  if (!mine) return `<span class="v3-song-rate">${agg.toFixed(1)}</span>`;
+  /* Nothing of your own on this song → the album's score. It still swallows
+     the tap: Eric, on pressing the rating and getting the song's review panel,
+     "can we make it so that the rating area isnt part of that". The column is
+     the rating's, never the row's — it just has nothing to flip to yet, so it
+     carries no pointer affordance either. */
+  if (!mine) return `<span class="v3-song-rate" onclick="event.stopPropagation()">${agg.toFixed(1)}</span>`;
   const onAgg = show === 'agg';
   return `<span class="v3-song-rate v3-song-rate--tap${onAgg ? '' : ' is-mine'}"`
        + ` data-show="${onAgg ? 'agg' : 'mine'}" data-mine="${mine.toFixed(1)}" data-agg="${agg.toFixed(1)}"`
