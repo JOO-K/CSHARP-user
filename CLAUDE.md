@@ -48,10 +48,29 @@
 >   deck and the album page. **You**'s cards key `mine::<album>`, the album
 >   page's own key, for the same reason, and carry `mine: true` so each one
 >   keeps the pencil back into the sheet.
+>   · **Both tabs are PADDED to `TAB_TARGET` (16)** so they scroll (Eric:
+>   "populate that with more reviews so i can sroll down like 3 phoen
+>   lengths" — 16 cards is about 4 phone lengths). Genuine content always
+>   LEADS; seeded extras fill in behind it. This is `revsFor`'s idiom.
+>   ⚠️ **Padded rather than raising `FB_POPULAR_PER_DEAL`.** That constant is
+>   the DECK's friends-to-community ratio — 2 in 16, "mostly friends, like
+>   *:1", tuned by Eric — so raising it to fill a tab would quietly change what
+>   the deck deals. The tab gets its own deal.
+>   ⚠️ **Seeded per index (`seedRand`), never rolled**: `renderFriendFeed` runs
+>   on every tab switch, theme swap and refresh, so a roll would re-deal the
+>   whole tab under the reader each time.
+>   ⚠️ **The pools are read as BARE identifiers, not `window.FB_*`.**
+>   `FB_COMMUNITY` / `FB_VIRAL_REVIEWS` / `FB_LONG_REVIEWS` are top-level
+>   `const`, and **a const creates no window property** — the first cut's
+>   `window.FB_COMMUNITY || []` fell through to empty and the pad loop broke out
+>   at once, leaving both tabs as short as before. `window.ARCHIVE` IS real
+>   (set in data.js); the consts are not.
+>   · **No "popular review" chip** on the Popular tab (Eric: "we dont need the
+>   poular tag") — the whole tab is popular. It stays on the FRIENDS feed,
+>   where a community card among friends' cards does need marking.
 >   · **Popular** is the entries `feedEvents` deliberately filters OUT
->   (`!src[i].popular` — the friends feed is friends only). ⚠️
->   `FB_POPULAR_PER_DEAL` is **2**, so that tab is genuinely short; raise it if
->   it should read as a page of its own. **You** reads the COMMITTED drafts
+>   (`!src[i].popular` — the friends feed is friends only). **You** reads the
+>   COMMITTED drafts
 >   (`logDrafts`, `album::` keys with a rating or text), newest first by
 >   `updated`, falling back to the draft's own `snap` for a record that has
 >   since left `ARCHIVE`.

@@ -3414,31 +3414,83 @@ function paintFeedTabs(screenEl) {
 
 /* POPULAR — the community leaking in: the entries feedEvents deliberately
    leaves out (`!src[i].popular`, because the friends feed is friends only).
+   The genuine ones LEAD, then the list is PADDED to TAB_TARGET out of the same
+   community pools the deck's popular cards are dealt from.
+   ⚠ PADDED RATHER THAN RAISING `FB_POPULAR_PER_DEAL` (Eric, 2026-10-09:
+   "can we populate that with more reviews so i can sroll down like 3 phoen
+   lengths"). That constant is the DECK's friends-to-community ratio — 2 in 16,
+   "mostly friends, like *:1", tuned by Eric — and raising it to fill a tab
+   would quietly change what the deck deals. The tab gets its own deal instead.
+   This is `revsFor`'s idiom: a real base, then seeded extras up to a target.
+   ⚠ SEEDED, not rolled (`seedRand` per index): renderFriendFeed runs on every
+   tab switch, theme swap and refresh, so a roll would re-deal the whole tab
+   under the reader each time.
    ⚠ These cards carry a KEY, not a `feed:` index. A feed index addresses
    `feedEvents()`, which is the FRIENDS list — indexing a different array into
-   it would open the wrong review on every tap. The key is `feedRevKey`'s, the
-   same one the deck and the album page use, so the like and the thread are one
-   act wherever the review is seen.
-   ⚠ FB_POPULAR_PER_DEAL is 2, so this tab is short by design. */
+   it would open the wrong review on every tap. The genuine ones keep
+   `feedRevKey`'s key, so a like here is the same act on the deck and the album
+   page; the extras get their own `pop::` key.
+   ⚠ NO "popular review" CHIP (Eric: "we dont need the poular tag") — the whole
+   tab is popular, so the chip said nothing. It stays on the FRIENDS feed,
+   where a community card among friends' cards does need marking. */
+const TAB_TARGET = 16;            // comfortably past three phone lengths
 function popularFeedHtml() {
   const src = window.FRIEND_ACTIVITY || [];
-  const out = src.filter(f => f.popular).map(f => {
+  const arch = window.ARCHIVE || [];
+  const cards = [], seen = Object.create(null);
+
+  src.filter(f => f.popular).forEach(f => {
     const album = typeof friendAlbumFor === 'function' ? friendAlbumFor(f) : null;
-    if (!album) return '';
+    if (!album) return;
     const key = feedRevKey(f);
     const text = typeof feedUnquote === 'function' ? feedUnquote(f.quote) : (f.quote || '');
+    seen[album.album] = true;
     REV_INDEX[key] = REV_INDEX[key] || { key, album, name: f.user, init: f.init, grad: f.grad,
       rating: f.rating || 0, text, ago: f.ago, likes: f.likes || 0,
       comments: f.comments || 0, face: feedFace(f.user), popular: true };
-    return revCardHtml({
+    cards.push(revCardHtml({
       key, cls: 'v3-rev-card--feed v3-rev-card--split', split: true,
-      name: f.user, face: feedFace(f.user), ago: f.ago, chip: 'popular review',
+      name: f.user, face: feedFace(f.user), ago: f.ago,
       timeRight: true, actsTop: true, rating: f.rating || 0, text,
       likes: f.likes || 0, comments: f.comments || 0,
       record: { image: album.image, album: album.album, artist: album.artist, year: album.year },
-    });
-  }).filter(Boolean);
-  return out.join('') ||
+    }));
+  });
+
+  /* ⚠ BARE IDENTIFIERS, not window.FB_*. These pools are `const`, and a
+     top-level const creates NO window property — `window.FB_COMMUNITY` is
+     undefined, so the first cut's `|| []` fell through to empty and the pad
+     loop below broke out immediately, leaving this tab exactly as short as it
+     was before. Everything else in the file reads them bare (see personaFeed). */
+  const names = typeof FB_COMMUNITY !== 'undefined' ? FB_COMMUNITY : [];
+  const longs = (typeof FB_VIRAL_REVIEWS !== 'undefined' ? FB_VIRAL_REVIEWS : []).map(r => r.text);
+  const quotes = (typeof DZ_QUOTES !== 'undefined' ? DZ_QUOTES : []);
+  const texts = longs.concat(quotes);
+  for (let i = 0; cards.length < TAB_TARGET && i < TAB_TARGET * 6; i++) {
+    if (!arch.length || !names.length || !texts.length) break;
+    const r = seedRand('poptab::' + i);
+    const album = arch[Math.floor(r() * arch.length)];
+    if (!album || seen[album.album]) continue;       // one card per record
+    seen[album.album] = true;
+    const user = names[Math.floor(r() * names.length)];
+    const text = texts[Math.floor(r() * texts.length)];
+    // Popular skews high and carries big counts - that is what made it travel.
+    const rating = [5, 4.5, 4.5, 4, 5][Math.floor(r() * 5)];
+    const key = 'pop::' + album.album + '::' + user;
+    REV_INDEX[key] = REV_INDEX[key] || { key, album, name: user, rating, text,
+      ago: REV_TIMES[Math.floor(r() * REV_TIMES.length)],
+      likes: 400 + Math.floor(r() * 5200), comments: 20 + Math.floor(r() * 180),
+      face: feedFace(user), popular: true };
+    const R = REV_INDEX[key];
+    cards.push(revCardHtml({
+      key, cls: 'v3-rev-card--feed v3-rev-card--split', split: true,
+      name: user, face: feedFace(user), ago: R.ago,
+      timeRight: true, actsTop: true, rating, text,
+      likes: R.likes, comments: R.comments,
+      record: { image: album.image, album: album.album, artist: album.artist, year: album.year },
+    }));
+  }
+  return cards.join('') ||
     '<div class="v3-rev-empty">Nothing doing the rounds right now.</div>';
 }
 
@@ -3478,6 +3530,44 @@ function myReviewsFeedHtml() {
       rating: r.d.rating || 0, text, likes: 0, comments: 0, record: rec,
     });
   });
+  /* PADDED to TAB_TARGET, the same way (Eric: "in the popular and you can we
+     populate that with more reviews"). Your REAL reviews always lead and are
+     never displaced — the extras fill in behind them on records you have not
+     reviewed, so the tab reads as a history rather than a stub.
+     ⚠ Extras key `mine::<album>` like the real ones, so if you later actually
+     review one of those records the card, its thread and its like are already
+     the same object — no orphaned duplicate.
+     ⚠ Real reviews keep likes 0 / comments 0 (nothing has happened to one you
+     just posted); the extras carry seeded counts, since they stand for reviews
+     that have been up a while. */
+  const seen = Object.create(null);
+  rows.forEach(r => { seen[r.title] = true; });
+  const quotes = (typeof DZ_QUOTES !== 'undefined' ? DZ_QUOTES : []);
+  // Bare, not window.FB_LONG_REVIEWS - a const is not a window property.
+  const longs = (typeof FB_LONG_REVIEWS !== 'undefined' ? FB_LONG_REVIEWS : []).map(x => x.text);
+  const texts = longs.concat(quotes);
+  for (let i = 0; out.length < TAB_TARGET && i < TAB_TARGET * 6; i++) {
+    if (!arch.length || !texts.length) break;
+    const rnd = seedRand('youtab::' + i);
+    const album = arch[Math.floor(rnd() * arch.length)];
+    if (!album || seen[album.album]) continue;
+    seen[album.album] = true;
+    const text = texts[Math.floor(rnd() * texts.length)];
+    const rating = [5, 4.5, 4, 4, 3.5, 4.5, 3][Math.floor(rnd() * 7)];
+    const key = 'mine::' + album.album;
+    const rec = { image: album.image, album: album.album, artist: album.artist, year: album.year };
+    const comments = Math.floor(rnd() * 12);
+    REV_INDEX[key] = REV_INDEX[key] || { key, album, name: 'You', mine: true,
+      rating, text, ago: '', likes: Math.floor(rnd() * 40), comments };
+    const R = REV_INDEX[key];
+    out.push(revCardHtml({
+      key, cls: 'v3-rev-card--feed v3-rev-card--split v3-rev-card--mine', split: true, mine: true,
+      name: 'You', handle: (window.PROFILE || {}).handle || 'you',
+      face: (window.PROFILE || {}).pic || 'images/rp-01.jpg',
+      ago: '', timeRight: true, actsTop: true,
+      rating, text, likes: R.likes, comments: R.comments, record: rec,
+    }));
+  }
   return out.join('') ||
     '<div class="v3-rev-empty">You have not posted a review yet.</div>';
 }
