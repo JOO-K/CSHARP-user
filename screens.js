@@ -458,7 +458,11 @@ function bentoHtml() {
    — the title large with the year beside it, the artist below. No album score line: one rating on screen,
    the friend's. All painted by renderFriendsBento (app.js); this is the
    empty furniture. Hidden with the feed on the album page (--review),
-   where `.v3-bento` — still the album page — takes over. */
+   where `.v3-bento` — still the album page — takes over.
+   ⚠ 0.14b (2026-10-09): THIS RENDERS ON THE TRENDING WALL, NOT HOME. Home is
+   the hero and then pure reviews; the deck is the first thing on the wall. The
+   --review / --rvp hiding above is now moot for it (the wall has no such
+   state) but is left alone, in case it comes back to a home shell. */
 function friendsBentoHtml() {
   return `<!-- FRIENDS DECK (csharpuser) — see friendsBentoHtml -->
           <div class="v3-fb" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
@@ -533,7 +537,11 @@ function homeShellHtml(light, coversUp, cls) {
 
           ${bentoHtml()}
 
-          ${friendsBentoHtml()}
+          <!-- 0.14b (2026-10-09): THE FRIENDS DECK IS NOT HERE ANY MORE. Eric:
+               "i want to move the homepage carousel onto the trending page so
+               that we can just have pure reviews instead". friendsBentoHtml()
+               now renders at the top of the Trending wall (wallHtml), so home
+               is the hero and then nothing but reviews. -->
 
           <!-- SCROLL: activity feed — notification-style rows, filled by
                renderFriendFeed(). The "you may know" rails used to sit above it. -->
@@ -2597,6 +2605,21 @@ function wallHtml(light) {
         ${appHeader()}
         <div class="v3-body">
           <div class="wall2-scroll">
+            <!-- 0.14b (2026-10-09): THE HOME CAROUSEL LIVES HERE NOW — the same
+                 friendsBentoHtml() the homepage carried, covers and the review
+                 under them, at the top of the wall where the discovery deck
+                 used to be.
+                 It needs NO new wiring: this screen already carries the
+                 `s-home-v3` class, so every `.s-home-v3 .v3-fb*` rule applies
+                 and `closest('.s-home-v3')` resolves for the gestures; and
+                 populateHomeData runs for every `.s-home-v3`, so its
+                 renderFriendsBento call finds this deck exactly as it found
+                 home's. renderFriendsBento skips `.v3-fb--dd` only — this is
+                 the plain `.v3-fb`, so it is rendered, not skipped.
+                 ⚠ Like home's, the deck tints the shell it sits in to the front
+                 cover's palette (fbGo ends in setMainAlbum + applyAlbumColorsUrl)
+                 — which is what the wall did when the discovery deck was here. -->
+            ${friendsBentoHtml()}
             <!-- 0.12 (Eric, 2026-10-02): no discovery deck on the wall, just the wall of albums.
                  discoveryDeckHtml + renderDiscoveryDeck are kept; the render is a no-op without it. -->
             <div class="wall2-bar">

@@ -1,6 +1,50 @@
 # Spindeck — Music Review App Mockup
 
-> ## ⚠️ THIS IS **0.14** — THE ROOT OF THE REPO, ON `main` (2026-10-08 → )
+> ## ⚠️ THIS IS **0.14b** — THE ROOT OF THE REPO, ON `main` (2026-10-09 → )
+> Eric: "can we make a new version called 0.14b where we try something".
+> An EXPERIMENT off 0.14, in the root as usual — the active version always
+> lives here (see the 0.14 header below for why). 0.14 is frozen at
+> `versions/0.14/` on `v0.14` (74f38ac), so the two flip side by side from the
+> **+** menu. **Open `index.html` at the ROOT.**
+>
+> ### What 0.14b changes
+> - **2026-10-09 — THE HOME CAROUSEL MOVED TO THE TRENDING WALL**
+>   (`screens.js` — `homeShellHtml` / `wallHtml`; `app.css` — the
+>   `.v3-scroll-area` padding and `.s-wall2 .v3-fb`; `screens.js?v=368`,
+>   `app.css?v=684`). Eric: "i want to move the homepage carousel onto the
+>   trending page so that we can just have pure reviews instead … the carousel
+>   and the associated review at the top, theres only one carousel on the
+>   homepage" — i.e. the **friends deck**, `.v3-fb`: the flippable covers plus
+>   the review panel under them, as ONE unit. The `.v3-bento` hero is not it
+>   and stays on home.
+>   · **The move needed NO new wiring**, which is the thing worth knowing. The
+>   wall screen already carries the **`s-home-v3`** class
+>   (`app-screen s-home-v3 s-wall2`), so every `.s-home-v3 .v3-fb*` rule
+>   applies there and `closest('.s-home-v3')` resolves for the swipe and the
+>   taps; and `populateHomeData` runs for **every** `.s-home-v3`, so its
+>   `renderFriendsBento` call finds the deck on the wall exactly as it found it
+>   on home. `renderFriendsBento` skips `.v3-fb--dd` only, and this is the
+>   plain `.v3-fb`. One moved `${friendsBentoHtml()}` and the markup was done.
+>   · It sits where the **discovery deck** used to (`discoveryDeckHtml`, pulled
+>   from the wall in 0.12 and still unused), i.e. first inside `.wall2-scroll`,
+>   above the Albums/Artists bar.
+>   ⚠️ **The deck tints the shell it is in.** `fbGo` ends in `setMainAlbum` +
+>   `applyAlbumColorsUrl`, so the wall now takes the front cover's palette as
+>   you flip — which is what it did when the discovery deck lived there, but it
+>   is a visible change to the wall, not just an addition to it.
+>   ⚠️ **One orphaned rule had to be rewritten**:
+>   `.s-home-v3:not(--review) .v3-fb ~ .v3-scroll-area { padding-top: 10px }`
+>   was the air between the deck and the feed. With the deck gone from home
+>   that sibling never matches, and home's feed would have lost its top air, so
+>   the rule is now unconditional on the scroll area. `.s-wall2 .v3-fb` gives
+>   the deck a little more room above and less below, since on the wall it is
+>   the first thing on the page rather than something tucked under the bento.
+>   · The `--review` / `--rvp` hiding on `.v3-fb` is now moot (the wall has no
+>   such state) and was left in place in case the deck returns to a home shell.
+>
+> ---
+>
+> ## (inherited) THIS WAS **0.14** — the root until 0.14b, now `versions/0.14/` (2026-10-08 → 2026-10-09)
 > Eric: "lets make this version 0.13 and make a new version instead of
 > updating this old one", then — after a day of the split getting in the way —
 > "make it so that it opens to 0.14".

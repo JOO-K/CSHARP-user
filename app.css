@@ -11572,7 +11572,11 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 .s-home-v3:not(.s-home-v3--review) .v3-scroll-area { padding-top: 6px; }
 /* The friends deck takes the bento's place on home, so the feed goes back
    under a 22px bottom margin there; the 6px above is only for the bare feed. */
-.s-home-v3:not(.s-home-v3--review) .v3-fb ~ .v3-scroll-area { padding-top: 10px; }
+/* 0.14b: this was `.v3-fb ~ .v3-scroll-area` — the air between the deck and
+   the feed. The deck has left home for the Trending wall, so that sibling
+   never matches here any more and the feed would have lost its top air. Same
+   10px, no longer conditional on a deck being above it. */
+.s-home-v3:not(.s-home-v3--review) .v3-scroll-area { padding-top: 10px; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -11601,6 +11605,10 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
   margin: 6px 10px 22px;
   display: flex; flex-direction: column; gap: 4px;   /* was 8, then 14, then 5 back, then 5 more (Eric) */
 }
+/* 0.14b: on the Trending wall the deck is the FIRST thing on the page rather
+   than something tucked under the bento, so it takes a little more air above
+   and a little less below, where the sort bar follows straight on. */
+.s-wall2 .v3-fb { margin: 14px 10px 16px; }
 .s-home-v3--review .v3-fb,
 .s-home-v3--rvp .v3-fb { display: none; }
 
