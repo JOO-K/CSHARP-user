@@ -1,11 +1,70 @@
 # Spindeck — Music Review App Mockup
 
-> ## ⚠️ THIS IS **0.13** — THE ROOT OF THE REPO, ON `main` (2026-10-03 → 2026-10-08)
+> ## ⚠️ THIS IS **0.14** — `csharpuser/versions/0.14/`, THE PRIVATE WORK IN PROGRESS (2026-10-08)
+> Eric: "lets make this version 0.13 and make a new version instead of
+> updating this old one".
+> A worktree on branch **`v0.14`**, made from `main` at **cd678c6** — 0.13's
+> closing commit — and byte-identical to it at birth (0.13 left no untracked
+> files to copy across, unlike 0.12 → 0.13). **0.13 stays as it is.** Open
+> this one at `/versions/0.14/index.html`. Everything below (0.13's notes
+> included) describes the code as inherited; add 0.14's changes in the
+> "What 0.14 changes" list here.
+>
+> ⚠️ **0.13 IS `main`, NOT A WORKTREE.** It is the branch GitHub Pages
+> serves, so it is the live site, and `versions/` is `.gitignore`d precisely
+> so a private WIP never deploys. That is why there is no `versions/0.13/`
+> beside this folder: 0.13's thirteen commits went straight onto `main`.
+> When 0.14 is ready it lands there the same way `v0.11` and `v0.12` did —
+> both are ancestors of `main` — and this worktree can then be kept frozen
+> for side-by-side comparison, as `versions/0.11` and `versions/0.12` are.
+>
+> ### What 0.14 changes
+> - **2026-10-09 — A GOLD RING ON THE REVIEW YOU WERE JUST BROUGHT TO**
+>   (`app.js` `myFeedCardHtml`; `app.css` `.v3-rev-card--posted .v3-rev-av` +
+>   `@keyframes v3PostedRing`; `app.js?v=422`, `app.css?v=679`). Eric: "when it
+>   takes you to your posted review, can we have it so that your profile image
+>   has a yellow ring around it". `myFeedCardHtml` puts
+>   **`.v3-rev-card--posted`** on the one card `_myFeedPost` builds, so the ring
+>   marks the card the post-review exit **brought you to** — not every card of
+>   yours, and not the album page's. It **stays** while that post leads the feed
+>   (the session, or until you delete or replace it) rather than flashing: the
+>   fade-in alone is 280ms and the centring lands after it, so a short pulse
+>   would be over before you looked.
+>   ⚠️ **An explicit gold, NOT `var(--star)`.** Inside a home shell `--star` is
+>   `var(--v3-star, var(--persona-accent, #e8a83c))` — the FEATURED ALBUM's
+>   extracted colour — so on the bento it is whatever that cover yielded, often
+>   not yellow at all. `#e8a83c` / `#c08818` are the app's own two golds.
+>   ⚠️⚠️ **THE RULE MUST CARRY `.v3-rev-card--feed` AND SIT AFTER THAT CLASS'S
+>   OWN AVATAR RULE.** The first cut was
+>   `.s-home-v3 .v3-rev-card--posted .v3-rev-av` — **three** classes, exactly
+>   the same as `.s-home-v3 .v3-rev-card--feed .v3-rev-av`, which resets the
+>   photo to a 1px hairline — and it sat **earlier** in the file, so the
+>   hairline won the tie on source order and **Eric saw no ring at all**. It
+>   only ever showed through the ANIMATION, because animations outrank normal
+>   declarations; that also meant it disappeared completely under
+>   `prefers-reduced-motion`. It is **four** classes now
+>   (`.v3-rev-card--feed.v3-rev-card--posted`) and placed after, so the ring
+>   wins on its own and the animation is decoration, not the mechanism.
+>   → Checked by resolving `box-shadow` on that avatar the way the cascade
+>   does — collecting every matching rule, sorting by (specificity, source
+>   order): gold wins in both themes, and a friend's feed avatar still
+>   resolves to the hairline.
+>   ⚠️ **The pulse is a separate `::after` ring animating `transform` and
+>   `opacity`.** The first cut animated `box-shadow` with `var()` inside the
+>   keyframes, which leans on custom-property substitution in `@keyframes` AND
+>   on box-shadow interpolation. The steady ring must not depend on either, so
+>   the keyframes now touch no colour at all and each theme sets its own
+>   `border-color` on the pseudo-element. Reduced motion hides the `::after`
+>   and keeps the ring — the ring is the message.
+>
+> ---
+>
+> ## (inherited) THIS WAS **0.13** — `main`, THE LIVE SITE (2026-10-03 → 2026-10-08)
 > Eric: "lets make a 0.13 version and we'll work on that".
 > Started from `v0.12` (14643b1) and **closed on 2026-10-08**, when Eric asked
 > to "make this version 0.13 and make a new version instead of updating this
-> old one". 0.14 took over in its own worktree — see the 0.14 header in
-> `versions/0.14/CLAUDE.md`; nothing more lands here.
+> old one". 0.14 took over in its own worktree — the header above this one —
+> and nothing more lands in 0.13.
 >
 > ⚠️ **0.13 is NOT a worktree under `versions/`**, whatever this header said
 > for its first five days. It is the repo ROOT on `main`, which is the branch

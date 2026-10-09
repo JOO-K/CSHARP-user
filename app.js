@@ -3308,7 +3308,7 @@ function myFeedCardHtml() {
   REV_INDEX[key] = { key, album: m.ref || rec, name: 'You', mine: true,
     rating: m.rating || 0, text: m.text || '', ago: '', likes: 0, comments: 0 };
   return revCardHtml({
-    key, cls: 'v3-rev-card--feed v3-rev-card--split v3-rev-card--mine', split: true, mine: true,
+    key, cls: 'v3-rev-card--feed v3-rev-card--split v3-rev-card--mine v3-rev-card--posted', split: true, mine: true,
     name: 'You', handle: (window.PROFILE || {}).handle || 'you',
     face: (window.PROFILE || {}).pic || 'images/rp-01.jpg',
     /* PLAIN BYLINE (Eric, 2026-10-08: "lets get rid of the just now and just
