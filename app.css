@@ -12095,7 +12095,16 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
    ⚠ The gap has to be restored explicitly: the rule above zeroes it for
    space-between, and these chips are flat text with 2px of side padding, so
    with no gap the three words would run together. */
-.s-home-v3 .wall2-bar.v3-feed-tabs { justify-content: flex-start; gap: 18px; }
+.s-home-v3 .wall2-bar.v3-feed-tabs { justify-content: flex-start; gap: 18px; padding-left: 10px; }
+/* … and OFF THE EDGE by the feed's own gutter (Eric: "a litte off the left
+   side please tis like right on the edge offset by like 10px"). 10px is not a
+   guess: `.s-home-v3 .v3-scroll-area` pads the feed by exactly 10px, so the
+   first tab lands on the same line as the cards under it rather than near it.
+   ⚠ The chip's own 2px of left padding is taken off the FIRST one, or the
+   text would sit at 12px and miss that line by two. Zeroed on the chip rather
+   than subtracted from the bar, so the bar keeps the feed's gutter as its
+   value and this stays true if the chip padding ever changes. */
+.s-home-v3 .wall2-bar.v3-feed-tabs .wall2-cat:first-child { padding-left: 0; }
 .s-home-v3 .wall2-cat, .s-home-v3--light .wall2-cat {
   background: none; box-shadow: none; padding: 6px 2px 5px;
   border-bottom: 1.5px solid transparent; border-radius: 0;

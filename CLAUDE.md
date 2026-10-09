@@ -17,13 +17,21 @@
 >   · **Home's three sit LEFT; the wall's four stay spread** (Eric, same day:
 >   "only for the homepage the trending page has enough tags to keep them
 >   spread"). `.s-home-v3 .wall2-bar.v3-feed-tabs { justify-content:
->   flex-start; gap: 18px }` — ⚠️ scoped to **`.v3-feed-tabs`**, which only
+>   flex-start; gap: 18px; padding-left: 10px }` — ⚠️ scoped to
+>   **`.v3-feed-tabs`**, which only
 >   home's bar carries, because `.s-home-v3 .wall2-bar` above it is shared by
 >   **every** `.s-home-v3` screen, the Trending wall included; editing that in
 >   place would have un-spread the wall too. ⚠️ The **gap must be restored
 >   explicitly** — the shared rule zeroes it for `space-between`, and these
 >   chips are flat text with 2px of side padding, so with no gap the three
 >   words run together.
+>   · **The 10px left offset is the FEED'S OWN GUTTER, not a nudge**
+>   (`.s-home-v3 .v3-scroll-area` pads the feed by exactly 10px), so the first
+>   tab lands on the same line as the cards under it. ⚠️ The chip's own 2px of
+>   left padding is zeroed on the **first** chip, or the text would sit at 12px
+>   and miss that line by two — zeroed on the chip rather than subtracted from
+>   the bar, so the bar keeps the gutter as its literal value and this stays
+>   true if the chip padding ever changes.
 >   · **Almost no new CSS.** The bar reuses **`.wall2-bar` / `.wall2-cat`**,
 >   which are unscoped and which the playlist page already borrows — so the
 >   chips are the same shape, type and pressed state as the wall's, and the
