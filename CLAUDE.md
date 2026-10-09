@@ -8,6 +8,42 @@
 > **+** menu. **Open `index.html` at the ROOT.**
 >
 > ### What 0.14b changes
+> - **2026-10-09 — HOME'S FEED TABS: FRIENDS · POPULAR · YOU** (`screens.js`
+>   `homeShellHtml`; `app.js` — `FEED_TAB` / `pickFeedTab` / `paintFeedTabs` /
+>   `popularFeedHtml` / `myReviewsFeedHtml` / `renderFriendFeed`;
+>   `screens.js?v=371`, `app.js?v=428`). Eric: "can i get that at the top of
+>   the homepage but with the tags friends popular , and you (to see your
+>   reviews)", like the wall's Albums / Artists / Genres row.
+>   · **No new CSS at all.** The bar reuses **`.wall2-bar` / `.wall2-cat`**,
+>   which are unscoped and which the playlist page already borrows — so the
+>   chips are the same shape, type and pressed state as the wall's, and the
+>   `.s-home-v3 .wall2-bar` override spaces them exactly as the wall spaces its
+>   own (the wall is a `.s-home-v3` too).
+>   ⚠️ **The active chip is PAINTED, never interpolated.** `homeShellHtml` is
+>   evaluated ONCE at load (the same trap as the header handle), so
+>   `${FEED_TAB === 'friends' ? ' active' : ''}` would freeze at startup and
+>   never follow a tap. `paintFeedTabs` runs on every `renderFriendFeed`.
+>   ⚠️ **Popular's cards carry a KEY, not a `feed:` index.** A feed index
+>   addresses `feedEvents()`, which is the FRIENDS list — indexing a different
+>   array into it would open the wrong review on every tap. They use
+>   `feedRevKey`'s key, so the like and the thread are the same act as on the
+>   deck and the album page. **You**'s cards key `mine::<album>`, the album
+>   page's own key, for the same reason, and carry `mine: true` so each one
+>   keeps the pencil back into the sheet.
+>   · **Popular** is the entries `feedEvents` deliberately filters OUT
+>   (`!src[i].popular` — the friends feed is friends only). ⚠️
+>   `FB_POPULAR_PER_DEAL` is **2**, so that tab is genuinely short; raise it if
+>   it should read as a page of its own. **You** reads the COMMITTED drafts
+>   (`logDrafts`, `album::` keys with a rating or text), newest first by
+>   `updated`, falling back to the draft's own `snap` for a record that has
+>   since left `ARCHIVE`.
+>   · Only **Friends** runs the activity feed — it is the tab that deals the
+>   non-review rows (favourited, logged, followed) and the only one `feed:`
+>   indexes address. `_myFeedPost` leads Friends alone: on You it would
+>   duplicate its own draft row, and on Popular it is not popular.
+>   · `FEED_TAB` is **module-level, not per-shell**: the dark and light phones
+>   show the same screen and must not disagree about which tab is up, so a tap
+>   repaints every shell.
 > - **2026-10-09 — THE HOME CAROUSEL MOVED TO THE TRENDING WALL**
 >   (`screens.js` — `homeShellHtml` / `wallHtml`; `app.css` — the
 >   `.v3-scroll-area` padding and `.s-wall2 .v3-fb`; `screens.js?v=368`,

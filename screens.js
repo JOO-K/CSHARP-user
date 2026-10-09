@@ -543,6 +543,26 @@ function homeShellHtml(light, coversUp, cls) {
                now renders at the top of the Trending wall (wallHtml), so home
                is the hero and then nothing but reviews. -->
 
+          <!-- 0.14b (2026-10-09): HOME'S FEED TABS. Eric: "can i get that at the
+               top of the homepage but with the tags friends popular , and you
+               (to see your reviews)".
+               It REUSES the Trending bar's own classes, wall2-bar and
+               wall2-cat, which are unscoped and which the playlist page
+               already borrows — so the chips are the same shape, type and
+               pressed state as Albums / Artists / Genres, for free, and the
+               .s-home-v3 wall2-bar override spaces them exactly as the wall
+               spaces its own.
+               ⚠ NO ACTIVE CLASS IN HERE. This template is evaluated ONCE at
+               load (see the header-handle note above), so an interpolated
+               active state would freeze on whatever FEED_TAB was at startup
+               and never follow a tap. paintFeedTabs sets it on every render.
+               ⚠ NO BACKTICKS IN HERE either — template literal. -->
+          <div class="wall2-bar v3-feed-tabs">
+            <button class="wall2-cat v3-feed-tab" data-tab="friends" onclick="event.stopPropagation(); pickFeedTab(this)">Friends</button>
+            <button class="wall2-cat v3-feed-tab" data-tab="popular" onclick="event.stopPropagation(); pickFeedTab(this)">Popular</button>
+            <button class="wall2-cat v3-feed-tab" data-tab="you" onclick="event.stopPropagation(); pickFeedTab(this)">You</button>
+          </div>
+
           <!-- SCROLL: activity feed — notification-style rows, filled by
                renderFriendFeed(). The "you may know" rails used to sit above it. -->
           <div class="v3-scroll-area">

@@ -3390,9 +3390,115 @@ function myFeedCardHtml() {
   });
 }
 
+/* ── HOME'S FEED TABS (0.14b, 2026-10-09) ───────────────────────────
+   Friends · Popular · You, in the Trending bar's clothes (wall2-bar /
+   wall2-cat, reused). One module-level tab for every shell: the dark and light
+   phones show the same screen, so they must not disagree about which tab is
+   up. */
+window.FEED_TAB = 'friends';
+window.pickFeedTab = function (btn) {
+  const tab = btn && btn.dataset.tab;
+  if (!tab || tab === window.FEED_TAB) return;
+  window.FEED_TAB = tab;
+  homeShells().forEach(s => { renderFriendFeed(s); });
+};
+/* ⚠ The active chip is painted, never interpolated: homeShellHtml is evaluated
+   ONCE at load, so a template-side active class would freeze at startup. */
+function paintFeedTabs(screenEl) {
+  const tab = window.FEED_TAB || 'friends';
+  screenEl.querySelectorAll('.v3-feed-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+    b.setAttribute('aria-pressed', String(b.dataset.tab === tab));
+  });
+}
+
+/* POPULAR — the community leaking in: the entries feedEvents deliberately
+   leaves out (`!src[i].popular`, because the friends feed is friends only).
+   ⚠ These cards carry a KEY, not a `feed:` index. A feed index addresses
+   `feedEvents()`, which is the FRIENDS list — indexing a different array into
+   it would open the wrong review on every tap. The key is `feedRevKey`'s, the
+   same one the deck and the album page use, so the like and the thread are one
+   act wherever the review is seen.
+   ⚠ FB_POPULAR_PER_DEAL is 2, so this tab is short by design. */
+function popularFeedHtml() {
+  const src = window.FRIEND_ACTIVITY || [];
+  const out = src.filter(f => f.popular).map(f => {
+    const album = typeof friendAlbumFor === 'function' ? friendAlbumFor(f) : null;
+    if (!album) return '';
+    const key = feedRevKey(f);
+    const text = typeof feedUnquote === 'function' ? feedUnquote(f.quote) : (f.quote || '');
+    REV_INDEX[key] = REV_INDEX[key] || { key, album, name: f.user, init: f.init, grad: f.grad,
+      rating: f.rating || 0, text, ago: f.ago, likes: f.likes || 0,
+      comments: f.comments || 0, face: feedFace(f.user), popular: true };
+    return revCardHtml({
+      key, cls: 'v3-rev-card--feed v3-rev-card--split', split: true,
+      name: f.user, face: feedFace(f.user), ago: f.ago, chip: 'popular review',
+      timeRight: true, actsTop: true, rating: f.rating || 0, text,
+      likes: f.likes || 0, comments: f.comments || 0,
+      record: { image: album.image, album: album.album, artist: album.artist, year: album.year },
+    });
+  }).filter(Boolean);
+  return out.join('') ||
+    '<div class="v3-rev-empty">Nothing doing the rounds right now.</div>';
+}
+
+/* YOU — everything you have actually posted, newest first, read from the
+   COMMITTED drafts (the same store the album page's own card reads), so this
+   tab is your reviews and not a sample of them.
+   ⚠ Keyed `mine::<album>` — the album page's key and the just-posted card's —
+   so one review has one thread and one like count on all three surfaces.
+   ⚠ `mine: true` so each card carries the PENCIL back into the sheet. */
+function myReviewsFeedHtml() {
+  const drafts = typeof logDrafts === 'function' ? logDrafts() : {};
+  const arch = window.ARCHIVE || [];
+  const rows = Object.keys(drafts).map(k => {
+    if (k.indexOf('album::') !== 0) return null;            // songs and artists are not reviews
+    const d = drafts[k] || {};
+    if (!(d.rating > 0 || (d.text || '').trim())) return null;
+    const bits = k.split('::');
+    return { title: bits[1] || '', artist: bits[2] || '', d, at: d.updated || 0 };
+  }).filter(Boolean).sort((a, b) => b.at - a.at);
+
+  const out = rows.map(r => {
+    // The record may have left ARCHIVE (the rec pool is re-dealt), so the
+    // draft's own snapshot stands in - exactly what libSnapFor is kept for.
+    const a = arch.find(x => x.album === r.title && x.artist === r.artist);
+    const snap = r.d.snap || {};
+    const rec = a ? { image: a.image, album: a.album, artist: a.artist, year: a.year }
+                  : { image: r.d.image || snap.image || '', album: r.title, artist: r.artist, year: snap.year || '' };
+    const key = 'mine::' + r.title;
+    const text = (r.d.text || '').trim();
+    REV_INDEX[key] = { key, album: a || rec, name: 'You', mine: true,
+      rating: r.d.rating || 0, text, ago: '', likes: 0, comments: 0 };
+    return revCardHtml({
+      key, cls: 'v3-rev-card--feed v3-rev-card--split v3-rev-card--mine', split: true, mine: true,
+      name: 'You', handle: (window.PROFILE || {}).handle || 'you',
+      face: (window.PROFILE || {}).pic || 'images/rp-01.jpg',
+      ago: '', timeRight: true, actsTop: true,
+      rating: r.d.rating || 0, text, likes: 0, comments: 0, record: rec,
+    });
+  });
+  return out.join('') ||
+    '<div class="v3-rev-empty">You have not posted a review yet.</div>';
+}
+
 function renderFriendFeed(screenEl) {
   const container = screenEl.querySelector('.v3-feed-items');
   if (!container) return;
+  paintFeedTabs(screenEl);
+  /* THE TABS (0.14b). Popular and You are their own lists and end here; only
+     the Friends tab runs the activity feed below, which is the one that deals
+     non-review rows (favourited, logged, followed) and the one `feed:` indexes
+     address. `_myFeedPost` leads Friends only — on You it would be a duplicate
+     of its own draft row, and on Popular it is not popular. */
+  const tab = window.FEED_TAB || 'friends';
+  if (tab === 'popular' || tab === 'you') {
+    container.innerHTML = tab === 'popular' ? popularFeedHtml() : myReviewsFeedHtml();
+    markLongReviews(container);
+    setTimeout(() => markLongReviews(container), 80);
+    tintFeedRecords(container);
+    return;
+  }
   const mine = myFeedCardHtml();
   const events = feedEvents();
   if (!events.length) { container.innerHTML = mine; return; }
