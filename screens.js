@@ -2601,7 +2601,7 @@ function discoveryDeckHtml() {
 
 function wallHtml(light) {
   return `
-      <div class="app-screen s-home-v3 s-wall2${light ? ' s-home-v3--light' : ''}">
+      <div class="app-screen s-home-v3 s-home-v3--fb-up s-wall2${light ? ' s-home-v3--light' : ''}">
         ${appHeader()}
         <div class="v3-body">
           <div class="wall2-scroll">
@@ -2609,13 +2609,26 @@ function wallHtml(light) {
                  friendsBentoHtml() the homepage carried, covers and the review
                  under them, at the top of the wall where the discovery deck
                  used to be.
+                 ⚠ THE SHELL CARRIES s-home-v3--fb-up FOR THIS. That class is
+                 the ORDER FLIP (app.css): the markup is review, flow, strip,
+                 and --fb-up sets order 1/2/3 to put the COVERS on top, the
+                 title under them and the review last. Home has always had it
+                 from homeShellHtml's coversUp argument. Leave it off and the
+                 wall renders raw markup order — review above the carousel,
+                 which is not what the deck looks like and not a change anyone
+                 asked for.
+                 ⚠ NO BACKTICKS IN HERE — this comment sits inside a TEMPLATE
+                 LITERAL. The first cut quoted class names in backticks the way
+                 the rest of the repo's prose does; each one closed the literal
+                 and reopened it, so the comment became JavaScript and every
+                 screen rendered blank. Same warning as the header handle above.
                  It needs NO new wiring: this screen already carries the
-                 `s-home-v3` class, so every `.s-home-v3 .v3-fb*` rule applies
-                 and `closest('.s-home-v3')` resolves for the gestures; and
-                 populateHomeData runs for every `.s-home-v3`, so its
+                 s-home-v3 class, so every .s-home-v3 .v3-fb rule applies and
+                 closest('.s-home-v3') resolves for the gestures; and
+                 populateHomeData runs for every .s-home-v3, so its
                  renderFriendsBento call finds this deck exactly as it found
-                 home's. renderFriendsBento skips `.v3-fb--dd` only — this is
-                 the plain `.v3-fb`, so it is rendered, not skipped.
+                 home's. renderFriendsBento skips .v3-fb--dd only — this is the
+                 plain .v3-fb, so it is rendered, not skipped.
                  ⚠ Like home's, the deck tints the shell it sits in to the front
                  cover's palette (fbGo ends in setMainAlbum + applyAlbumColorsUrl)
                  — which is what the wall did when the discovery deck was here. -->

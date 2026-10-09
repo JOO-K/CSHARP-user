@@ -17,14 +17,31 @@
 >   homepage" — i.e. the **friends deck**, `.v3-fb`: the flippable covers plus
 >   the review panel under them, as ONE unit. The `.v3-bento` hero is not it
 >   and stays on home.
->   · **The move needed NO new wiring**, which is the thing worth knowing. The
->   wall screen already carries the **`s-home-v3`** class
->   (`app-screen s-home-v3 s-wall2`), so every `.s-home-v3 .v3-fb*` rule
->   applies there and `closest('.s-home-v3')` resolves for the swipe and the
->   taps; and `populateHomeData` runs for **every** `.s-home-v3`, so its
+>   · **Almost no new wiring.** The wall screen already carries the
+>   **`s-home-v3`** class, so every `.s-home-v3 .v3-fb*` rule applies there and
+>   `closest('.s-home-v3')` resolves for the swipe and the taps; and
+>   `populateHomeData` runs for **every** `.s-home-v3`, so its
 >   `renderFriendsBento` call finds the deck on the wall exactly as it found it
 >   on home. `renderFriendsBento` skips `.v3-fb--dd` only, and this is the
->   plain `.v3-fb`. One moved `${friendsBentoHtml()}` and the markup was done.
+>   plain `.v3-fb`.
+>   ⚠️ **BUT THE WALL SHELL ALSO NEEDS `s-home-v3--fb-up`**, and shipping
+>   without it put the review ABOVE the carousel — a change nobody asked for
+>   ("why did u assume i wanted that, i dont"). The deck's MARKUP order is
+>   review → flow → strip; `--fb-up` is a flexbox **order flip** (`order: 1/2/3`
+>   in app.css) that puts the covers on top, the title under them and the
+>   review last. Home has carried it since 2026-09-23 through
+>   `homeShellHtml`'s `coversUp` argument, so the order looked like a property
+>   of the deck when it is really a property of the SHELL. Any screen hosting
+>   `.v3-fb` has to opt in.
+>   ⚠️ **AND A BACKTICK IN THE COMMENT BLANKED EVERY SCREEN.** The explanatory
+>   comment went inside `wallHtml`'s TEMPLATE LITERAL, and it quoted class
+>   names in backticks the way the rest of this file's prose does — each one
+>   closed the literal and reopened it, so the comment parsed as JavaScript and
+>   `SCREENS` evaluated to nothing. ⚠️ A delimiter count **cannot** catch this:
+>   the backticks were even in number, they were simply in the wrong place.
+>   `screens.js` already warns about this once (the header-handle note); the
+>   check that does catch it is "no backtick inside any `<!-- -->`", since an
+>   HTML comment only ever appears inside a markup template literal here.
 >   · It sits where the **discovery deck** used to (`discoveryDeckHtml`, pulled
 >   from the wall in 0.12 and still unused), i.e. first inside `.wall2-scroll`,
 >   above the Albums/Artists bar.
