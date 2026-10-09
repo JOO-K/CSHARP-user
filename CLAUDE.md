@@ -21,7 +21,7 @@
 > ### What 0.14 changes
 > - **2026-10-09 — A GOLD RING ON THE REVIEW YOU WERE JUST BROUGHT TO**
 >   (`app.js` `myFeedCardHtml`; `app.css` `.v3-rev-card--posted .v3-rev-av` +
->   `@keyframes v3PostedRing`; `app.js?v=422`, `app.css?v=678`). Eric: "when it
+>   `@keyframes v3PostedRing`; `app.js?v=422`, `app.css?v=679`). Eric: "when it
 >   takes you to your posted review, can we have it so that your profile image
 >   has a yellow ring around it". `myFeedCardHtml` puts
 >   **`.v3-rev-card--posted`** on the one card `_myFeedPost` builds, so the ring
@@ -34,10 +34,28 @@
 >   `var(--v3-star, var(--persona-accent, #e8a83c))` — the FEATURED ALBUM's
 >   extracted colour — so on the bento it is whatever that cover yielded, often
 >   not yellow at all. `#e8a83c` / `#c08818` are the app's own two golds.
->   ⚠️ The two colours go through **custom properties** because the keyframes
->   need them: an animation with `both` fill **beats an ordinary declaration**
->   in the cascade, so a plain `.s-home-v3--light … { box-shadow: … }` override
->   would be ignored and the light theme would settle on the dark gold.
+>   ⚠️⚠️ **THE RULE MUST CARRY `.v3-rev-card--feed` AND SIT AFTER THAT CLASS'S
+>   OWN AVATAR RULE.** The first cut was
+>   `.s-home-v3 .v3-rev-card--posted .v3-rev-av` — **three** classes, exactly
+>   the same as `.s-home-v3 .v3-rev-card--feed .v3-rev-av`, which resets the
+>   photo to a 1px hairline — and it sat **earlier** in the file, so the
+>   hairline won the tie on source order and **Eric saw no ring at all**. It
+>   only ever showed through the ANIMATION, because animations outrank normal
+>   declarations; that also meant it disappeared completely under
+>   `prefers-reduced-motion`. It is **four** classes now
+>   (`.v3-rev-card--feed.v3-rev-card--posted`) and placed after, so the ring
+>   wins on its own and the animation is decoration, not the mechanism.
+>   → Checked by resolving `box-shadow` on that avatar the way the cascade
+>   does — collecting every matching rule, sorting by (specificity, source
+>   order): gold wins in both themes, and a friend's feed avatar still
+>   resolves to the hairline.
+>   ⚠️ **The pulse is a separate `::after` ring animating `transform` and
+>   `opacity`.** The first cut animated `box-shadow` with `var()` inside the
+>   keyframes, which leans on custom-property substitution in `@keyframes` AND
+>   on box-shadow interpolation. The steady ring must not depend on either, so
+>   the keyframes now touch no colour at all and each theme sets its own
+>   `border-color` on the pseudo-element. Reduced motion hides the `::after`
+>   and keeps the ring — the ring is the message.
 >
 > ---
 >

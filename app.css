@@ -5910,42 +5910,6 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 .s-home-v3 .v3-rev-card.v3-rev-card--feed:last-child::after { display: none; }
 .s-home-v3 .v3-rev-card--feed .v3-rev-name  { color: var(--sd-ink); }
 
-/* ── YOUR JUST-POSTED REVIEW: THE GOLD RING (0.14, 2026-10-09) ─────────────
-   Eric: "when it takes you to your posted review, can we have it so that your
-   profile image has a yellow ring around it". `.v3-rev-card--posted` is set by
-   myFeedCardHtml on the one card _myFeedPost built, so the ring marks the card
-   you were brought to — not every card of yours, and not the album page's.
-   It stays while that post leads the feed (the session, or until you delete or
-   replace it) rather than flashing and going: the fade-in is 280ms and the
-   centring lands after it, so a short pulse would be over before you looked.
-   ⚠ An explicit GOLD, not `var(--star)`. Inside a home shell `--star` is
-   `var(--v3-star, var(--persona-accent, #e8a83c))` — the FEATURED ALBUM's
-   extracted colour — so on the bento it is whatever that cover happened to
-   yield, which is often not yellow at all. #e8a83c / #c08818 are the app's own
-   two golds (see :root and the --star light override).
-   ⚠ The colours go through custom properties because the keyframes need
-   them: an animation with `both` fill beats an ordinary declaration in the
-   cascade, so a plain `.s-home-v3--light … { box-shadow: … }` override would
-   be ignored and the light theme would end on the dark gold. */
-.s-home-v3 .v3-rev-card--posted .v3-rev-av {
-  --v3-posted-ring: #e8a83c;
-  --v3-posted-ring-soft: rgba(232,168,60,0.45);
-  box-shadow: 0 0 0 2px var(--v3-posted-ring);
-  animation: v3PostedRing .52s ease-out both;
-}
-.s-home-v3--light .v3-rev-card--posted .v3-rev-av {
-  --v3-posted-ring: #c08818;
-  --v3-posted-ring-soft: rgba(192,136,24,0.45);
-}
-@keyframes v3PostedRing {
-  from { box-shadow: 0 0 0 0 rgba(232,168,60,0); }
-  55%  { box-shadow: 0 0 0 5px var(--v3-posted-ring-soft); }
-  to   { box-shadow: 0 0 0 2px var(--v3-posted-ring); }
-}
-/* The ring is the point; only its draw-in is motion. */
-@media (prefers-reduced-motion: reduce) {
-  .s-home-v3 .v3-rev-card--posted .v3-rev-av { animation: none; }
-}
 .s-home-v3 .v3-rev-card--feed .v3-rev-sub   { color: var(--sd-ink3); }
 .s-home-v3 .v3-rev-card--feed .v3-rev-big-n { color: var(--sd-ink); }
 .s-home-v3 .v3-rev-card--feed .v3-rev-text  { color: var(--sd-ink2); }
@@ -5954,6 +5918,58 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 .s-home-v3--light .v3-rev-card--feed .v3-rev-text { color: rgba(26,18,8,0.9); }   /* 90% ink on cream (Eric, 2026-09-18) — --sd-ink2 read too faint for a paragraph */
 .s-home-v3 .v3-rev-card--feed .v3-rev-av,
 .s-home-v3 .v3-rev-card--feed .v3-rev-record-art { box-shadow: 0 0 0 1px var(--sd-line); background-color: var(--sd-card); }
+
+/* ── YOUR JUST-POSTED REVIEW: THE GOLD RING (0.14, 2026-10-09) ─────────────
+   Eric: "when it takes you to your posted review, can we have it so that your
+   profile image has a yellow ring around it". `.v3-rev-card--posted` is set by
+   myFeedCardHtml on the one card _myFeedPost builds, so the ring marks the
+   card the post-review exit brought you to — not every card of yours, and not
+   the album page's. It STAYS while that post leads the feed; only its draw-in
+   is motion.
+
+   ⚠⚠ THIS MUST SIT AFTER THE `--feed` AVATAR RULE DIRECTLY ABOVE, AND CARRY
+   `.v3-rev-card--feed` ITSELF. The first cut was
+   `.s-home-v3 .v3-rev-card--posted .v3-rev-av` — three classes, exactly the
+   same as `.s-home-v3 .v3-rev-card--feed .v3-rev-av`, and it sat EARLIER in
+   the file, so the hairline above won the tie on source order and there was no
+   ring. It only ever showed through the ANIMATION (animations outrank normal
+   declarations), which meant it vanished entirely under
+   `prefers-reduced-motion`. Four classes now, and placed after: the ring wins
+   on its own and the animation is decoration, not the mechanism.
+
+   ⚠ An explicit GOLD, not `var(--star)`. Inside a home shell `--star` is
+   `var(--v3-star, var(--persona-accent, #e8a83c))` — the FEATURED ALBUM's
+   extracted colour — so on the bento it is whatever that cover happened to
+   yield, which is often not yellow at all. #e8a83c / #c08818 are the app's own
+   two golds (see :root and the --star light override).
+
+   ⚠ The pulse is a separate ::after ring animating TRANSFORM and OPACITY.
+   The first cut animated `box-shadow` through `var()` in the keyframes, which
+   leans on custom-property substitution inside @keyframes and on box-shadow
+   interpolation; the steady ring must not depend on either. */
+.s-home-v3 .v3-rev-card--feed.v3-rev-card--posted .v3-rev-av {
+  position: relative;
+  box-shadow: 0 0 0 2px #e8a83c;
+}
+.s-home-v3--light .v3-rev-card--feed.v3-rev-card--posted .v3-rev-av {
+  box-shadow: 0 0 0 2px #c08818;
+}
+/* The draw-in: a second ring that swells out of the photo once and goes. */
+.s-home-v3 .v3-rev-card--feed.v3-rev-card--posted .v3-rev-av::after {
+  content: ''; position: absolute; inset: -5px;
+  border-radius: 50%; border: 2px solid #e8a83c;
+  pointer-events: none;
+  animation: v3PostedRing .62s ease-out both;
+}
+.s-home-v3--light .v3-rev-card--feed.v3-rev-card--posted .v3-rev-av::after { border-color: #c08818; }
+@keyframes v3PostedRing {
+  from { opacity: .95; transform: scale(.78); }
+  to   { opacity: 0;   transform: scale(1.22); }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The ring stays — it is the message. Only the swell goes. */
+  .s-home-v3 .v3-rev-card--feed.v3-rev-card--posted .v3-rev-av::after { display: none; }
+}
 .s-home-v3 .v3-rev-card--feed .v3-rev-record-album  { color: var(--sd-ink); }
 .s-home-v3 .v3-rev-card--feed .v3-rev-record-artist { color: var(--sd-ink2); }
 .s-home-v3 .v3-rev-card--feed .v3-rev-record-year   { color: var(--sd-ink3); }
