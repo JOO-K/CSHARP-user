@@ -15,17 +15,36 @@
    (localhost, 127.*, a LAN address, file:), and only lists the versions
    that actually answer. On the public site it does nothing at all.
 
-   ADDING A VERSION: `git worktree add versions/0.12 -b v0.12 v0.11` from
-   the site's folder, then add '0.12' to WIP_VERSIONS and ORDER in every
-   copy of this file. Desktop viewer only; loads last and touches nothing in app.js.
+   ADDING A VERSION: `git worktree add versions/0.14 -b v0.14` from the
+   site's folder, then add '0.14' to WIP_VERSIONS and ORDER in every copy of
+   this file.
+
+   LANDING ONE: when a WIP merges into main it becomes the root, so set
+   ROOT_VERSION to its name and take it OUT of WIP_VERSIONS (it has no
+   versions/ folder any more) while leaving it in ORDER. Forgetting the first
+   half is how the root went on calling itself 0.1 for three versions; the
+   second half is how '0.13' ended up in the menu pointing at a 404.
+
+   Desktop viewer only; loads last and touches nothing in app.js.
    ============================================================ */
 
 (function () {
-  const ROOT_VERSION = '0.1';
-  const WIP_VERSIONS = ['-1', '-0.1', '-0.11', '0.11', '0.12', '0.13'];
+  /* ROOT_VERSION is the NAME OF WHATEVER IS IN THE ROOT FOLDER — i.e. of
+     `main` — so it changes every time a WIP version lands there. It read
+     '0.1' until 2026-10-08, long after main had gone 0.11 → 0.12 → 0.13:
+     the switcher called the root 0.1 and clicking "0.1" opened 0.13's code.
+     Nothing named 0.1 is preserved anywhere — the root advanced IN PLACE —
+     so '0.1' is gone from the lists rather than pointing at a lie.
+     ⚠ 0.13 belongs in NEITHER list below: it IS the root. It sat in
+     WIP_VERSIONS for a `versions/0.13/` worktree that was never made, so
+     `exists` HEAD-ed a 404 and dropped it from the menu every time. */
+  const ROOT_VERSION = '0.13';
+  const WIP_VERSIONS = ['-1', '-0.1', '-0.11', '0.11', '0.12', '0.14'];
   // The order the list is shown in, oldest first. -0.1 is the ORIGINAL app
   // (c-sharp, before the review-only fork), brought in on 2026-09-28.
-  const ORDER = ['-1', '-0.1', '-0.11', '0.1', '0.11', '0.12', '0.13'];   // -1 (2026-10-01): the original c-sharp app at 1c44670, untouched. -0.11 (2026-09-29): -0.1 with one For You card, no stack
+  // ⚠ ROOT_VERSION has to appear here too, in its chronological place, or it
+  // sorts to the end: anything missing from ORDER gets index 99.
+  const ORDER = ['-1', '-0.1', '-0.11', '0.11', '0.12', '0.13', '0.14'];   // -1 (2026-10-01): the original c-sharp app at 1c44670, untouched. -0.11 (2026-09-29): -0.1 with one For You card, no stack
 
   const isFile = location.protocol === 'file:';
   const isLocal = isFile ||
