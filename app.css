@@ -5059,7 +5059,7 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
 .v3-rev-songs {
   width: 100%; box-sizing: border-box; margin: 10px 0 2px;
   /* Tracklist column widths — read by both the rows and the header labels. */
-  --song-dur-w: 42px;
+  --song-dur-w: 54px;   /* 0.14: was 42, widened for the "COMMENTS" label */
   --song-rate-w: 42px;
 }
 
@@ -6735,7 +6735,15 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 .sd-log-overlay.open .sd-log-sheet { transform: translateY(0); }
 /* A song's sheet has no review box and no song list: it ends under the three
    buttons, and the space above it is the page (2026-09-11). */
-.sd-log-sheet.sd-log-sheet--song { height: auto; }
+/* A SONG's sheet is capped at 60% (Eric, 2026-10-09: "lets keep the songs
+   review window like 60% vh max"). ⚠️ PER CENT, NOT vh. The overlay is
+   `position: absolute; inset: 0` inside `.app-screen`, so a percentage here
+   resolves against the PHONE SCREEN — which is what 60% of the window means
+   in this app. `60vh` would measure the desktop viewer's browser window, and
+   the phone frame is a small box inside it, so the sheet would be sized off
+   something the user never sees. Every other height in this block is a % for
+   the same reason (the base sheet is `95% - 10px`). */
+.sd-log-sheet.sd-log-sheet--song { height: auto; max-height: 60%; }
 /* A SONG's sheet is compact (Eric, 2026-09-18): the song's name alone up top
    — no cover, no album, no year — then the discs and Favourite. You tapped
    it from the album's own tracklist; the record is behind the sheet. */
@@ -12840,6 +12848,45 @@ body.sd-return .s-home-v3--review .v3-body,
   display: flex; justify-content: center;
 }
 .sd-log-savebar[hidden] { display: none; }
+
+/* ── SONG COMMENTS (0.14, 2026-10-09) ──────────────────────────────────────
+   The thread under a song's discs, in the review threads' own clothes (the
+   markup IS cmtWrapHtml's, so .v3-cmt* styles it). Eric: "not a review per
+   say its more casual".
+   ⚠️ The BODY scrolls, not the sheet: the popup is capped at 60% of the phone
+   screen, and letting the thread grow it would push the discs off the top.
+   176px is about two comments — a .v3-cmt is 13+14px of padding around a 30px
+   avatar row plus its text — so the third is half-visible, which is what says
+   "there is more" better than a clean cut would. */
+.sd-log-cmts {
+  margin: 14px -2px 0; padding-top: 10px;
+  border-top: 1px solid rgba(232,226,214,0.10);
+}
+.sd-log-cmts[hidden] { display: none; }
+.sd-log-cmts-hd {
+  font-family: var(--font-mono); font-size: 8.5px;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: rgba(232,226,214,0.3);
+  margin-bottom: 2px;
+}
+.sd-log-cmts-n { color: rgba(232,226,214,0.5); }
+.sd-log-cmts-body {
+  max-height: 176px; overflow-y: auto;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;   /* don't hand the scroll up to the sheet at the ends */
+}
+.sd-log-cmts-body::-webkit-scrollbar { display: none; }
+.s-home-v3--light .sd-log-cmts { border-top-color: rgba(232,226,214,0.14); }
+
+/* The tracklist's comment cell — the glyph and the count where the length
+   was. Keeps .v3-song-dur (and so the column width), restyles the inside. */
+.v3-song-cmt {
+  display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px;
+}
+.v3-song-cmt svg { width: 11px; height: 11px; flex-shrink: 0; }
+.v3-song-cmt-n { font-family: var(--font-mono); font-size: 10px; }
+/* A song nobody has talked about yet: the glyph alone, dimmed, no 0. */
+.v3-song-cmt-n:empty { display: none; }
 /* 0.13 (2026-10-08): the bar is a ROW capped at the old button's width. SAVE
    CHANGES and EDIT REVIEW each FILL it (they are never up together — Edit is
    the locked state), and the delete circle sits to their right.

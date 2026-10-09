@@ -2080,16 +2080,25 @@ function populateSongList(scr, all) {
     <div class="v3-song-head">
       <span class="v3-song-num"></span>
       <span class="v3-song-title">Song</span>
-      <span class="v3-song-dur">Length</span>
+      <span class="v3-song-dur">Comments</span>
       <span class="v3-song-rate">Rating</span>
     </div>
-    <div class="v3-rev-songs-scroll">` + shown.map((s, i) => `
+    <div class="v3-rev-songs-scroll">` + shown.map((s, i) => {
+      /* THE COMMENT COUNT TAKES THE LENGTH COLUMN (0.14, Eric: "maybe we canput
+         the comment icon with the number of comments instead of the song
+         length"). It keeps the `.v3-song-dur` class so the column width and the
+         header label still track each other through --song-dur-w; `.v3-song-cmt`
+         only restyles what is inside it. The cell is not its own control — the
+         whole row opens the song popup, where the thread is. */
+      const ck = songCmtKey(s.title, a.album), ct = songCmtTotal(s.title, a.album);
+      return `
     <button class="v3-song-row" onclick="event.stopPropagation(); openSongLog(this)" data-title="${s.title}">
       <span class="v3-song-num">${songNumHtml(a, s.title, i)}</span>
       <span class="v3-song-title">${s.title}</span>
-      <span class="v3-song-dur">${s.dur}</span>
+      <span class="v3-song-dur v3-song-cmt">${CMT_SVG}<span class="v3-song-cmt-n" data-k="${_revAttr(ck)}" data-n="${ct}">${cmtCount(ck, ct) || ''}</span></span>
       ${songRateHtml(a, s)}
-    </button>`).join('') + `</div>` + (more > 0 ? `
+    </button>`;
+    }).join('') + `</div>` + (more > 0 ? `
     <button class="v3-songs-more" onclick="event.stopPropagation(); expandSongList(this)">View all ${songs.length} songs</button>` : '');
 }
 window.expandSongList = function (el) {
@@ -2341,6 +2350,27 @@ function cmtCount(key, total) {
   return cmtRoots(key, total).reduce((s, c) => s + cmtSize(c), 0);
 }
 
+/* ── SONG COMMENTS (0.14, 2026-10-09) ──────────────────────────────────────
+   Eric: "comments to songs in the album page its not a review per say its more
+   casual ... this can look like the comments on the reviews". It can, and for
+   free: every thread above is addressed by a KEY and seeds its own content
+   (revThread / cmtCount / cmtWrapHtml / cmtRender), so a song needs no new
+   machinery — only a key and a base count.
+   ⚠ The key is the SONG DRAFT's key, `song::<title>::<album>` — the same one
+   the song's sheet saves a rating under and the tracklist's heart reads — so a
+   song has ONE thread wherever it is opened from, and a comment posted in the
+   popup is the comment the tracklist counts.
+   ⚠ The base count must be SEEDED, never rolled. Songs carry no comment data,
+   and `populateSongList` rebuilds the list on every expand, theme swap and
+   rating refresh — a fresh number would make every count on screen jump each
+   time. Seeded off the key, a song reads the same forever and on any machine,
+   the same contract `songsFor` and `revMeta` keep. */
+function songCmtKey(title, album) { return 'song::' + title + '::' + (album || ''); }
+function songCmtTotal(title, album) {
+  const r = seedRand('songcmt::' + title + '::' + (album || ''));
+  return r() < 0.22 ? 0 : 1 + Math.floor(r() * 13);   // about one song in five has none yet
+}
+
 /* Locate a node and its parent across BOTH root lists — your base-level
    comments live in CMT_MINE, everyone else's in CMT_CACHE, and Reply can
    target either. */
@@ -2504,6 +2534,15 @@ function cmtRender(key) {
   setTimeout(cmtFill, 0);                    // a thread must overflow the screen to be scrollable
   document.querySelectorAll('.rvp-cmts-n').forEach(n => {
     if (n.dataset.k === key) n.textContent = cmtCount(key, +n.dataset.n || 0);
+  });
+  /* The tracklist's per-song counter and the song popup's heading (0.14). Same
+     rule as the wraps above: repaint EVERY copy carrying this key, because the
+     dark and light shells both hold the tracklist. */
+  document.querySelectorAll('.v3-song-cmt-n, .sd-log-cmts-n').forEach(n => {
+    // `|| ''` so a song with no comments shows the glyph alone, not a "0"
+    // (.v3-song-cmt-n:empty is display:none) — and the moment you post the
+    // first one the number appears.
+    if (n.dataset.k === key) n.textContent = cmtCount(key, +n.dataset.n || 0) || '';
   });
   document.querySelectorAll('.v3-cmt-btn').forEach(b => {
     if (b.dataset.k !== key) return;
@@ -7873,6 +7912,15 @@ function ensureLogSheet() {
         <div class="sd-log-songs-hd">Optional <span class="sd-log-songs-sub">only rated songs get logged</span></div>
         <div class="sd-log-songs-list"></div>
       </div>
+      <!-- SONG COMMENTS (0.14) — only ever shown on a SONG's sheet, filled by
+           openLogSheet. It sits ABOVE the savebar so the pinned bar stays the
+           last thing in the sheet, and the thread scrolls inside its own body
+           rather than growing the popup (Eric: "have it so u cna see like 2
+           comments and u have to scorll down"). -->
+      <div class="sd-log-cmts" hidden>
+        <div class="sd-log-cmts-hd">Comments <span class="sd-log-cmts-n"></span></div>
+        <div class="sd-log-cmts-body"></div>
+      </div>
       <!-- SAVE CHANGES, pinned to the sheet's bottom (0.12, Eric 2026-10-02:
            "anytime you make any changes a fixed save changes button appears at
            the bottom so it's there even if you scroll"). Sticky inside the
@@ -8226,6 +8274,28 @@ window.openLogSheet = function(triggerEl, subject, opts) {
   } else {
     if (reviewBox) reviewBox.hidden = false;
     fillLogSongs(ov, subj.ref || album);   // `ref` (0.11): the + flow logs an album that is not the one on screen
+  }
+  /* THE SONG'S THREAD (0.14). Songs only — an album's sheet is a review, and
+     the review's own comments live on its card. `CMT_OPEN` is forced on: the
+     section IS the thread here, so there is nothing to expand.
+     ⚠ Cleared on every non-song open, or a song's thread would still be
+     sitting in the DOM the next time an album's sheet came up. */
+  const cmts = ov.querySelector('.sd-log-cmts');
+  if (cmts) {
+    const body = cmts.querySelector('.sd-log-cmts-body');
+    const nEl  = cmts.querySelector('.sd-log-cmts-n');
+    if (subj.isSong) {
+      const ck = songCmtKey(subj.title, subj.subtitle || '');
+      const ct = songCmtTotal(subj.title, subj.subtitle || '');
+      CMT_OPEN[ck] = true;
+      if (body) body.innerHTML = cmtWrapHtml(ck, ct);
+      if (nEl) { nEl.dataset.k = ck; nEl.dataset.n = String(ct); nEl.textContent = cmtCount(ck, ct) || ''; }
+      cmts.hidden = false;
+      setTimeout(cmtFill, 60);            // the thread has to overflow to scroll
+    } else {
+      cmts.hidden = true;
+      if (body) body.innerHTML = '';
+    }
   }
   const shareBtn = ov.querySelector('.sd-log-share');
   if (shareBtn) shareBtn.hidden = !!(subj.isSong || subj.isArtist);

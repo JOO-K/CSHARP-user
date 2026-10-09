@@ -23,6 +23,45 @@
 > site** — and `versions/` is `.gitignore`d so the frozen copies never deploy.
 >
 > ### What 0.14 changes
+> - **2026-10-09 — SONGS HAVE COMMENTS** (`app.js` — `songCmtKey` /
+>   `songCmtTotal` / `populateSongList` / `openLogSheet` / `cmtRender`, and the
+>   sheet markup; `app.css` — `.sd-log-cmts*`, `.v3-song-cmt*`, the song
+>   sheet's cap; `app.js?v=426`, `app.css?v=681`). Eric: "comments to songs in
+>   the album page its not a review per say its more casual … maybe we canput
+>   the comment icon with the number of comments instead of the song length …
+>   keep the songs review window like 60% vh max and have the comments below
+>   and have it so u cna see like 2 comments and u have to scorll down".
+>   · **No new comment machinery.** Every thread in the app is addressed by a
+>   KEY and seeds its own content (`revThread` / `cmtCount` / `cmtWrapHtml` /
+>   `cmtRender`), so a song needed only a key and a base count. The popup's
+>   thread is literally `cmtWrapHtml`'s markup, so `.v3-cmt*` styles it.
+>   · **The key is the SONG DRAFT's key**, `song::<title>::<album>` — the same
+>   one the song's sheet saves a rating under and the tracklist's heart reads —
+>   so a song has ONE thread and a comment posted in the popup is the comment
+>   the tracklist counts.
+>   ⚠️ **The base count is SEEDED, never rolled** (`songCmtTotal`, off
+>   `seedRand`). Songs carry no comment data, and `populateSongList` rebuilds
+>   the list on every expand, theme swap and rating refresh — a fresh roll
+>   would make every count on screen jump each time. ~22% of songs get none.
+>   · The tracklist cell **keeps the `.v3-song-dur` class** so the column width
+>   and its header label still track each other through `--song-dur-w` (widened
+>   42 → 54px for "COMMENTS"); `.v3-song-cmt` only restyles the inside. A song
+>   with no comments shows the **glyph alone, no "0"** (`|| ''` plus
+>   `.v3-song-cmt-n:empty { display: none }`). The cell is not its own control —
+>   the whole row already opens the popup.
+>   ⚠️ **`max-height: 60%`, NOT `60vh`.** The overlay is
+>   `position: absolute; inset: 0` inside `.app-screen`, so a percentage
+>   resolves against the PHONE SCREEN — which is what "60% of the window" means
+>   here. `60vh` would measure the desktop viewer's browser window, and the
+>   phone frame is a small box inside it. Every height in that block is a % for
+>   the same reason (the base sheet is `95% - 10px`).
+>   ⚠️ **The comments BODY scrolls, not the sheet** (`max-height: 176px`,
+>   ≈ two `.v3-cmt` rows). Letting the thread grow the popup would push the
+>   discs off the top of a 60%-capped sheet. `overscroll-behavior: contain` so
+>   reaching an end does not hand the scroll up to the sheet.
+>   · The section sits **above the savebar** so the pinned bar stays last, and
+>   is **cleared on every non-song open** — otherwise a song's thread would
+>   still be in the DOM when an album's sheet came up next.
 > - **2026-10-09 — YOUR OWN REVIEW KEEPS ITS HEART IN THE POPUP** (`app.js`
 >   `rshBodyHtml`; `app.js?v=425`). Eric: "on your review popup the heart and
 >   like is there still its no there on the left side". The like was built as
