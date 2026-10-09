@@ -19,7 +19,25 @@
 > for side-by-side comparison, as `versions/0.11` and `versions/0.12` are.
 >
 > ### What 0.14 changes
-> - *(nothing yet — 0.14 opens byte-identical to 0.13)*
+> - **2026-10-09 — A GOLD RING ON THE REVIEW YOU WERE JUST BROUGHT TO**
+>   (`app.js` `myFeedCardHtml`; `app.css` `.v3-rev-card--posted .v3-rev-av` +
+>   `@keyframes v3PostedRing`; `app.js?v=422`, `app.css?v=678`). Eric: "when it
+>   takes you to your posted review, can we have it so that your profile image
+>   has a yellow ring around it". `myFeedCardHtml` puts
+>   **`.v3-rev-card--posted`** on the one card `_myFeedPost` builds, so the ring
+>   marks the card the post-review exit **brought you to** — not every card of
+>   yours, and not the album page's. It **stays** while that post leads the feed
+>   (the session, or until you delete or replace it) rather than flashing: the
+>   fade-in alone is 280ms and the centring lands after it, so a short pulse
+>   would be over before you looked.
+>   ⚠️ **An explicit gold, NOT `var(--star)`.** Inside a home shell `--star` is
+>   `var(--v3-star, var(--persona-accent, #e8a83c))` — the FEATURED ALBUM's
+>   extracted colour — so on the bento it is whatever that cover yielded, often
+>   not yellow at all. `#e8a83c` / `#c08818` are the app's own two golds.
+>   ⚠️ The two colours go through **custom properties** because the keyframes
+>   need them: an animation with `both` fill **beats an ordinary declaration**
+>   in the cascade, so a plain `.s-home-v3--light … { box-shadow: … }` override
+>   would be ignored and the light theme would settle on the dark gold.
 >
 > ---
 >
