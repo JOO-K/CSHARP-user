@@ -12853,11 +12853,16 @@ body.sd-return .s-home-v3--review .v3-body,
    The thread under a song's discs, in the review threads' own clothes (the
    markup IS cmtWrapHtml's, so .v3-cmt* styles it). Eric: "not a review per
    say its more casual".
-   ⚠️ The BODY scrolls, not the sheet: the popup is capped at 60% of the phone
-   screen, and letting the thread grow it would push the discs off the top.
-   176px is about two comments — a .v3-cmt is 13+14px of padding around a 30px
-   avatar row plus its text — so the third is half-visible, which is what says
-   "there is more" better than a clean cut would. */
+   ⚠️ ONE SCROLLER, AND IT IS THE SHEET. The thread grows to its full height
+   and the POPUP scrolls (Eric, same day: "the comment section in the songs
+   comments doesnt just scroll like the whole song popup scrolls"). It was the
+   other way round for an hour — `.sd-log-cmts-body` capped at 176px with its
+   own `overflow-y: auto` — and that reads as a window inside a window: a box
+   to scroll separately, inside a sheet already capped at 60%, with the discs
+   stranded above it. So NO max-height and NO overflow here. `.sd-log-sheet` is
+   already `overflow-y: auto`, `--song` caps it at 60%, and `.sd-log-savebar`
+   is `position: sticky` — so Post review stays on the bottom edge however far
+   down the thread you have scrolled. */
 .sd-log-cmts {
   margin: 14px -2px 0; padding-top: 10px;
   border-top: 1px solid rgba(232,226,214,0.10);
@@ -12870,12 +12875,6 @@ body.sd-return .s-home-v3--review .v3-body,
   margin-bottom: 2px;
 }
 .sd-log-cmts-n { color: rgba(232,226,214,0.5); }
-.sd-log-cmts-body {
-  max-height: 176px; overflow-y: auto;
-  scrollbar-width: none; -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;   /* don't hand the scroll up to the sheet at the ends */
-}
-.sd-log-cmts-body::-webkit-scrollbar { display: none; }
 .s-home-v3--light .sd-log-cmts { border-top-color: rgba(232,226,214,0.14); }
 
 /* The tracklist's comment cell — the glyph and the count where the length

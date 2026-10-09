@@ -55,10 +55,17 @@
 >   here. `60vh` would measure the desktop viewer's browser window, and the
 >   phone frame is a small box inside it. Every height in that block is a % for
 >   the same reason (the base sheet is `95% - 10px`).
->   ⚠️ **The comments BODY scrolls, not the sheet** (`max-height: 176px`,
->   ≈ two `.v3-cmt` rows). Letting the thread grow the popup would push the
->   discs off the top of a 60%-capped sheet. `overscroll-behavior: contain` so
->   reaching an end does not hand the scroll up to the sheet.
+>   ⚠️ **ONE SCROLLER, AND IT IS THE SHEET.** The thread grows to its full
+>   height and the popup scrolls (Eric, an hour later: "the comment section in
+>   the songs comments doesnt just scroll like the whole song popup scrolls").
+>   The first cut had it the other way — `.sd-log-cmts-body` capped at 176px
+>   with its own `overflow-y: auto` — which reads as a window inside a window:
+>   a box to scroll separately, inside a sheet already capped at 60%, with the
+>   discs stranded above it. So there is **no rule on `.sd-log-cmts-body` at
+>   all**; it is a plain container. `.sd-log-sheet` is already
+>   `overflow-y: auto`, `--song` caps it at 60%, and `.sd-log-savebar` is
+>   `position: sticky`, so Post review stays on the bottom edge however far
+>   down the thread you are.
 >   · The section sits **above the savebar** so the pinned bar stays last, and
 >   is **cleared on every non-song open** — otherwise a song's thread would
 >   still be in the DOM when an album's sheet came up next.
