@@ -4822,7 +4822,6 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
 .s-home-v3--light.s-home-v3--artist .v3-cmt-like:hover,
 .s-home-v3--light.s-home-v3--artist .v3-cmt-reply:hover { color: rgba(26,18,8,0.75); }
 .s-home-v3--light.s-home-v3--artist .v3-cmt-like.is-on { color: #b06a2a; }
-.s-home-v3--light.s-home-v3--artist .v3-cmt-more { color: rgba(26,18,8,0.42); }
 .s-home-v3--light.s-home-v3--artist .v3-cmt-none { color: rgba(26,18,8,0.4); }
 .s-home-v3--light.s-home-v3--artist .v3-cmt-input {
   color: #1a1208; background: rgba(26,18,8,0.05); border-color: rgba(26,18,8,0.14);
@@ -5790,17 +5789,9 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 .v3-cmt-like.is-on { color: #ff5c8a; }
 .v3-cmt-like.is-on svg { fill: currentColor; }
 
-/* Default is CMT_DEFAULT threads; the rest hide behind this, and the count it
-   promises includes the replies that go down with them. */
-.v3-cmt-more {
-  display: block; width: 100%; text-align: left;
-  border: none; background: none; cursor: pointer;
-  padding: 7px 0 5px;                                /* flush left: the text runs full width now */
-  font-family: var(--font-mono); font-size: 10.5px;
-  color: rgba(232,226,214,0.45);
-  transition: color .14s;
-}
-.v3-cmt-more:hover { color: var(--star); }
+/* The first CMT_DEFAULT threads render; cmtAutoMore pages the rest in on
+   scroll. ("View n more" and its .v3-cmt-more styles came off on 2026-10-09 —
+   see .v3-cmt-loading, which is what marks a thread with more to come.) */
 .v3-cmt-none { font-size: 11px; color: rgba(232,226,214,0.32); padding: 3px 0; }
 
 /* Column, not a row: the reply chip stacks above the input line. */
@@ -12151,7 +12142,7 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 .s-home-v3--light .v3-cmt-like:hover, .s-home-v3--light .v3-cmt-reply:hover { color: rgba(26,18,8,0.9); }
 .s-home-v3--light .v3-cmt-like.is-on { color: #e0396e; }
 .s-home-v3--light .v3-cmt-av { background-color: rgba(26,18,8,0.08); box-shadow: 0 0 0 1px rgba(26,18,8,0.1); }
-.s-home-v3--light .v3-cmt-none, .s-home-v3--light .v3-cmt-more { color: rgba(26,18,8,0.4); }
+.s-home-v3--light .v3-cmt-none { color: rgba(26,18,8,0.4); }
 .s-home-v3--light .v3-cmt-input {
   background: rgba(26,18,8,0.05); border-color: rgba(26,18,8,0.12); color: #1a1208;
 }
@@ -12875,6 +12866,34 @@ body.sd-return .s-home-v3--review .v3-body,
   margin-bottom: 2px;
 }
 .sd-log-cmts-n { color: rgba(232,226,214,0.5); }
+
+/* ── THE INFINITE-SCROLL TAIL (0.14, 2026-10-09) ───────────────────────
+   What replaced "View n more" (Eric: "just have all the comments and have a
+   inf scroll type load"). Three dots at the end of the list while anything is
+   still held back; cmtAutoMore pages the rest in as you reach them, and this
+   row disappears with the last of them. NOT a control — no cursor, no hit
+   target, aria-hidden in the markup: tapping it must do nothing, because
+   scrolling is the gesture now. */
+.v3-cmt-loading {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 16px 0 10px;
+}
+.v3-cmt-loading i {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: rgba(232,226,214,0.32);
+  animation: cmtDots 1.1s ease-in-out infinite;
+}
+.v3-cmt-loading i:nth-child(2) { animation-delay: .16s; }
+.v3-cmt-loading i:nth-child(3) { animation-delay: .32s; }
+@keyframes cmtDots {
+  0%, 60%, 100% { opacity: .28; transform: translateY(0); }
+  30%           { opacity: .85; transform: translateY(-2px); }
+}
+.s-home-v3--light .v3-cmt-loading i { background: rgba(26,18,8,0.3); }
+/* Reduced motion: still three dots, just still ones. */
+@media (prefers-reduced-motion: reduce) {
+  .v3-cmt-loading i { animation: none; opacity: .4; }
+}
 .s-home-v3--light .sd-log-cmts { border-top-color: rgba(232,226,214,0.14); }
 
 /* The tracklist's comment cell — the glyph and the count where the length

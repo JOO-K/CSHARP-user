@@ -23,6 +23,32 @@
 > site** — and `versions/` is `.gitignore`d so the frozen copies never deploy.
 >
 > ### What 0.14 changes
+> - **2026-10-09 — NO "VIEW n MORE": THREADS LOAD AS YOU SCROLL** (`app.js` —
+>   `cmtThreadHtml` / `cmtAutoMore` / `cmtFill` / the scroll listener, and
+>   `cmtMore` deleted; `app.css` — `.v3-cmt-loading`, `.v3-cmt-more` removed;
+>   `app.js?v=427`, `app.css?v=683`). Eric: "instead of view more comments can
+>   we just have all the comments and have a inf scroll type load when u have
+>   too many comments".
+>   · Paging itself already existed (`cmtAutoMore` + `CMT_SHOWN`/`CMT_PAGE`);
+>   the button was its no-scroll fallback. It is gone, and the list now ends in
+>   **`.v3-cmt-loading`** — three dots, `aria-hidden`, **not a control** — while
+>   anything is held back. It also serves as the **sentinel**: it gives the end
+>   of the list height to reach, so a thread whose last comment lands on the
+>   fold still trips the −140px test.
+>   ⚠️ **`cmtAutoMore` now reads the key off the WRAP (`data-cmt`), not off a
+>   button.** It used to find `.v3-cmt-more` and take `data-k` from it — so
+>   deleting the button would have silently killed paging on every surface. The
+>   wrap is also where the base count lives (`data-n`), which `cmtRoots` needs.
+>   ⚠️ **It no longer requires `.s-rvp / .s-home-v3--rvp / .v3-rsh` around the
+>   scroller**, and `.sd-log-sheet` was added to both the scroll listener
+>   (`CMT_SCROLLERS`) and `cmtFill`. The SONG POPUP scrolls on the sheet itself
+>   and matched none of those selectors, so song threads shipped the day before
+>   capped at the first page with no way to reach the rest — the button was
+>   their only route and it was never styled for that sheet.
+>   · It **terminates**: a key whose `shown` has caught up with `roots` is
+>   skipped, so the `cmtRender → cmtFill → cmtAutoMore` chain runs out (a
+>   40-root thread takes 8 reveals). `CMT_ALL` still short-circuits to the whole
+>   thread, which is what posting a reply sets.
 > - **2026-10-09 — SONGS HAVE COMMENTS** (`app.js` — `songCmtKey` /
 >   `songCmtTotal` / `populateSongList` / `openLogSheet` / `cmtRender`, and the
 >   sheet markup; `app.css` — `.sd-log-cmts*`, `.v3-song-cmt*`, the song

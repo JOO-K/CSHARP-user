@@ -2451,17 +2451,23 @@ function cmtThreadHtml(key, total) {
   if (!CMT_OPEN[key]) return '';
   const roots = cmtRoots(key, total);
   const shown = CMT_ALL[key] ? roots : roots.slice(0, CMT_SHOWN[key] || CMT_DEFAULT);
-  const rest = roots.slice(shown.length).reduce((s, c) => s + cmtSize(c), 0);
+  const more = shown.length < roots.length;     // anything still held back?
   /* The composer is one box that does both jobs: with a target it posts a
      nested reply, without one it posts at the base of the thread. The chip is
      the only thing that says which — so it doubles as the way out of reply
      mode. */
   const to = CMT_REPLY_TO[key] ? cmtFind(key, CMT_REPLY_TO[key]) : null;
   /* The composer comes FIRST (2026-09-11) — commenting should not cost a
-     scroll to the bottom of a list that now pages in as you go — and the list
-     ends in a sentinel that the page's scroll listener (cmtAutoMore) reads to
-     reveal the next few. The "View n more" button stays as the no-scroll
-     fallback. */
+     scroll to the bottom of a list that pages in as you go.
+     THE "VIEW n MORE" BUTTON IS GONE (0.14, Eric: "instead of view more
+     comments can we just have all the comments and have a inf scroll type load
+     when u have too many comments"). The list now ends in `.v3-cmt-loading`
+     while anything is held back — three dots, no control, purely the signal
+     that more is coming — and `cmtAutoMore` reveals the next page as the
+     scroller nears its bottom. It disappears when the thread is fully out.
+     ⚠ This is also the SENTINEL: it gives the end of the list some height to
+     reach, so a thread whose last comment lands exactly on the fold still
+     trips the -140px test. */
   return `
       <div class="v3-cmt-thread">
         <form class="v3-cmt-add" data-k="${_revAttr(key)}" onsubmit="return cmtAdd(this)">
@@ -2477,38 +2483,53 @@ function cmtThreadHtml(key, total) {
         </form>
         ${shown.map(c => cmtNodeHtml(key, c)).join('')
           || `<div class="v3-cmt-none">No comments yet — start it off.</div>`}
-        ${rest > 0 ? `<button class="v3-cmt-more" type="button" data-k="${_revAttr(key)}" data-rest="${rest}"
-          onclick="event.stopPropagation(); cmtMore(this)">View ${rest} more comment${rest > 1 ? 's' : ''}</button>` : ''}
+        ${more ? `<div class="v3-cmt-loading" aria-hidden="true"><i></i><i></i><i></i></div>` : ''}
       </div>`;
 }
 
-/* Infinite-ish: as the review page's body nears its bottom, reveal CMT_PAGE
-   more (up to the thread's total). Delegated in the capture phase because
-   scroll does not bubble; the wrap's innerHTML is replaced but the scrolling
-   body is not, so the reader's position holds. */
+/* Infinite: as a scroller nears its bottom, reveal CMT_PAGE more in every
+   thread inside it that still has some held back. Delegated in the capture
+   phase because scroll does not bubble; a wrap's innerHTML is replaced but the
+   scrolling element is not, so the reader's position holds.
+   ⚠ It reads the KEY OFF THE WRAP (`data-cmt`), not off a button. It used to
+   find `.v3-cmt-more` and take the key from that — so deleting the button
+   (0.14) would have silently killed paging everywhere. The wrap is also where
+   the base count lives (`data-n`), which is what `cmtRoots` needs to seed.
+   ⚠ It no longer demands `.s-rvp / .v3-rsh` around the scroller either: the
+   SONG POPUP scrolls on `.sd-log-sheet`, which matched none of those, so song
+   threads stopped at the first page with no way to get the rest.
+   Terminates: a key whose `shown` has caught up with `roots` is skipped, so the
+   cmtRender → cmtFill → cmtAutoMore loop runs out. */
 const CMT_SHOWN = Object.create(null);
 const CMT_PAGE = 5;
 function cmtAutoMore(body) {
-  const page = body.closest('.s-rvp, .s-home-v3--rvp, .v3-rsh'); if (!page) return;
-  const more = page.querySelector('.v3-cmt-more'); if (!more) return;
-  if (body.scrollTop + body.clientHeight < body.scrollHeight - 140) return;
-  const key = more.dataset.k;
-  const wrap = more.closest('.v3-cmt-wrap');
-  const total = wrap ? +wrap.dataset.n || 0 : 0;
-  CMT_SHOWN[key] = (CMT_SHOWN[key] || CMT_DEFAULT) + CMT_PAGE;
-  cmtRender(key);
+  if (!body || body.scrollTop + body.clientHeight < body.scrollHeight - 140) return;
+  body.querySelectorAll('.v3-cmt-wrap').forEach(wrap => {
+    const key = wrap.dataset.cmt;
+    if (!key) return;
+    const roots = cmtRoots(key, +wrap.dataset.n || 0);
+    const shown = CMT_ALL[key] ? roots.length : (CMT_SHOWN[key] || CMT_DEFAULT);
+    if (shown >= roots.length) return;                  // the whole thread is out
+    CMT_SHOWN[key] = shown + CMT_PAGE;
+    cmtRender(key);
+  });
 }
+/* ⚠ `.sd-log-sheet` is in this list because the SONG POPUP is its own
+   scroller (the sheet scrolls; there is no inner body). Leave it out and a
+   song's thread never pages. */
+const CMT_SCROLLERS = ['v3-body', 'v3-rsh-body', 'sd-log-sheet'];
 document.addEventListener('scroll', e => {
   const t = e.target;
-  if (t && t.classList && (t.classList.contains('v3-body') || t.classList.contains('v3-rsh-body'))) cmtAutoMore(t);
+  if (t && t.classList && CMT_SCROLLERS.some(c => t.classList.contains(c))) cmtAutoMore(t);
 }, true);
 /* ⚠️ A thread that does not overflow the screen can never BE scrolled, so the
    first page would be the last. After any thread paint, keep paging while the
    body still fits (bounded: it stops when the list runs out or overflows). */
 function cmtFill() {
-  document.querySelectorAll('.s-rvp .v3-body, .s-home-v3--rvp .v3-body, .v3-rsh-body').forEach(b => {
-    if (b.scrollHeight <= b.clientHeight + 140) cmtAutoMore(b);
-  });
+  document.querySelectorAll('.s-rvp .v3-body, .s-home-v3--rvp .v3-body, .v3-rsh-body, #sd-log .sd-log-sheet')
+    .forEach(b => {
+      if (b.scrollHeight <= b.clientHeight + 140) cmtAutoMore(b);
+    });
 }
 
 /* The slot a thread renders into. Always emitted (and empty while collapsed) so
@@ -2719,10 +2740,6 @@ window.cmtCompose = function (btn) {
   if (!CMT_OPEN[k]) { CMT_OPEN[k] = true; cmtRender(k); }
   const input = page.querySelector('.v3-cmt-input');
   if (input) input.focus();
-};
-window.cmtMore = function (btn) {
-  CMT_ALL[btn.dataset.k] = true;
-  cmtRender(btn.dataset.k);
 };
 /* Updated in place rather than through cmtRender: a re-render would wipe
    whatever the user had half-typed in the composer below. */
