@@ -1,11 +1,34 @@
 # Spindeck — Music Review App Mockup
 
-> ## ⚠️ THIS IS **0.13** — THE ROOT OF THE REPO, ON `main` (2026-10-03 → 2026-10-08)
+> ## ⚠️ THIS IS **0.14** — `csharpuser/versions/0.14/`, THE PRIVATE WORK IN PROGRESS (2026-10-08)
+> Eric: "lets make this version 0.13 and make a new version instead of
+> updating this old one".
+> A worktree on branch **`v0.14`**, made from `main` at **cd678c6** — 0.13's
+> closing commit — and byte-identical to it at birth (0.13 left no untracked
+> files to copy across, unlike 0.12 → 0.13). **0.13 stays as it is.** Open
+> this one at `/versions/0.14/index.html`. Everything below (0.13's notes
+> included) describes the code as inherited; add 0.14's changes in the
+> "What 0.14 changes" list here.
+>
+> ⚠️ **0.13 IS `main`, NOT A WORKTREE.** It is the branch GitHub Pages
+> serves, so it is the live site, and `versions/` is `.gitignore`d precisely
+> so a private WIP never deploys. That is why there is no `versions/0.13/`
+> beside this folder: 0.13's thirteen commits went straight onto `main`.
+> When 0.14 is ready it lands there the same way `v0.11` and `v0.12` did —
+> both are ancestors of `main` — and this worktree can then be kept frozen
+> for side-by-side comparison, as `versions/0.11` and `versions/0.12` are.
+>
+> ### What 0.14 changes
+> - *(nothing yet — 0.14 opens byte-identical to 0.13)*
+>
+> ---
+>
+> ## (inherited) THIS WAS **0.13** — `main`, THE LIVE SITE (2026-10-03 → 2026-10-08)
 > Eric: "lets make a 0.13 version and we'll work on that".
 > Started from `v0.12` (14643b1) and **closed on 2026-10-08**, when Eric asked
 > to "make this version 0.13 and make a new version instead of updating this
-> old one". 0.14 took over in its own worktree — see the 0.14 header in
-> `versions/0.14/CLAUDE.md`; nothing more lands here.
+> old one". 0.14 took over in its own worktree — the header above this one —
+> and nothing more lands in 0.13.
 >
 > ⚠️ **0.13 is NOT a worktree under `versions/`**, whatever this header said
 > for its first five days. It is the repo ROOT on `main`, which is the branch
