@@ -2643,8 +2643,9 @@ window.revEditTap = function (el, e) {
   const R = card && REV_INDEX[card.dataset.k];
   const a = (R && R.album) || window.activeAlbum || window.featuredAlbum;
   if (!a || !a.album) return;
-  openLogSheet(el, { image: a.image, title: a.album, subtitle: a.artist, year: a.year || '', ref: a });
-  if (SDLOG) { SDLOG.unlocked = true; paintLogSave(); }   // the point of the pencil: no lock to clear
+  // `unlocked` goes IN, so the sheet never paints its locked state first.
+  openLogSheet(el, { image: a.image, title: a.album, subtitle: a.artist, year: a.year || '', ref: a },
+               { unlocked: true });
 };
 
 /* The pill starts a comment: opens the thread if it's shut, then puts the
@@ -8146,7 +8147,7 @@ function ensureLogSheet() {
   return ov;
 }
 
-window.openLogSheet = function(triggerEl, subject) {
+window.openLogSheet = function(triggerEl, subject, opts) {
   const album = (window.currentBentoAlbum && currentBentoAlbum()) || window.activeAlbum || window.featuredAlbum;
   const scrEl = triggerEl && triggerEl.closest && triggerEl.closest('.s-home-v3');
   const artistMode = scrEl && scrEl.classList.contains('s-home-v3--artist');
@@ -8174,7 +8175,12 @@ window.openLogSheet = function(triggerEl, subject) {
     text: saved.text || '',
     songs: [],
     dirty: !!wip,
-    unlocked: false,        // a posted review opens LOCKED (0.13) — Edit review frees it
+    /* A posted review opens LOCKED (0.13) — Edit review frees it. `opts.unlocked`
+       is the PENCIL's way in (revEditTap): going straight to editing is the
+       point of it. ⚠ It has to be set HERE, not patched on after the call —
+       openLogSheet's own last paintLogSave would otherwise paint the locked bar
+       (and set the textarea readOnly) and the caller would have to undo it. */
+    unlocked: !!(opts && opts.unlocked),
   };
   paintLogSave();
   ov.querySelector('.sd-log-cover').style.backgroundImage = `url("${subj.image}")`;

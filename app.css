@@ -12849,12 +12849,22 @@ body.sd-return .s-home-v3--review .v3-body,
   width: 100%; max-width: 320px;
   display: flex; align-items: center; justify-content: flex-end; gap: 10px;
 }
+/* ⚠️ EXPLICIT GOLD, NOT `var(--star)` (2026-10-09). Inside a home shell
+   `--star` is `var(--v3-star, var(--persona-accent, #e8a83c))`, i.e. the
+   FEATURED ALBUM's extracted colour — and it is forced to #e8a83c only on the
+   album page (`.s-home-v3--review.s-home-v3--album`). So the sheet looked
+   right when opened from an album, and when the PENCIL opened it over the
+   bento it took whatever tint that cover happened to yield: Eric's Post review
+   button "doesn't light up". The sheet is a modal — it is not about the album
+   behind it — so it carries its own gold in both themes. Same trap as the
+   just-posted ring. */
 .sd-log-savebtn, .sd-log-editbtn {
   flex: 1 1 auto; min-width: 0; height: 46px; border: 0; border-radius: 23px;
-  background: var(--star, #e8a83c); color: #1a1208;
+  background: #e8a83c; color: #1a1208;
   font: 800 15px var(--font-main); letter-spacing: .01em; cursor: pointer;
   box-shadow: 0 8px 22px rgba(0,0,0,0.45);
 }
+.s-home-v3--light .sd-log-savebtn, .s-home-v3--light .sd-log-editbtn { background: #c08818; color: #fffaf0; }
 .sd-log-savebtn:active, .sd-log-editbtn:active { transform: scale(.98); }
 /* Dimmed, not gone, in the unlocked-but-unchanged state: the bar must not
    jump the moment you press Edit review. */
