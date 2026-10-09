@@ -23,6 +23,32 @@
 > site** — and `versions/` is `.gitignore`d so the frozen copies never deploy.
 >
 > ### What 0.14 changes
+> - **2026-10-09 — ONE WAY TO OPEN A REVIEW: THE SHEET** (`app.js` —
+>   `cmtCardTap` / `cmtCompose` / `feedOpenReview` / `openReviewSheet`;
+>   `app.js?v=424`). Eric: "right now we have two different type of review
+>   pages, ones a popup and ones another page, lets just do the pop up for all
+>   of them, including when u click the reviews in the album page". Three
+>   routers used to choose between them; all three now open the **sheet**:
+>   · `cmtCardTap` — a non-feed card (album page, artist page, profile pin,
+>   your own posted card) went to `openReviewPage`; now `openReviewSheet`.
+>   · `cmtCompose` (the comment pill) — went to the page on every surface; now
+>   the sheet, still with `compose` **false** so the composer stays unfocused,
+>   which was the point of the 0.12 change. ⚠️ `page` matches `.v3-rsh` too, so
+>   pressing the pill *inside* the sheet still just focuses the box.
+>   · `feedOpenReview` — its `asPage` argument and branch are gone.
+>   ⚠️ **A feed card still goes through `feedOpenReview`**, not straight to
+>   `openReviewSheet` — not because it opens anything different, but because
+>   that is what **seeds `REV_INDEX[key]`** from the feed event.
+>   `renderFriendFeed`'s card builder does not, and `openReviewSheet` returns
+>   silently when the entry is missing. Every other card's entry is written by
+>   whichever builder drew it.
+>   ⚠️ **`openReviewSheet` now also sets `window.activeReview`.**
+>   `openReviewPage` was the only thing that used to, and `reviewPageHtml`
+>   renders it — so without this the desktop viewer's left-rail "Review Page"
+>   screen, which is still listed, would draw empty forever.
+>   ⚠️ `openReviewPage` and `rvpOpenInPlace` (the album page's in-place
+>   `--rvp` panel) are now **unreachable from any card** and kept only for that
+>   rail screen. They are the obvious thing to delete if the rail entry goes.
 > - **2026-10-09 — A GOLD RING ON THE REVIEW YOU WERE JUST BROUGHT TO**
 >   (`app.js` `myFeedCardHtml`; `app.css` `.v3-rev-card--posted .v3-rev-av` +
 >   `@keyframes v3PostedRing`; `app.js?v=422`, `app.css?v=679`). Eric: "when it

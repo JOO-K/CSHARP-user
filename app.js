@@ -2621,14 +2621,23 @@ window.revCardArt = function (el) {
   const R = card && REV_INDEX[card.dataset.k];
   if (R && R.album && typeof openAlbumPage === 'function') openAlbumPage(R.album);
 };
+/* ONE WAY TO OPEN A REVIEW: THE SHEET (2026-10-09). Eric: "right now we have
+   two different type of review pages, ones a popup and ones another page, lets
+   just do the pop up for all of them, including when u click the reviews in
+   the album page".
+   A feed card still goes through feedOpenReview — not because it opens
+   anything different, but because that is what SEEDS `REV_INDEX[key]` from the
+   feed event (renderFriendFeed's card builder does not), and openReviewSheet
+   needs the entry to exist. Every other card already has its entry, written by
+   whichever builder drew it under the card's own `data-k`.
+   The record line on the card still goes to the album (feedOpenArt).
+   ⚠ openReviewPage / rvpOpenInPlace are no longer reached from any card. The
+   standalone `review-page` screen stays for the desktop viewer's left rail. */
 window.cmtCardTap = function (card) {
   if (card.classList.contains('v3-rev-card--hero')) return;   // already the page
-  // A feed card: the REVIEW SHEET (Eric, 2026-09-24) — the same popup the
-  // deck's review opens, so every review on home reads the same way. The
-  // record line on the card still goes to the album (feedOpenArt).
   if (card.dataset.feed) return feedOpenReview(+card.dataset.feed, false, card);
   const k = card.dataset.k;
-  if (k) openReviewPage(k, false, card);
+  if (k) openReviewSheet(k, false, card);
 };
 
 /* THE PENCIL'S TAP (0.13): straight from your posted card into the sheet, with
@@ -2660,12 +2669,14 @@ window.cmtCompose = function (btn) {
   // composer aimed. On the page itself: just put the cursor in it.
   const page = btn.closest('.s-rvp, .s-home-v3--rvp, .v3-rsh');
   const feedCard = btn.closest('.v3-rev-card[data-feed]');
-  /* 0.12 (Eric, 2026-10-02): the comment button opens the REVIEW PAGE, and
-     does NOT put the cursor in the comment box — just the page. (It opened the
-     review sheet with the composer focused.) The card's own tap still opens
-     the sheet (cmtCardTap). */
-  if (feedCard) return feedOpenReview(+feedCard.dataset.feed, false, btn, true);
-  if (!page) { if (REV_INDEX[k]) openReviewPage(k, false, btn); return; }   // the page, box unfocused (0.12)
+  /* 0.12 (Eric, 2026-10-02): the comment button does NOT put the cursor in the
+     comment box — it just opens the thread. That still holds; what changed on
+     2026-10-09 is WHERE, since the page is retired for cards: it opens the
+     SHEET now, like the card's own tap, with `compose` false so the composer
+     stays unfocused. `page` matches `.v3-rsh` too, so pressing it INSIDE the
+     sheet falls through below and focuses the box, as it always did. */
+  if (feedCard) return feedOpenReview(+feedCard.dataset.feed, false, btn);
+  if (!page) { if (REV_INDEX[k]) openReviewSheet(k, false, btn); return; }   // the sheet, box unfocused
   if (!CMT_OPEN[k]) { CMT_OPEN[k] = true; cmtRender(k); }
   const input = page.querySelector('.v3-cmt-input');
   if (input) input.focus();
@@ -3244,7 +3255,7 @@ function feedEvents() {
    it renders), so the entry is written here from the feed event, under the
    SAME key the album page's card would use (feedRevKey) — one thread, one
    like, wherever you came in. */
-window.feedOpenReview = function (n, compose, trigger, asPage) {
+window.feedOpenReview = function (n, compose, trigger) {
   const e = feedEvents()[n];
   if (!e) return;
   if (!(e.type === 'review' || e.type === 'rating')) return feedOpen(n);
@@ -3258,10 +3269,10 @@ window.feedOpenReview = function (n, compose, trigger, asPage) {
     ago: f.ago, likes: f.likes || 0, comments: f.comments || 0,
     face: f.face, popular: !!f.popular,
   };
-  // The REVIEW SHEET (Eric, 2026-09-24), not the page: it slides up over the
-  // feed and drops back down, so the feed is still where you left it.
-  // `asPage` (0.12): the comment button wants the review page itself.
-  if (asPage && typeof openReviewPage === 'function') return openReviewPage(key, !!compose, trigger || null);
+  /* The REVIEW SHEET (Eric, 2026-09-24), not the page: it slides up over the
+     feed and drops back down, so the feed is still where you left it. The
+     `asPage` argument the comment button used to pass (0.12) went on
+     2026-10-09 with the page route — there is one way to open a review now. */
   openReviewSheet(key, !!compose, trigger || null);
 };
 window.feedOpen = function (n) {
@@ -4109,6 +4120,12 @@ window.openReviewSheet = function (key, compose, triggerEl) {
   if (!R) return;
   closeReviewSheet(true);
   CMT_OPEN[key] = true;                       // the thread IS the sheet — always open here
+  /* ⚠ Also the SHEET's job since 2026-10-09, when the page stopped being
+     reachable from a card: `reviewPageHtml` renders `window.activeReview`, and
+     openReviewPage was the only thing that used to set it. Without this the
+     desktop viewer's left-rail "Review Page" screen — which is still listed —
+     would draw empty forever. Nothing on a phone screen reads it. */
+  window.activeReview = R;
   const host = (triggerEl && triggerEl.closest && triggerEl.closest('.app-screen'))
              || document.querySelector('.app-screen.s-home-v3') || document.body;
   const ov = document.createElement('div');
