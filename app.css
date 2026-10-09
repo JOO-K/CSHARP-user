@@ -12083,6 +12083,19 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
    the same. The neumorphic pills above stay as the fallback: drop this block
    to get them back. ═══════════════════════════════════════════════════════ */
 .s-home-v3 .wall2-bar { justify-content: space-between; gap: 0; padding: 2px 4px 12px; }
+/* 0.14b (2026-10-09) — HOME'S THREE TABS SIT LEFT, NOT SPREAD. Eric: "can we
+   have them stacked left side instead of them spread out tis so spread out
+   haha biut only for the homepage the trending page has enough tags to keep
+   them spread". Friends / Popular / You across a phone's width on
+   space-between leaves a canyon between each; four chips on the wall fill it.
+   ⚠ Scoped to `.v3-feed-tabs`, which ONLY home's bar carries — the rule above
+   is shared by every `.s-home-v3` screen, the Trending wall included, so
+   editing it in place would have un-spread the wall too. Three classes to its
+   two, and it follows it, so it wins either way.
+   ⚠ The gap has to be restored explicitly: the rule above zeroes it for
+   space-between, and these chips are flat text with 2px of side padding, so
+   with no gap the three words would run together. */
+.s-home-v3 .wall2-bar.v3-feed-tabs { justify-content: flex-start; gap: 18px; }
 .s-home-v3 .wall2-cat, .s-home-v3--light .wall2-cat {
   background: none; box-shadow: none; padding: 6px 2px 5px;
   border-bottom: 1.5px solid transparent; border-radius: 0;
