@@ -1735,12 +1735,12 @@ window.submitReview = function (btn) {
     const card = document.createElement('div');
     card.className = 'v3-rev-card v3-rev-card--page v3-rev-card--mine v3-rev-card--split';   // the split card, like the list (0.12)
     card.dataset.k = myKey;                     // the 4th card builder — tap opens its page
-    REV_INDEX[myKey] = { key: myKey, album: alb, name: 'You', mine: true, rating, text, ago: 'just now', likes: 0, comments: 0 };
+    REV_INDEX[myKey] = { key: myKey, album: alb, name: 'You', mine: true, rating, text, ago: '', likes: 0, comments: 0 };
     card.onclick = () => cmtCardTap(card);
     card.innerHTML = revCardInner({
       key: myKey, name: 'You', handle: (window.PROFILE || {}).handle || 'you',
-      face: (window.PROFILE || {}).pic || 'images/rp-01.jpg', ago: 'just now',
-      rating, text, likes: null, comments: 0, share: true,
+      face: (window.PROFILE || {}).pic || 'images/rp-01.jpg', ago: '',
+      rating, text, likes: 0, comments: 0, mine: true,
       split: true, record: { image: alb.image, album: alb.album, artist: alb.artist, year: alb.year },
     });
     list.insertBefore(card, list.firstChild);
@@ -2631,6 +2631,22 @@ window.cmtCardTap = function (card) {
   if (k) openReviewPage(k, false, card);
 };
 
+/* THE PENCIL'S TAP (0.13): straight from your posted card into the sheet, with
+   the lock already off. The album comes off REV_INDEX, which every card builder
+   fills under the card's own `data-k` — so this works on the home feed, the
+   album page and the artist page without knowing which one it is in.
+   ⚠ stopPropagation, or the card's own onclick (cmtCardTap) opens the review
+   page underneath the sheet. */
+window.revEditTap = function (el, e) {
+  if (e) { e.stopPropagation(); e.preventDefault(); }
+  const card = el && el.closest('.v3-rev-card');
+  const R = card && REV_INDEX[card.dataset.k];
+  const a = (R && R.album) || window.activeAlbum || window.featuredAlbum;
+  if (!a || !a.album) return;
+  openLogSheet(el, { image: a.image, title: a.album, subtitle: a.artist, year: a.year || '', ref: a });
+  if (SDLOG) { SDLOG.unlocked = true; paintLogSave(); }   // the point of the pencil: no lock to clear
+};
+
 /* The pill starts a comment: opens the thread if it's shut, then puts the
    cursor in the composer.
    ⚠️ It does NOT toggle. "Comment" is the wrong label for a button that hides
@@ -2833,6 +2849,15 @@ function revCardInner(o) {
   const cmtHtml = o.big
     ? (typeof shareBtnHtml === 'function' ? shareBtnHtml('rev', o.key, 'sd-share-btn--hero') : '')
     : cmtBtnHtml(o.key, o.comments || 0, 'v3-up--sm v3-up--cmtcol');
+  /* THE PENCIL (0.13, Eric 2026-10-08). YOUR OWN cards only (`mine`), and only
+     on the SPLIT card — the review page's hero puts the share button in this
+     slot instead. It opens the sheet with the lock already off: going straight
+     to editing is the whole point of the pencil.
+     ⚠ LAST in the acts row, so it reads to the RIGHT of the likes (Eric, same
+     day: "instead of the pencil on the left side of the comment lets have it on
+     the right side … edit on the right side of the likes instead"). It led the
+     row for an afternoon. */
+  const editHtml = o.mine ? `<button class="v3-up v3-up--sm v3-rev-editbtn" type="button" title="Edit review" aria-label="Edit review" onclick="revEditTap(this, event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>` : '';
   /* SPLIT (0.12, 2026-10-02 — the layout Eric's friend drew, from a screenshot):
      photo · name · time on the left of the top row, year · album over artist
      right-aligned on the right of it; the review on the left; the record's
@@ -2855,7 +2880,7 @@ function revCardInner(o) {
         <div class="v3-rsp-art" style="background-image:url('${o.record.image}')" onclick="event.stopPropagation(); ${open}"></div>
         <div class="v3-rsp-score"><span class="v3-rev-big-n">${Number(o.rating || 0).toFixed(1)}</span>${halfStars(o.rating || 0, 12)}</div>
       </div>
-      <div class="v3-rsp-acts">${cmtHtml}${likeHtml}</div>
+      <div class="v3-rsp-acts">${cmtHtml}${likeHtml}${editHtml}</div>
       ${o.share && typeof shareBtnHtml === 'function' ? `<div class="v3-rev-foot v3-rsp-foot">
         <span class="v3-rev-acts">${shareBtnHtml('review', '')}<span class="v3-rev-share-lbl">Share your review</span></span>
       </div>` : ''}`;
@@ -2961,17 +2986,20 @@ function populateReviewList(scr, filter) {
   // position in the filtered array — otherwise switching filter reshuffles the
   // seeded timestamps/counts and orphans your upvotes.
   /* YOUR review, from the log-sheet draft for this album. It leads the list —
-     above even a pinned one — and is the only card that gets a share button:
-     you can post your own take, not someone else's. */
+     above even a pinned one — and is the one card that carries the PENCIL
+     (`mine: true`), straight back into the sheet.
+     (It also used to be the only card with a share button. `share` came off
+     every one of your cards on 2026-10-08 — "no share your review for now";
+     revCardInner's foot is still there for the bring-back.) */
   const mine = (window.albumDraft && albumDraft(a)) || {};
   const myText = (mine.text || '').trim();
   const myKey = 'mine::' + a.album;
   REV_INDEX[myKey] = { key: myKey, album: a, name: 'You', mine: true, rating: mine.rating || 0, text: myText,
-    ago: 'your review', likes: 0, comments: 0 };
+    ago: '', likes: 0, comments: 0 };
   const mineHtml = (mine.rating || myText) ? revCardHtml({
-    key: myKey, cls: 'v3-rev-card--page v3-rev-card--mine v3-rev-card--split', split: true, record: rec, name: 'You', handle: (window.PROFILE || {}).handle || 'you',
-    face: (window.PROFILE || {}).pic || 'images/rp-01.jpg', ago: 'your review',
-    rating: mine.rating || 0, text: myText, likes: null, comments: 0, share: true, timeRight: true, actsTop: true,
+    key: myKey, cls: 'v3-rev-card--page v3-rev-card--mine v3-rev-card--split', split: true, mine: true, record: rec, name: 'You', handle: (window.PROFILE || {}).handle || 'you',
+    face: (window.PROFILE || {}).pic || 'images/rp-01.jpg', ago: '',   // plain byline (Eric, 2026-10-08) — was "your review"
+    rating: mine.rating || 0, text: myText, likes: 0, comments: 0, timeRight: true, actsTop: true,
   }) : '';
 
   /* THE FEED'S CARD, on the album page (Eric, 2026-09-16): the home feed's
@@ -3262,11 +3290,44 @@ function feedUnquote(q) {
   return String(q || '').trim().replace(/^["“”]+/, '').replace(/["“”]+$/, '').trim();
 }
 
+/* ── YOUR REVIEW, AT THE TOP OF THE FEED (0.13, 2026-10-08) ────────────────
+   Set by commitLog when you press Post review, rendered by renderFriendFeed
+   ahead of the friends' rows.
+   ⚠ NOT pushed into `_FEED`: that list is built once and cached for the
+   session (`if (window._FEED) return window._FEED`), so a second post would
+   stack a duplicate and a delete could not take it back out.
+   The key is the album page's own `mine::<album>`, so the like and the comment
+   thread are the SAME act on both surfaces — the rule every other card here
+   follows (see feedRevKey). */
+window._myFeedPost = null;
+function myFeedCardHtml() {
+  const m = window._myFeedPost;
+  if (!m || typeof revCardHtml !== 'function') return '';
+  const key = 'mine::' + m.album;
+  const rec = { image: m.image, album: m.album, artist: m.artist, year: m.year };
+  REV_INDEX[key] = { key, album: m.ref || rec, name: 'You', mine: true,
+    rating: m.rating || 0, text: m.text || '', ago: '', likes: 0, comments: 0 };
+  return revCardHtml({
+    key, cls: 'v3-rev-card--feed v3-rev-card--split v3-rev-card--mine', split: true, mine: true,
+    name: 'You', handle: (window.PROFILE || {}).handle || 'you',
+    face: (window.PROFILE || {}).pic || 'images/rp-01.jpg',
+    /* PLAIN BYLINE (Eric, 2026-10-08: "lets get rid of the just now and just
+       posted and just have the username like normal"). `ago: ''` drops the time
+       span altogether — revCardInner only renders it `${o.ago ? … : ''}` — and
+       there is no chip. `share` is off for now; the builder's foot stays for a
+       bring-back. */
+    ago: '', timeRight: true, actsTop: true,
+    rating: m.rating || 0, text: m.text || '',
+    likes: 0, comments: 0, record: rec,
+  });
+}
+
 function renderFriendFeed(screenEl) {
   const container = screenEl.querySelector('.v3-feed-items');
   if (!container) return;
+  const mine = myFeedCardHtml();
   const events = feedEvents();
-  if (!events.length) { container.innerHTML = ''; return; }
+  if (!events.length) { container.innerHTML = mine; return; }
 
   // Kind glyph, clipped to the avatar's bottom-right — says what happened
   // before you've read a word of the copy. `rating` borrows the milestone star;
@@ -3374,7 +3435,7 @@ function renderFriendFeed(screenEl) {
   // 0.13 (Eric, 2026-10-03: "on the homepage can we get rid of the people u
   // may know"): the rail is off. pymkHtml / pymkFollow stay for a bring-back.
   // rows.splice(pymkAt, 0, pymkHtml());
-  container.innerHTML = rows.join('');
+  container.innerHTML = mine + rows.join('');
   // The cards' five-line fade, measured the way the album page measures it —
   // now and again after layout, since the other shell is display:none.
   markLongReviews(container);
@@ -7255,9 +7316,189 @@ function commitLog() {
   putDraft(key, logSnapshot());
   putWip(key, null);
   SDLOG.dirty = false;
+  SDLOG.unlocked = false;        // posted → locked again, so Edit review is what reopens
+  const subj = SDLOG.subject;
+  const snap = logDrafts()[key] || {};
   flashLogSaved();
+  /* POST REVIEW GOES HOME (0.13, Eric 2026-10-08: "after u press it it takes
+     you to the homepage where it shows it being posted at the top"). Only an
+     ALBUM has a card to show — a song's or an artist's sheet just closes, the
+     way every save did before this. */
+  const album = (!subj.isSong && !subj.isArtist)
+    ? (subj.ref || (window.ARCHIVE || []).find(x => x.album === subj.title && x.artist === (subj.subtitle || '')))
+    : null;
   closeLogSheet();
+  if (!album || !(snap.rating > 0 || (snap.text || '').trim())) return;
+  window._myFeedPost = {
+    album: album.album || subj.title, artist: album.artist || subj.subtitle || '',
+    image: album.image || subj.image || '', year: album.year || subj.year || '',
+    rating: snap.rating || 0, text: (snap.text || '').trim(), ref: album,
+  };
+  postReviewExit();
 }
+
+/* ── POST REVIEW'S EXIT (0.13, 2026-10-08) ─────────────────────────────────
+   Eric: "when u press post review the popup closes with a transition where it
+   goes down and then it takes you to the homepage with a fade and then scrolls
+   to the area that you posted and centers your post". Three beats, in order:
+     1. THE SHEET GOES DOWN. Already built — `closeLogSheet` takes `.open` off
+        and `.sd-log-sheet` returns to `translateY(130%)` over .3s. The bug was
+        only that commitLog ran the rest on top of it, so the slide was never
+        seen. Nothing to animate here; just WAIT for it.
+     2. THE FADE. The feed's scroller fades out, home is swapped in behind it
+        (goHomeFeed), and it fades back.
+     3. THE CENTRE. Your card is scrolled to the middle of the scroller.
+   ⚠ Every beat is backed by a TIMEOUT as well as its callback: a Web Animation
+   in a backgrounded tab never fires `onfinish`, and the post still has to land.
+   ⚠ Reduced motion skips all three and lands straight on the centred feed. */
+const SDLOG_SLIDE_MS = 320;      // .sd-log-sheet's .3s transform, plus a frame
+function sdReducedMotion() {
+  return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+function postReviewExit() {
+  if (sdReducedMotion()) { goHomeFeed(); centerMyPost(); return; }
+  setTimeout(() => {
+    const fades = homeShells().map(sh => {
+      const b = sh.querySelector('.v3-body');
+      return b && b.animate
+        ? b.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 190, easing: 'ease-out', fill: 'forwards' })
+        : null;
+    }).filter(Boolean);
+    const swap = () => {
+      goHomeFeed();
+      /* ⚠ CANCEL the fade-out first. It is `fill: 'forwards'`, so left in place
+         it pins the scroller at opacity 0 and the fade-in below plays into
+         nothing — the feed would simply never come back. */
+      fades.forEach(f => { try { f.cancel(); } catch (x) {} });
+      homeShells().forEach(sh => {
+        const b = sh.querySelector('.v3-body');
+        if (b && b.animate) b.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, easing: 'ease-out' });
+      });
+      /* AFTER markLongReviews' first pass (80ms): it re-measures every card and
+         a height that changes under an in-flight smooth scroll lands it short. */
+      setTimeout(centerMyPost, 120);
+    };
+    if (!fades.length) return swap();
+    let fired = false;
+    const once = () => { if (!fired) { fired = true; swap(); } };
+    fades[0].onfinish = once;
+    setTimeout(once, 300);
+  }, SDLOG_SLIDE_MS);
+}
+/* Your just-posted card, in the MIDDLE of the feed's scroller.
+   ⚠ Not `scrollIntoView({ block: 'center' })`: the phone frames sit in the
+   desktop viewer's own scrolling stage, so it scrolls the VIEWER too and the
+   phone walks up the page. The offset is measured against the scroller's own
+   box instead.
+   ⚠ The card is found by comparing `dataset.k`, not with an attribute selector
+   — the key carries the album title, and a quote or a bracket in one would
+   break the selector. */
+function centerMyPost() {
+  const m = window._myFeedPost;
+  if (!m) return;
+  const key = 'mine::' + m.album;
+  homeShells().forEach(sh => {
+    const b = sh.querySelector('.v3-body');
+    if (!b) return;
+    const card = [...sh.querySelectorAll('.v3-feed-items .v3-rev-card')]
+      .find(c => c.dataset.k === key);
+    if (!card) return;
+    const cr = card.getBoundingClientRect(), br = b.getBoundingClientRect();
+    /* ⚠ The OTHER theme's shell is display:none in the viewer, so its rects
+       come back all zeros and the maths below would scroll it to 0. Skip it —
+       it gets its own pass when markLongReviews re-measures on the swap. */
+    if (!br.height || !cr.height) return;
+    // A card taller than the scroller cannot be centred — show it from the top.
+    const pad = cr.height > br.height ? 12 : (br.height - cr.height) / 2;
+    const top = Math.max(0, b.scrollTop + (cr.top - br.top) - pad);
+    if (b.scrollTo) b.scrollTo({ top, behavior: sdReducedMotion() ? 'auto' : 'smooth' });
+    else b.scrollTop = top;
+  });
+}
+
+/* HOME, THE BENTO FEED — wherever Post review was pressed from.
+   ⚠ `navigate('home')` alone is NOT enough from an album page: the album page
+   is a SUB-STATE of the home shell (`s-home-v3--album`), so the screen id is
+   already 'home' and navigate does nothing — you would sit on the album page
+   looking at the card you just posted. Every sub-state has to come off by
+   hand, the review panel's included. */
+function goHomeFeed() {
+  const shells = typeof homeShells === 'function' ? homeShells() : [];
+  const atHome = typeof currentScreen === 'function' && currentScreen().id === 'home';
+  if (atHome && shells.length) {
+    shells.forEach(s => {
+      s.classList.remove('s-home-v3--rvp', 's-home-v3--rvp-out');
+      const panel = s.querySelector('.v3-rvp-panel'); if (panel) panel.innerHTML = '';
+      exitToBento(s);           // ⚠ also resets .v3-body scrollTop — centerMyPost runs after
+      renderFriendFeed(s);      // your card is in it now (_myFeedPost)
+    });
+    return;
+  }
+  navigate('home');             // populateHomeData → renderFriendFeed on arrival
+}
+
+/* DELETE A REVIEW — the red circle right of Edit review. Like the playlist
+   trash it only ASKS; logDelete does the work. A review is something the user
+   WROTE, and the button sits a thumb's width from Edit. */
+function ensureLogDelSheet() {
+  let ov = document.getElementById('sdlogdel');
+  if (ov) return ov;
+  ov = document.createElement('div');
+  ov.id = 'sdlogdel';
+  // Rides .pldel-* so it is the same material as the playlist confirm.
+  ov.className = 'sd-log-overlay pldel-overlay';
+  ov.innerHTML = `
+    <div class="pldel-sheet" role="alertdialog" aria-modal="true" aria-labelledby="sdlogdel-title">
+      <div class="sd-log-grab"></div>
+      <div class="pldel-title" id="sdlogdel-title"></div>
+      <p class="pldel-sub">Your rating, your review and any song scores go with it. This cannot be undone.</p>
+      <div class="pldel-btns">
+        <button class="pldel-cancel" type="button">Cancel</button>
+        <button class="pldel-go" type="button">Delete</button>
+      </div>
+    </div>`;
+  ov.addEventListener('click', e => { e.stopPropagation(); if (e.target === ov) closeLogDelete(); });
+  ov.addEventListener('mousedown', e => e.stopPropagation());
+  ov.querySelector('.pldel-cancel').addEventListener('click', closeLogDelete);
+  wireSheetGrab(ov, '.pldel-sheet', closeLogDelete);
+  ov.querySelector('.pldel-go').addEventListener('click', logDelete);
+  return ov;
+}
+function closeLogDelete() {
+  const ov = document.getElementById('sdlogdel');
+  if (ov) ov.classList.remove('open');
+}
+window.logAskDelete = function (btn) {
+  if (!SDLOG || !SDLOG.subject) return;
+  // Mount into the phone screen the sheet itself is in, or it lands out of frame.
+  const host = (btn && btn.closest && btn.closest('.app-screen'))
+             || document.querySelector('.app-screen') || document.body;
+  const ov = ensureLogDelSheet();
+  ov.querySelector('.pldel-title').textContent = 'Delete your review of “' + SDLOG.subject.title + '”?';
+  host.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add('open'));
+};
+/* BOTH stores go. Dropping only the published draft would leave a work in
+   progress behind, and the next open restores the WIP first — the review would
+   come back from the dead.
+   ⚠ putDraft takes an OBJECT, never null: it reads `d.rating` to decide whether
+   the draft is empty, and an empty one is exactly what deletes the key. */
+window.logDelete = function () {
+  if (!SDLOG || !SDLOG.subject) return;
+  clearTimeout(_sdlogT); _sdlogT = null;   // or closeLogSheet's flush rewrites the WIP
+  const key = logKey(SDLOG.subject);
+  putDraft(key, {});
+  putWip(key, null);
+  SDLOG.rating = 0; SDLOG.text = '';
+  SDLOG.listened = false; SDLOG.later = false; SDLOG.fav = false;
+  SDLOG.songs = (SDLOG.songs || []).map(x => ({ ...x, rating: 0, text: '' }));
+  SDLOG.dirty = false; SDLOG.unlocked = false;
+  // ⚠ Or the deleted review sits at the top of the home feed for the session.
+  if (window._myFeedPost && window._myFeedPost.album === SDLOG.subject.title) window._myFeedPost = null;
+  closeLogDelete();
+  closeLogSheet();
+  flashLogSaved();   // your card, the quick-log squares and the tracklist all drop it
+};
 /* A save does two things beyond the localStorage put: YOUR review card on the
    album page behind the sheet is re-rendered (rating and text), and the
    quick-log squares / CTA / tracklist hearts follow. */
@@ -7271,6 +7512,51 @@ function flashLogSaved() {
     populateReviewList(s, active ? active.dataset.f : 'popular');
   });
 }
+/* Has this subject a PUBLISHED review? Read from the committed draft, not from
+   the sheet — "posted" is about what the world can see, not what is typed. */
+function logPosted() {
+  if (!SDLOG || !SDLOG.subject) return false;
+  const d = logDrafts()[logKey(SDLOG.subject)] || {};
+  return !!(d.rating > 0 || (d.text || '').trim() || (d.songs || []).some(x => x.rating > 0));
+}
+/* ── THE LOCK (0.13, 2026-10-08) ────────────────────────────────────────────
+   A review you have POSTED is read-only until you press Edit review (Eric:
+   "instead of save changes ... u have to press edit to edit or u cant make
+   changes accidentally"). `unlocked` is per-opening — it is never stored, so
+   closing the sheet and coming back locks it again.
+   ⚠ `dirty` unlocks too: reopening on unsaved work (a WIP) drops you back
+   where you were, and that work is already mid-edit. */
+function logLocked() {
+  return !!SDLOG && !SDLOG.unlocked && !SDLOG.dirty && logPosted();
+}
+/* The nudge: a touch on a locked control floats "edit review" over the bar for
+   a moment instead of changing anything. ONE timer, restarted — brushing three
+   discs in a row must not queue three removals. */
+let _sdlogNudgeT = null;
+function nudgeEditReview() {
+  const bar = document.querySelector('#sd-log .sd-log-savebar');
+  if (!bar) return;
+  bar.classList.add('is-nudging');
+  clearTimeout(_sdlogNudgeT);
+  _sdlogNudgeT = setTimeout(() => bar.classList.remove('is-nudging'), 1700);
+  try { navigator.vibrate && navigator.vibrate(10); } catch (x) {}
+}
+/* What the lock LOOKS like. `readOnly` as well as the swallowed keydown below:
+   a paste or an IME commit never sends a keydown, so the attribute is the
+   guarantee and the listener is only there to explain itself. */
+function paintLogLock() {
+  const ov = document.getElementById('sd-log');
+  if (!ov) return;
+  const locked = logLocked();
+  const sheet = ov.querySelector('.sd-log-sheet');
+  if (sheet) sheet.classList.toggle('is-locked', locked);
+  const w = ov.querySelector('.sd-log-write');
+  if (w) w.readOnly = locked;
+  // The song notes are rebuilt per album by fillLogSongs, so this runs after it.
+  ov.querySelectorAll('.sd-log-song-note').forEach(n => { n.readOnly = locked; });
+  ov.querySelectorAll('.sd-log-stars-track, .sd-log-song-rate-track')
+    .forEach(t => t.setAttribute('aria-readonly', locked ? 'true' : 'false'));
+}
 // Save is lit only while there is something unsaved; otherwise it reads "Saved".
 /* POST / REVISE (Eric, 2026-09-25). Something unposted → "Post", lit. Posted
    and unchanged → "Revise" (a tap puts the cursor back in the text; the next
@@ -7279,12 +7565,29 @@ function paintLogSave() {
   const b = document.querySelector('#sd-log .sd-log-save');
   if (!b) return;
   const dirty = !!(SDLOG && SDLOG.dirty);
-  const posted = !!(SDLOG && SDLOG.subject && (() => { const d = logDrafts()[logKey(SDLOG.subject)] || {}; return d.rating > 0 || (d.text || '').trim() || (d.songs || []).some(x => x.rating > 0); })());
+  const posted = logPosted();
   b.dataset.mode = dirty ? 'post' : (posted ? 'revise' : 'empty');
   b.disabled = !dirty && !posted;
   b.textContent = dirty ? 'Post' : (posted ? 'Revise' : 'Post');
+  /* THE BAR HAS THREE STATES (0.13):
+       • nothing posted yet — unsaved → [Save changes]; clean → no bar at all;
+       • posted and LOCKED — [Edit review] filling the row, [trash] right of it;
+       • posted and unlocked — [Save changes] + [trash], Save dimmed until there
+         is actually a change to save.
+     Edit review and Save changes are never up together: Edit IS the locked state. */
   const bar = document.querySelector('#sd-log .sd-log-savebar');
-  if (bar) bar.hidden = !dirty;   // the pinned Save changes: there while anything is unsaved
+  if (bar) {
+    const locked = logLocked();
+    const saveBtn = bar.querySelector('.sd-log-savebtn');
+    const editBtn = bar.querySelector('.sd-log-editbtn');
+    const delBtn  = bar.querySelector('.sd-log-delbtn');
+    if (saveBtn) { saveBtn.hidden = locked || !(dirty || posted); saveBtn.disabled = !dirty; }
+    if (editBtn) editBtn.hidden = !locked;
+    if (delBtn)  delBtn.hidden  = !posted;      // nothing to delete until it is posted
+    bar.hidden = !dirty && !posted;
+    if (bar.hidden) bar.classList.remove('is-nudging');
+  }
+  paintLogLock();
 }
 /* What the library tabs need to draw — and reopen — an album that has since
    left ARCHIVE (the rec pool is re-dealt every session). Albums only; a song's
@@ -7549,10 +7852,24 @@ function ensureLogSheet() {
       <!-- SAVE CHANGES, pinned to the sheet's bottom (0.12, Eric 2026-10-02:
            "anytime you make any changes a fixed save changes button appears at
            the bottom so it's there even if you scroll"). Sticky inside the
-           sheet (the sheet is the scroller); shown only while SDLOG.dirty
-           (paintLogSave). It replaces the Post that rode the cover. -->
+           sheet (the sheet is the scroller). It replaces the Post that rode
+           the cover. (0.13 moved the "shown only while SDLOG.dirty" rule onto
+           the BUTTON — the bar itself now also stays up to carry Edit.) -->
+      <!-- EDIT, RIGHT OF SAVE CHANGES (0.13, Eric 2026-10-08: "it says save
+           changes after u make changes and if u press that button i want the
+           edit button to appear"). So a save no longer closes the sheet —
+           commitLog publishes and leaves it up, Save changes goes (nothing is
+           unsaved any more) and Edit is what's left, on the right. A tap on
+           Edit puts the cursor back in the review, the old Revise gesture. -->
       <div class="sd-log-savebar" hidden>
-        <button class="sd-log-savebtn" type="button">Save changes</button>
+        <span class="sd-log-nudge" role="status">want to edit review?</span>
+        <div class="sd-log-saverow">
+          <button class="sd-log-savebtn" type="button">Post review</button>
+          <button class="sd-log-editbtn" type="button" hidden>Edit review</button>
+          <button class="sd-log-delbtn" type="button" hidden title="Delete review" aria-label="Delete review">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>
+          </button>
+        </div>
       </div>
     </div>`;
 
@@ -7560,6 +7877,53 @@ function ensureLogSheet() {
   ov.addEventListener('mousedown', e => e.stopPropagation());
   ov.querySelector('.sd-log-sheet').addEventListener('click', e => e.stopPropagation());
   ov.querySelector('.sd-log-savebtn').addEventListener('click', e => { e.stopPropagation(); commitLog(); });
+  /* Edit review: UNLOCK, then put the cursor at the end of the review. Save
+     changes takes Edit's place (dimmed until something actually changes). */
+  ov.querySelector('.sd-log-editbtn').addEventListener('click', e => {
+    e.stopPropagation();
+    if (!SDLOG) return;
+    SDLOG.unlocked = true;
+    paintLogSave();
+    const w = ov.querySelector('.sd-log-write');
+    const box = w && w.closest('.sd-log-review');
+    if (w && box && !box.hidden) { w.focus(); w.setSelectionRange(w.value.length, w.value.length); }
+  });
+  ov.querySelector('.sd-log-delbtn').addEventListener('click', e => { e.stopPropagation(); logAskDelete(e.currentTarget); });
+
+  /* ── THE LOCK, ENFORCED ───────────────────────────────────────────────────
+     ONE capture-phase pair on the overlay rather than a guard inside each of
+     the eight edit handlers: a listener on an ancestor runs before anything on
+     a descendant, so stopPropagation here means the rating track, the toggles
+     and the song rows never hear the event at all.
+     ⚠ The selector names the CONTROLS, not their containers. An earlier cut
+     listed `.sd-log-songs-list` and preventDefault on its pointerdown killed
+     touch-scrolling over the whole tracklist.
+     ⚠ The textarea is nudged but NOT prevented — you must still be able to
+     put the caret in your own review and scroll it. `readOnly` (paintLogLock)
+     is what stops the typing there. */
+  const LOCKED_CTRLS = '.sd-log-stars-track, .sd-log-opt, .sd-log-song-rate-track,'
+                     + ' .sd-log-song-fav, .sd-log-song-note, .sd-log-write';
+  const refuseEdit = e => {
+    if (!logLocked() || !e.target.closest) return;
+    const hit = e.target.closest(LOCKED_CTRLS);
+    if (!hit) return;
+    nudgeEditReview();
+    if (hit.classList.contains('sd-log-write')) return;   // let you select and scroll your own text
+    e.preventDefault(); e.stopPropagation();
+  };
+  /* BOTH events: the rating tracks act on pointerdown, but the toggles and the
+     song rows (the heart, the note) are wired to 'click' — and a prevented
+     pointerdown does NOT reliably swallow the click that follows it on touch,
+     so blocking only pointerdown let Listened / Favorite through the lock. */
+  ov.addEventListener('pointerdown', refuseEdit, true);
+  ov.addEventListener('click', refuseEdit, true);
+  ov.addEventListener('keydown', e => {
+    if (!logLocked() || !e.target.closest) return;
+    if (e.key === 'Tab' || e.key === 'Escape') return;     // focus nav and dismissal stay open
+    if (!e.target.closest(LOCKED_CTRLS)) return;
+    e.preventDefault(); e.stopPropagation();
+    nudgeEditReview();
+  }, true);
   ov.querySelector('.sd-log-save').addEventListener('click', function () {
     // Revise: nothing new to post — put the cursor back in the review.
     if (this.dataset.mode === 'revise') { const w = ov.querySelector('.sd-log-write'); if (w) { w.focus(); w.setSelectionRange(w.value.length, w.value.length); } return; }
@@ -7616,17 +7980,25 @@ function ensureLogSheet() {
     return Math.min(5, i + (half ? 0.5 : 1));
   };
   const buzz = () => { try { navigator.vibrate && navigator.vibrate(6); } catch (x) {} };
-  /* 0.12 (2026-10-02) — A TAP IS LETTERBOXD'S (Eric): tap a record and the
-     rating is that WHOLE record; tap the same record again and it drops to
-     the half; again, back to whole. Which half of the disc you hit no longer
-     matters for a tap. A SLIDE still reads halves off the finger (valueAt) —
-     the press only turns into a slide once it travels past TAP_SLOP. */
+  /* 0.13 (2026-10-08) — A TAP CYCLES THE DISC IT LANDS ON (Eric): empty →
+     half → full → empty, climbing on each tap and resetting on the third.
+     Read the disc's OWN state, never equality with the rating: disc n is
+     full at `cur >= n` (so disc 3 of a 5 is full, and a tap on it empties it
+     to 2), half at exactly `n - 0.5`, empty below that. Emptying disc n
+     means `n - 1` — the disc you tapped goes dark and every disc under it
+     keeps its fill, so only disc 1 clears the score outright.
+     (0.12 was a two-state toggle, `cur === n ? n - 0.5 : n`: a tap gave the
+     whole record and a re-tap the half, with no way up from nothing but a
+     tap that overshot to full first.)
+     Which half of the disc you hit still does not matter for a tap. A SLIDE
+     reads halves off the finger (valueAt) — the press only turns into a
+     slide once it travels past TAP_SLOP. */
   const TAP_SLOP = 6;
   const discAt = clientX => {
     const r = track.getBoundingClientRect();
     return Math.max(1, Math.min(5, Math.floor((clientX - r.left) / (r.width / 5)) + 1));
   };
-  const tapValue = (n, cur) => (cur === n ? n - 0.5 : n);
+  const tapValue = (n, cur) => (cur >= n ? n - 1 : cur === n - 0.5 ? n : n - 0.5);
   track.addEventListener('pointerdown', e => {
     if (!SDLOG) return;
     e.preventDefault(); e.stopPropagation();
@@ -7802,6 +8174,7 @@ window.openLogSheet = function(triggerEl, subject) {
     text: saved.text || '',
     songs: [],
     dirty: !!wip,
+    unlocked: false,        // a posted review opens LOCKED (0.13) — Edit review frees it
   };
   paintLogSave();
   ov.querySelector('.sd-log-cover').style.backgroundImage = `url("${subj.image}")`;
@@ -7834,6 +8207,10 @@ window.openLogSheet = function(triggerEl, subject) {
     // three buttons instead of standing 95% tall over nothing (2026-09-11).
     sheet.classList.toggle('sd-log-sheet--song', !!subj.isSong);
   }
+  /* AGAIN, last (0.13): fillLogSongs has just built this album's song rows, and
+     paintLogLock has to reach their note inputs to mark them readOnly. The
+     earlier call ran before they existed. */
+  paintLogSave();
   _sdlogRestoring = false;              // paints done — live edits count from here
   requestAnimationFrame(() => ov.classList.add('open'));
 };

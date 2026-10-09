@@ -12646,6 +12646,10 @@ body.sd-return .s-home-v3--review .v3-body,
   padding: 3px 0; gap: 4px; background: transparent; color: var(--sd-ink3); font-size: 12px; border-radius: 0;
 }
 .s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-up svg { width: 16px; height: 16px; }
+/* 0.13 (2026-10-08): the PENCIL, LAST in the acts row so it reads to the right
+   of the likes. It inherits the row's .v3-up sizing and ink; only the hover
+   colour is its own, so it never looks like a like. */
+.s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-rev-editbtn:hover { color: var(--star, #e8a83c); }
 .s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-up:hover { background: transparent; color: var(--sd-ink); }
 .s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-up--heart.is-on { color: #ff5c8a; }
 .s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-up--heart.is-on svg { fill: currentColor; }
@@ -12662,6 +12666,12 @@ body.sd-return .s-home-v3--review .v3-body,
 .s-home-v3 .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up:hover { color: rgba(232,226,214,0.9); }
 .s-home-v3 .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up--heart.is-on { color: #ff5c8a; }
 .s-home-v3 .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up--cmtcol[data-n="0"] { display: none; }
+/* … EXCEPT ON YOUR OWN (Eric, 2026-10-08: "comment icon on the album review
+   too for yours"). A review you wrote carries the comment icon whether or not
+   anyone has answered it yet, so the row reads cmt · like · pencil here the
+   same as it does on the home feed. One class more than the rule above, so it
+   wins on specificity wherever it sits. */
+.s-home-v3 .v3-rev-card--page.v3-rev-card--split.v3-rev-card--mine .v3-rsp-acts .v3-up--cmtcol[data-n="0"] { display: inline-flex; }
 .s-home-v3 .v3-rev-card--split .v3-rsp-foot { grid-area: foot; margin-top: 12px; }
 /* 0.12 (2026-10-02): no "X listened to this" pill on the album page or the
    artist page (Eric). JS un-hides `.v3-rev-rec` when a friend logged the
@@ -12777,14 +12787,78 @@ body.sd-return .s-home-v3--review .v3-body,
   display: flex; justify-content: center;
 }
 .sd-log-savebar[hidden] { display: none; }
-.sd-log-savebtn {
-  width: 100%; max-width: 320px; height: 46px; border: 0; border-radius: 23px;
+/* 0.13 (2026-10-08): the bar is a ROW capped at the old button's width. SAVE
+   CHANGES and EDIT REVIEW each FILL it (they are never up together — Edit is
+   the locked state), and the delete circle sits to their right.
+   ⚠️ The max-width moved off the button onto the row — left on the button, it
+   and the circle would be 320px + 46px and overflow the sheet. */
+.sd-log-saverow {
+  width: 100%; max-width: 320px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+}
+.sd-log-savebtn, .sd-log-editbtn {
+  flex: 1 1 auto; min-width: 0; height: 46px; border: 0; border-radius: 23px;
   background: var(--star, #e8a83c); color: #1a1208;
   font: 800 15px var(--font-main); letter-spacing: .01em; cursor: pointer;
   box-shadow: 0 8px 22px rgba(0,0,0,0.45);
 }
-.sd-log-savebtn:active { transform: scale(.98); }
+.sd-log-savebtn:active, .sd-log-editbtn:active { transform: scale(.98); }
+/* Dimmed, not gone, in the unlocked-but-unchanged state: the bar must not
+   jump the moment you press Edit review. */
+.sd-log-savebtn:disabled { opacity: .42; box-shadow: none; cursor: default; }
+.sd-log-savebtn:disabled:active { transform: none; }
+/* — the delete circle — right of Edit review. Red in the TYPE and the hairline
+   only, like the playlist trash (.plnew-delete): a destructive option, never a
+   second call to action. It only opens the confirm (logAskDelete). */
+.sd-log-delbtn {
+  flex: 0 0 auto; width: 46px; height: 46px; padding: 0;
+  border-radius: 50%; border: 1px solid rgba(232,86,86,0.34);
+  background: transparent; color: #e85656;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .15s, border-color .15s;
+}
+.sd-log-delbtn svg { width: 19px; height: 19px; }
+.sd-log-delbtn:hover { background: rgba(232,86,86,0.09); border-color: rgba(232,86,86,0.55); }
+.sd-log-delbtn:active { transform: scale(.94); }
+/* Explicit, because the flex rules above would otherwise beat the UA's
+   [hidden] and leave two buttons on screen at once. */
+.sd-log-savebtn[hidden], .sd-log-editbtn[hidden], .sd-log-delbtn[hidden] { display: none; }
+
+/* — "edit review" — the nudge a locked control answers with (nudgeEditReview).
+   Anchored to the bar, which is `position: sticky` and therefore already a
+   containing block, so it rides above Edit review wherever the bar has got to.
+   `pointer-events: none`: it must never eat the tap that follows it. */
+.sd-log-nudge {
+  /* CLEAR OF THE BUTTON. `calc(100% - 10px)` hung the pill 10px down INTO the
+     bar and its 5px arrow then reached 15px in, past the bar's 12px of top
+     padding, so the arrow sat on Edit review (Eric, 2026-10-08). Measured from
+     the bar's padding-box top OUTWARDS now, so the arrow tip lands just above
+     it and the button is never touched. */
+  position: absolute; left: 50%; bottom: calc(100% + 6px);
+  transform: translate(-50%, 6px);
+  padding: 6px 13px; border-radius: 999px;
+  background: rgba(16,16,20,0.95); color: #f2ece0;
+  font: 700 11.5px var(--font-main); letter-spacing: .03em; white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+  opacity: 0; pointer-events: none;
+  transition: opacity .16s ease, transform .16s ease;
+}
+.sd-log-nudge::after {
+  content: ''; position: absolute; top: 100%; left: 50%;
+  margin-left: -5px; border: 5px solid transparent;
+  border-top-color: rgba(16,16,20,0.95);
+}
+.sd-log-savebar.is-nudging .sd-log-nudge { opacity: 1; transform: translate(-50%, 0); }
+/* The locked sheet reads as locked: the controls you cannot touch go quiet.
+   NOT pointer-events:none — the tap has to land so it can be answered with
+   the nudge above. */
+.sd-log-sheet.is-locked .sd-log-stars-track,
+.sd-log-sheet.is-locked .sd-log-opts,
+.sd-log-sheet.is-locked .sd-log-songs-list { opacity: .72; }
+.sd-log-sheet.is-locked .sd-log-write { opacity: .82; cursor: default; }
 .s-home-v3--light .sd-log-savebar { background: linear-gradient(to bottom, transparent, var(--sd-bg, #f0ece3) 34%); }
+.s-home-v3--light .sd-log-delbtn { color: #c93b3b; border-color: rgba(201,59,59,0.32); }
+.s-home-v3--light .sd-log-delbtn:hover { background: rgba(201,59,59,0.08); border-color: rgba(201,59,59,0.55); }
 
 /* 0.12 (2026-10-02): what you did, inside the round rate button (syncRevCta):
    the toggles you set and "Written review", under the number + discs. Ink

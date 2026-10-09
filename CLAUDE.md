@@ -1,13 +1,21 @@
 # Spindeck — Music Review App Mockup
 
-> ## ⚠️ THIS IS **0.13** — `csharpuser/versions/0.13/`, THE PRIVATE WORK IN PROGRESS (2026-10-03)
+> ## ⚠️ THIS IS **0.13** — THE ROOT OF THE REPO, ON `main` (2026-10-03 → 2026-10-08)
 > Eric: "lets make a 0.13 version and we'll work on that".
-> A worktree on branch **`v0.13`**, made from `v0.12` (14643b1, the live
-> site) + 0.12's untracked files (flow.html, flow/, snap.js) copied over, so it
-> started byte-identical to 0.12. 0.12 stays as it is. Open it at
-> `/versions/0.13/index.html`. Everything below (0.12's notes included)
-> describes the code as copied; add 0.13's changes in a "What 0.13 changes"
-> list here.
+> Started from `v0.12` (14643b1) and **closed on 2026-10-08**, when Eric asked
+> to "make this version 0.13 and make a new version instead of updating this
+> old one". 0.14 took over in its own worktree — see the 0.14 header in
+> `versions/0.14/CLAUDE.md`; nothing more lands here.
+>
+> ⚠️ **0.13 is NOT a worktree under `versions/`**, whatever this header said
+> for its first five days. It is the repo ROOT on `main`, which is the branch
+> GitHub Pages serves — so 0.13 is the live site, and `versions/` is
+> `.gitignore`d precisely so the private WIP versions never deploy. The
+> original plan was a `versions/0.13/` worktree on a `v0.13` branch; it was
+> never made, and all thirteen of 0.13's commits went straight onto `main`.
+> `v0.11` and `v0.12` are ancestors of `main` for the same reason: a version
+> branch lands here when it goes live, and its worktree is kept frozen under
+> `versions/` for side-by-side comparison.
 >
 > ### What 0.13 changes
 > - **Home's top review byline** like the feed's: 36px face, name + time beside
@@ -43,11 +51,181 @@
 >   `sdAskSkipOnboarding` card over step 1. Skip = `sdSkipOnboarding` → home.
 > - **Rate & review sheet**: the score number (44px) is centred ABOVE the five
 >   discs (56px); song-row discs 24px, 1px apart. The song rows now take the
->   album control's GESTURE (pointer handlers beside fillLogSongs): tap = whole
->   record, again = half, slide reads halves, off the left clears, buzz, live
+>   album control's GESTURE (pointer handlers beside fillLogSongs): the tap
+>   cycle below, slide reads halves, off the left clears, buzz, live
 >   paint (`paintSongRating`), save on release (`setSongRating`), keyboard.
 > - **Rate & review sheet**: the score number (44px) is centred ABOVE the five
 >   discs (56px); song-row discs 24px, 1px apart (end of app.css).
+> - **2026-10-08 — POST REVIEW LANDS ON THE HOME FEED, AND YOUR CARDS CARRY A
+>   PENCIL** (`app.js` — `commitLog` / `goHomeFeed` / `_myFeedPost` /
+>   `myFeedCardHtml` / `renderFriendFeed` / `revEditTap` / `revCardInner`;
+>   `app.css` — `.v3-rev-editbtn`; `app.js?v=418`, `app.css?v=676`). Eric:
+>   "instead of save changes in that review page can we put post review instead
+>   and after u press it it takes you to the homepage where it shows it being
+>   posted at the top, and on your review posts … there is an edit icon like a
+>   pencil next to the comment button to the left of it".
+>   · The bar's save button now reads **Post review** in every state (it is
+>   still `.sd-log-savebtn`, and still the dimmed/lit pair — only the word
+>   changed). **Edit review** and the delete circle are unchanged.
+>   · **A POST GOES HOME.** `commitLog` publishes, closes the sheet, puts the
+>   review in `window._myFeedPost` and calls `goHomeFeed()`. Only an **album**
+>   does this — a song's or an artist's sheet just closes, as every save did
+>   before. ⚠️ **`navigate('home')` alone is not enough from an album page**:
+>   the album page is a SUB-STATE of the home shell (`s-home-v3--album`), so
+>   the screen id is already `home` and navigate is a no-op — you would sit on
+>   the album page looking at the card you just posted. `goHomeFeed` takes every
+>   sub-state off by hand (`exitToBento` plus the review panel's `--rvp`) and
+>   re-renders the feed; only from another screen does it fall back to
+>   `navigate('home')`, where `populateHomeData` does the render.
+>   · **YOUR CARD LEADS THE FEED**, chipped **"just posted"**, built by
+>   `myFeedCardHtml` and prepended in `renderFriendFeed`. ⚠️ It is **not pushed
+>   into `_FEED`** — that list is built once and cached for the session, so a
+>   second post would stack a duplicate and a delete could not take it back
+>   out. It keys off the album page's own **`mine::<album>`**, so the like and
+>   the comment thread are the same act on both surfaces (the rule
+>   `feedRevKey` sets for every other card). ⚠️ `logDelete` clears
+>   `_myFeedPost`, or a deleted review sits at the top of home all session.
+>   · **THE EXIT, IN THREE BEATS** (Eric, same day: "the popup closes with a
+>   transition where it goes down and then it takes you to the homepage with a
+>   fade and then scrolls to the area that you posted and centers your post") —
+>   `postReviewExit` + `centerMyPost`, `app.js?v=419`.
+>   **(1)** the sheet slides DOWN — already built (`closeLogSheet` drops
+>   `.open`, `.sd-log-sheet` returns to `translateY(130%)` over .3s); the bug
+>   was only that commitLog ran the rest ON TOP of it, so it was never seen.
+>   `SDLOG_SLIDE_MS = 320` is the wait. **(2)** the feed's scroller fades out,
+>   `goHomeFeed()` swaps home in behind it, and it fades back. **(3)**
+>   `centerMyPost` puts your card in the middle, 120ms later.
+>   ⚠️ **The fade-out must be CANCELLED** before the fade-in: it is
+>   `fill: 'forwards'`, so left in place it pins the scroller at opacity 0 and
+>   the feed never comes back.
+>   ⚠️ **Not `scrollIntoView({ block: 'center' })`** — the phone frames sit in
+>   the desktop viewer's own scrolling stage, so it scrolls the VIEWER too and
+>   the phone walks up the page. The offset is measured against the scroller's
+>   own box.
+>   ⚠️ The centring waits **past markLongReviews' first pass (80ms)**: it
+>   re-measures every card, and a height that changes under an in-flight smooth
+>   scroll lands it short. It also **skips a shell with a zero-height rect** —
+>   the other theme's shell is `display:none` and would be scrolled to 0.
+>   ⚠️ Each beat has a **timeout as well as its callback**: a Web Animation in
+>   a backgrounded tab never fires `onfinish`, and the post still has to land.
+>   Reduced motion skips all three and lands on the centred feed.
+>   · **THE PENCIL** (`editHtml` in `revCardInner`) sits FIRST in
+>   `.v3-rsp-acts`, so it reads left of the comment button, and renders only
+>   when `o.mine`. ⚠️ **`mine: true` had to be added at every builder of your
+>   own card** — the album page's and `submitReview`'s both set the
+>   `--mine` CLASS but never the flag, so the pencil rendered nowhere until
+>   they did. ⚠️ **Split cards only**: the review page's hero puts the share
+>   button in that slot (`o.big` swaps `cmtHtml`), so the pencil would land on
+>   top of it. ⚠️ On the album page a comment button with no comments is hidden
+>   (`.v3-up--cmtcol[data-n="0"]`) and your own card has none, so there the
+>   pencil stands **alone** in the row — it has to read on its own.
+>   · **LATER THE SAME DAY, on your own cards** (`app.js?v=420`). Eric: "lets
+>   get rid of the just now and just posted and just have the username like
+>   normal and instead of the pencil on the left side of the comment lets have
+>   it on the right side … edit on the right side of the likes instead, and no
+>   share your review for now".
+>   → **Plain byline**: `ago: ''` on the feed card and `submitReview`'s, and no
+>   chip. `revCardInner` only renders the time `${o.ago ? … : ''}`, so an empty
+>   string drops the span rather than printing nothing in a box.
+>   → **The acts row is now `cmt → like → pencil`** — the pencil LAST, so it
+>   reads right of the likes. It led the row for an afternoon.
+>   → **Likes are back on your own cards**: `likes: 0`, not `likes: null`
+>   (`null` is what makes `revCardInner` emit no like button at all). With
+>   `actsTop` they get the HEART, like every other split card.
+>   → **`share` is off** on all three of your cards, so no "Share your review"
+>   foot. ⚠️ The builder's foot in `revCardInner` is deliberately LEFT IN for
+>   the bring-back — it is the call sites that stopped passing `share: true`.
+>   The review page's **hero keeps its share button**, which comes through
+>   `cmtHtml` on `o.big`, not through the foot.
+>   → **The album page's own card followed** (Eric, next: "lets take it out on
+>   the album page as well, and comment icon on the album review too for
+>   yours"; `app.js?v=421`, `app.css?v=677`). Its `ago: 'your review'` is now
+>   `''` too, in the card options **and** in its `REV_INDEX` entry — so the
+>   review page's hero byline for your own review goes plain with it.
+>   → And the **comment icon stays at zero on your own card there**: a new
+>   rule overrides `.v3-up--cmtcol[data-n="0"] { display: none }` for
+>   `.v3-rev-card--mine`, so the row reads `cmt · like · pencil` on the album
+>   page exactly as it does on the home feed. ⚠️ The override carries **one class
+>   more** than the hide rule, which is what wins it — a copy with equal
+>   specificity would depend on source order.
+>   · `revEditTap` resolves the album from **`REV_INDEX[card.dataset.k]`**, which
+>   every card builder fills under the card's own key — so one handler serves
+>   the home feed, the album page and the artist page without knowing which it
+>   is in. It opens the sheet and sets `SDLOG.unlocked = true`: going straight
+>   to editing is the whole point of the pencil. ⚠️ It stops propagation, or the
+>   card's own `cmtCardTap` opens the review page under the sheet.
+> - **2026-10-08 — A POSTED REVIEW IS LOCKED UNTIL YOU PRESS EDIT REVIEW**
+>   (`app.js` — `logPosted` / `logLocked` / `paintLogLock` / `nudgeEditReview`
+>   / `paintLogSave` / `commitLog` / `logAskDelete` / `logDelete` and the
+>   savebar markup; `app.css` — `.sd-log-saverow`, `.sd-log-editbtn`,
+>   `.sd-log-delbtn`, `.sd-log-nudge`; `app.js?v=416`, `app.css?v=674`).
+>   Eric: "it says save changes after u make changes and if u press that
+>   button i want the edit button to appear" → "the edit review should be
+>   large as the save changes and lets have a delete to the right of it as a
+>   circle and trash icon and red … so that instead of save changes its
+>   confusing you have to press edit to edit or u cant make changes
+>   accidentally".
+>   · **THE BAR HAS THREE STATES.** Nothing posted — unsaved → **Post
+>   review**, clean → **no bar**. Posted and locked → **Edit review** filling
+>   the row with the **delete circle** right of it. Posted and unlocked →
+>   **Post review** (dimmed until something really changes) + the circle.
+>   Edit review and Post review are never up together: **Edit IS the locked
+>   state**. Delete shows whenever the review is posted. (The save button read
+>   "Save changes" until later the same day — see the entry above.)
+>   · **THE LOCK.** `SDLOG.unlocked` is **per-opening and never stored**, so
+>   closing the sheet and coming back locks it again. `logLocked()` is
+>   `!unlocked && !dirty && logPosted()` — ⚠️ **`dirty` unlocks too**, because
+>   reopening on a WIP drops you back into work that is already mid-edit.
+>   · **ENFORCED BY ONE CAPTURE-PHASE PAIR** on the overlay (`refuseEdit` on
+>   `pointerdown` **and** `click`), not a guard in each of the eight edit
+>   handlers — a listener on an ancestor runs before anything on a descendant.
+>   ⚠️ **Both events are needed**: the toggles and the song rows are wired to
+>   `click`, and a prevented `pointerdown` does not reliably swallow the click
+>   after it on touch, so blocking only `pointerdown` let Listened / Favorite
+>   through. ⚠️ `LOCKED_CTRLS` names the **controls, never a container** — an
+>   earlier cut listed `.sd-log-songs-list` and preventDefault on its
+>   pointerdown killed touch-scrolling over the whole tracklist. ⚠️ The
+>   textarea is nudged but **not** prevented (you must still be able to put the
+>   caret in your own review and scroll it); `readOnly` is what stops the
+>   typing there, and it is also the only thing that stops a **paste or an IME
+>   commit**, neither of which sends a keydown.
+>   · **THE NUDGE.** A touch on a locked control floats a small **"want to
+>   edit review?"** pill above the bar for 1.7s (`.sd-log-nudge`, `is-nudging` on the
+>   bar) and buzzes, instead of changing anything. One timer, restarted —
+>   brushing three discs must not queue three removals. `pointer-events: none`
+>   so it never eats the tap after it. ⚠️ Its `bottom` is measured
+>   **outwards** from the bar's padding-box top (`calc(100% + 6px)`): a negative
+>   offset hangs the pill into the bar and its 5px arrow then clears the 12px of
+>   top padding and sits on the Edit review button.
+>   · **DELETE** only **asks** (`logAskDelete` → the confirm, then
+>   `logDelete`), like the playlist trash, and rides the same `.pldel-*`
+>   material under its own id `#sdlogdel`. Red in the type and hairline only.
+>   ⚠️ It drops **both stores** — published draft and WIP: leave the WIP and
+>   the next open restores it first and the review comes back from the dead.
+>   ⚠️ `putDraft` takes an **object, never null** (it reads `d.rating` to decide
+>   the draft is empty, and an empty one is what deletes the key), and
+>   `_sdlogT` is cleared first or `closeLogSheet`'s flush rewrites the WIP.
+>   ⚠️ **A SAVE NO LONGER CLOSES THE SHEET** — `commitLog` dropped its
+>   `closeLogSheet()`, or there would be nothing on screen for Edit review to
+>   appear on, and it sets `unlocked = false` so a save re-locks. The sheet is
+>   dismissed the way it always was: the nub (tap / drag down) or a tap outside.
+>   ⚠️ `openLogSheet` calls `paintLogSave()` **twice** — the second time after
+>   `fillLogSongs`, because `paintLogLock` has to reach the song note inputs to
+>   mark them `readOnly` and they do not exist on the first call.
+> - **2026-10-08 — A TAP CYCLES ONE DISC THROUGH THREE STATES** (`app.js`
+>   `tapValue`, `app.js?v=414`). Eric: "lets make it a three tap system where
+>   it goes from empty to half to full, ideally going up and resetting down to
+>   0". A tap on disc n now reads **that disc's own state** and climbs:
+>   **empty → half (`n - 0.5`) → full (`n`) → empty (`n - 1`)**. Emptying disc
+>   n leaves every disc under it full, so only **disc 1** clears the score
+>   outright; tapping disc 3 of a scored-5 album empties it to 2.
+>   ⚠️ The state must come from the disc, **not** from equality with the
+>   rating — disc n is full whenever `cur >= n`, which 0.12's
+>   `cur === n ? n - 0.5 : n` missed, so a tap on a disc that was full only
+>   because the score sat above it fell to the half instead of emptying.
+>   One function, so the **big control and the per-song rows** both cycle.
+>   A SLIDE is untouched (`valueAt` / `songVal` still read left-half =
+>   the half), and so is the keyboard.
 >
 > ---
 >
@@ -5529,7 +5707,7 @@ deterministic, so the wall refresh is the gesture more than new data).
 - **Subject:** defaults to the current bento album (`currentBentoAlbum()`); pass a `{ image, title, subtitle }` to log something else (a song does this via `openSongLog`).
 - **Contents:** cover + title/subtitle header · large centered **vinyl rate** control (drag/tap for half-record ratings, `setLogRating`) · one-line **Listened (ear) · Listen later · Favorite** toggles (`toggleLogOpt`) · a review textarea · a footer status line. The sheet floats with 10px margins (matches the bento).
 - **The five records are 54px with a 7px gap** (2026-09-11, up from 32/8, then 50/12): a 298px row, ~76% of the 393px frame, so it stops about 12% short of each screen edge. Sized on `.sd-log-rate .sd-rec`, not `.sd-rec`, because the per-song rows reuse the glyph at 14px.
-- **The rate control follows five-star interaction guidance, translated to records** (2026-09-11; WCAG 44px targets, Letterboxd's half rule, MUI's tap-to-clear, NN/g's live feedback). Pointer events on `.sd-log-stars-track` (`role="slider"`): the track is divided into **five equal cells** (`valueAt`), each a ~60px square (`::before` pads it vertically; `touch-action: none`), and the **left half of a record is the half, the right half the whole**. A **press sets, a slide adjusts** with the fill following live; **sliding left off the track clears**. A tap always sets what it lands on — re-tapping the current value does NOT clear it (tried, rejected). There is **no number** under the discs; the fill is the readout. ⚠️ **The fill is measured in records and gaps** (`recFillWidth`, reading `--rec` / `--gap` from the track's container), not as a percentage of the row — the row is 5 discs + 4 gaps, so a percentage put the half at 55% of the first disc and 45% of the last. Both the big control and the per-song rows use it. Steps buzz via `navigator.vibrate` where it exists (Android only). Keyboard: ←/→ by a half, Home/End, Delete to clear. ⚠️ **Only the release commits** — `paintLogRating` (fill + number + ARIA) runs live, `setLogRating` (which also saves the draft and pokes the pet) runs once on pointerup, so a drag is not sixty writes and sixty reactions.
+- **The rate control follows five-star interaction guidance, translated to records** (2026-09-11; WCAG 44px targets, Letterboxd's half rule, MUI's tap-to-clear, NN/g's live feedback). Pointer events on `.sd-log-stars-track` (`role="slider"`): the track is divided into **five equal cells** (`valueAt`), each a ~60px square (`::before` pads it vertically; `touch-action: none`), and the **left half of a record is the half, the right half the whole**. A **press sets, a slide adjusts** with the fill following live; **sliding left off the track clears**. A tap always sets what it lands on — re-tapping the current value does NOT clear it (tried, rejected). ⚠️ **Superseded for the TAP** by 0.12 and then 0.13's three-state cycle (see *What 0.13 changes*); the slide is still as described here. There is **no number** under the discs; the fill is the readout. ⚠️ **The fill is measured in records and gaps** (`recFillWidth`, reading `--rec` / `--gap` from the track's container), not as a percentage of the row — the row is 5 discs + 4 gaps, so a percentage put the half at 55% of the first disc and 45% of the last. Both the big control and the per-song rows use it. Steps buzz via `navigator.vibrate` where it exists (Android only). Keyboard: ←/→ by a half, Home/End, Delete to clear. ⚠️ **Only the release commits** — `paintLogRating` (fill + number + ARIA) runs live, `setLogRating` (which also saves the draft and pokes the pet) runs once on pointerup, so a drag is not sixty writes and sixty reactions.
 - **A song's sheet sizes to its content** (`.sd-log-sheet--song`, toggled in
   `openLogSheet`): no review box and no song list, so it ends under the three
   buttons with the page showing above it, instead of 95% of empty sheet.
