@@ -23,6 +23,18 @@
 > site** — and `versions/` is `.gitignore`d so the frozen copies never deploy.
 >
 > ### What 0.14 changes
+> - **2026-10-09 — YOUR OWN REVIEW KEEPS ITS HEART IN THE POPUP** (`app.js`
+>   `rshBodyHtml`; `app.js?v=425`). Eric: "on your review popup the heart and
+>   like is there still its no there on the left side". The like was built as
+>   `R.mine ? '' : upvoteHtml(…)`, so on your own review `.v3-fbr-act--like`
+>   rendered as an **empty span** — and that span carries `order: -1`, the LEFT
+>   slot of the acts row, so your review showed a hole exactly where everyone
+>   else's heart sits. Now built unconditionally, matching the move the cards
+>   made on 2026-10-08 (`likes: null` → `likes: 0`).
+>   ⚠️ **One builder, two surfaces:** `rshBodyHtml` is the body of the sheet
+>   (`app.js`) **and** of the rail's review page (`screens.js`,
+>   `.v3-rsh-body--page`), so this fixed both at once. Anything changed here
+>   lands on both.
 > - **2026-10-09 — ONE WAY TO OPEN A REVIEW: THE SHEET** (`app.js` —
 >   `cmtCardTap` / `cmtCompose` / `feedOpenReview` / `openReviewSheet`;
 >   `app.js?v=424`). Eric: "right now we have two different type of review

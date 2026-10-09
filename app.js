@@ -4073,7 +4073,13 @@ function rshBodyHtml(R) {
   const P = window.PROFILE || {};
   const face = R.mine ? (P.pic || 'images/rp-01.jpg') : (R.face || R.pic || (typeof feedFace === 'function' ? feedFace(R.name) : ''));
   const rating = Number(R.rating) || 0;
-  const like = R.mine ? '' : upvoteHtml(key, R.likes || 0, 'v3-up--sm v3-up--like v3-up--heart')
+  /* YOUR OWN REVIEW KEEPS THE HEART (Eric, 2026-10-09: "on your review popup
+     the heart and like is there still its no there on the left side"). It read
+     `R.mine ? '' : …`, which left `.v3-fbr-act--like` an EMPTY span — and that
+     span carries `order: -1`, i.e. the LEFT slot of the row, so your own
+     review had a hole exactly where everyone else's heart sits. The cards made
+     the same move on 2026-10-08, from `likes: null` to `likes: 0`. */
+  const like = upvoteHtml(key, R.likes || 0, 'v3-up--sm v3-up--like v3-up--heart')
     .replace(/<svg[\s\S]*?<\/svg>/, typeof RVP_HEART !== 'undefined' ? RVP_HEART : '');
   const cmt = cmtBtnHtml(key, R.comments || 0, 'v3-up--sm v3-up--cmtcol');
   const a = R.album || {};
