@@ -1,22 +1,26 @@
 # Spindeck — Music Review App Mockup
 
-> ## ⚠️ THIS IS **0.14** — `csharpuser/versions/0.14/`, THE PRIVATE WORK IN PROGRESS (2026-10-08)
+> ## ⚠️ THIS IS **0.14** — THE ROOT OF THE REPO, ON `main` (2026-10-08 → )
 > Eric: "lets make this version 0.13 and make a new version instead of
-> updating this old one".
-> A worktree on branch **`v0.14`**, made from `main` at **cd678c6** — 0.13's
-> closing commit — and byte-identical to it at birth (0.13 left no untracked
-> files to copy across, unlike 0.12 → 0.13). **0.13 stays as it is.** Open
-> this one at `/versions/0.14/index.html`. Everything below (0.13's notes
-> included) describes the code as inherited; add 0.14's changes in the
-> "What 0.14 changes" list here.
+> updating this old one", then — after a day of the split getting in the way —
+> "make it so that it opens to 0.14".
+> **Open `index.html` at the ROOT.** Everything below (0.13's notes included)
+> describes the code as inherited; add 0.14's changes to the "What 0.14
+> changes" list here.
 >
-> ⚠️ **0.13 IS `main`, NOT A WORKTREE.** It is the branch GitHub Pages
-> serves, so it is the live site, and `versions/` is `.gitignore`d precisely
-> so a private WIP never deploys. That is why there is no `versions/0.13/`
-> beside this folder: 0.13's thirteen commits went straight onto `main`.
-> When 0.14 is ready it lands there the same way `v0.11` and `v0.12` did —
-> both are ancestors of `main` — and this worktree can then be kept frozen
-> for side-by-side comparison, as `versions/0.11` and `versions/0.12` are.
+> ⚠️ **THE ACTIVE VERSION LIVES IN THE ROOT, NOT UNDER `versions/`.** 0.14
+> began as a `versions/0.14/` worktree on 2026-10-08 and was folded into
+> `main` the next day (merge 63cb133) because that is the whole problem with
+> putting the live work in a subfolder: Eric opens the root's `index.html`, so
+> he was looking at 0.13 while every change went somewhere he never opened,
+> and a missing feature read as a bug twice over. `versions/` is for versions
+> that are **finished**, kept frozen for side-by-side comparison — 0.13 is
+> `versions/0.13/` on `v0.13` at cd678c6, as 0.11 and 0.12 are. Both of those
+> are ancestors of `main` for the same reason: a version lands in the root
+> when it is current, and is snapshotted under `versions/` when it is not.
+>
+> ⚠️ `main` is the branch GitHub Pages serves, so **the root is also the live
+> site** — and `versions/` is `.gitignore`d so the frozen copies never deploy.
 >
 > ### What 0.14 changes
 > - **2026-10-09 — A GOLD RING ON THE REVIEW YOU WERE JUST BROUGHT TO**
@@ -59,19 +63,18 @@
 >
 > ---
 >
-> ## (inherited) THIS WAS **0.13** — `main`, THE LIVE SITE (2026-10-03 → 2026-10-08)
+> ## (inherited) THIS WAS **0.13** — now frozen at `versions/0.13/` (2026-10-03 → 2026-10-08)
 > Eric: "lets make a 0.13 version and we'll work on that".
 > Started from `v0.12` (14643b1) and **closed on 2026-10-08**, when Eric asked
 > to "make this version 0.13 and make a new version instead of updating this
-> old one". 0.14 took over in its own worktree — the header above this one —
-> and nothing more lands in 0.13.
+> old one". 0.14 took over — the header above this one — and nothing more
+> lands in 0.13. It was the root while it was current; it is now a frozen
+> worktree at `versions/0.13/` on branch `v0.13` (cd678c6).
 >
-> ⚠️ **0.13 is NOT a worktree under `versions/`**, whatever this header said
-> for its first five days. It is the repo ROOT on `main`, which is the branch
-> GitHub Pages serves — so 0.13 is the live site, and `versions/` is
-> `.gitignore`d precisely so the private WIP versions never deploy. The
-> original plan was a `versions/0.13/` worktree on a `v0.13` branch; it was
-> never made, and all thirteen of 0.13's commits went straight onto `main`.
+> ⚠️ **0.13 was never a worktree while it was current**, whatever this header
+> said for its first five days: all thirteen of its commits went straight onto
+> `main`, i.e. into the repo root. The `versions/0.13/` worktree and the
+> `v0.13` branch were finally made on 2026-10-09, when 0.14 took the root.
 > `v0.11` and `v0.12` are ancestors of `main` for the same reason: a version
 > branch lands here when it goes live, and its worktree is kept frozen under
 > `versions/` for side-by-side comparison.

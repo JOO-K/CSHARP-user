@@ -19,27 +19,34 @@
    site's folder, then add '0.14' to WIP_VERSIONS and ORDER in every copy of
    this file.
 
-   LANDING ONE: when a WIP merges into main it becomes the root, so set
-   ROOT_VERSION to its name and take it OUT of WIP_VERSIONS (it has no
-   versions/ folder any more) while leaving it in ORDER. Forgetting the first
-   half is how the root went on calling itself 0.1 for three versions; the
-   second half is how '0.13' ended up in the menu pointing at a 404.
+   LANDING ONE: when a version merges into main it becomes the root. Set
+   ROOT_VERSION to its name, take it OUT of WIP_VERSIONS (it has no versions/
+   folder any more) and leave it in ORDER — then give the version it REPLACES
+   a worktree of its own (`git worktree add versions/0.13 v0.13`) and add that
+   one to WIP_VERSIONS, or it drops out of the menu with nothing to point at.
+   Forgetting the first half is how the root went on calling itself 0.1 for
+   three versions; forgetting the second is how '0.13' sat in the menu for a
+   day resolving to a 404.
 
    Desktop viewer only; loads last and touches nothing in app.js.
    ============================================================ */
 
 (function () {
   /* ROOT_VERSION is the NAME OF WHATEVER IS IN THE ROOT FOLDER — i.e. of
-     `main` — so it changes every time a WIP version lands there. It read
-     '0.1' until 2026-10-08, long after main had gone 0.11 → 0.12 → 0.13:
-     the switcher called the root 0.1 and clicking "0.1" opened 0.13's code.
+     `main` — so it changes every time a version lands there. It read '0.1'
+     until 2026-10-08, long after main had gone 0.11 → 0.12 → 0.13: the
+     switcher called the root 0.1, and clicking "0.1" opened 0.13's code.
      Nothing named 0.1 is preserved anywhere — the root advanced IN PLACE —
      so '0.1' is gone from the lists rather than pointing at a lie.
-     ⚠ 0.13 belongs in NEITHER list below: it IS the root. It sat in
-     WIP_VERSIONS for a `versions/0.13/` worktree that was never made, so
-     `exists` HEAD-ed a 404 and dropped it from the menu every time. */
-  const ROOT_VERSION = '0.13';
-  const WIP_VERSIONS = ['-1', '-0.1', '-0.11', '0.11', '0.12', '0.14'];
+     2026-10-09: 0.14 was folded into main, so the ROOT IS 0.14 and 0.13 is
+     now a real frozen worktree at versions/0.13 — which is why 0.13 moved
+     INTO WIP_VERSIONS and 0.14 moved out of it.
+     ⚠ Whatever ROOT_VERSION names must NOT be in WIP_VERSIONS: that list
+     means "there is a versions/<name>/ folder". '0.13' sat in it for a day
+     while 0.13 was still the root and no such folder existed, so `exists`
+     HEAD-ed a 404 and silently dropped it from the menu. */
+  const ROOT_VERSION = '0.14';
+  const WIP_VERSIONS = ['-1', '-0.1', '-0.11', '0.11', '0.12', '0.13'];
   // The order the list is shown in, oldest first. -0.1 is the ORIGINAL app
   // (c-sharp, before the review-only fork), brought in on 2026-09-28.
   // ⚠ ROOT_VERSION has to appear here too, in its chronological place, or it
