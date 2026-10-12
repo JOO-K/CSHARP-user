@@ -1764,7 +1764,7 @@ window.toggleRevAction = function (btn, e) {
   // A quick-log square IS the log sheet's own toggle, so it writes straight
   // into that album's draft — otherwise the square and the sheet would
   // disagree about whether you'd favourited the record.
-  if (!btn.classList.contains('v3-rev-q') && !btn.classList.contains('v3-rg-btn')) return;
+  if (!btn.classList.contains('v3-rev-q') && !btn.classList.contains('v3-rg-btn') && !btn.classList.contains('v3-rev-opt')) return;
   const k = btn.dataset.k;
   const scr = btn.closest('.s-home-v3');
   const a = shellAlbum(scr);
@@ -1778,7 +1778,7 @@ window.toggleRevAction = function (btn, e) {
   // Favorite pill and the album page's quick-log square are the same toggle.
   homeShells().forEach(s => {
     if (s !== scr && s._album !== a) return;
-    s.querySelectorAll(`.v3-rev-q[data-k="${k}"], .v3-rg-btn[data-k="${k}"]`).forEach(b => {
+    s.querySelectorAll(`.v3-rev-q[data-k="${k}"], .v3-rg-btn[data-k="${k}"], .v3-rev-opt[data-k="${k}"]`).forEach(b => {
       if (b !== btn) b.classList.toggle('on', on);
     });
   });
@@ -1799,7 +1799,7 @@ function shellAlbum(scr) {
 function syncQuickLog(scr, album) {
   if (!scr) return;
   const d = albumDraft(album || shellAlbum(scr));
-  scr.querySelectorAll('.v3-rev-q[data-k], .v3-rg-btn[data-k]').forEach(b => b.classList.toggle('on', !!d[b.dataset.k]));
+  scr.querySelectorAll('.v3-rev-q[data-k], .v3-rg-btn[data-k], .v3-rev-opt[data-k]').forEach(b => b.classList.toggle('on', !!d[b.dataset.k]));
   syncRevCta(scr, d);
 }
 /* YOUR REVIEW answers to the draft (the CTA did, from 2026-09-11; the rate

@@ -594,6 +594,18 @@ function homeShellHtml(light, coversUp, cls) {
                      album", your number over your discs once rated, "Reviewed" if you only
                      wrote. The "Your review" bar this replaced is .v3-rev-yours (CSS kept). -->
                 ${rateGroupHtml()}
+                <!-- LISTENED · LISTEN LATER · FAVORITE are back (0.14b, Eric 2026-10-09:
+                     "bring back the listened listen later and favorite onto the album page
+                     but as a straight row below the rate circle, same format as the review
+                     page"). The log sheet's own .sd-log-opts markup and classes, so the two
+                     rows look identical; .v3-rev-opt routes the tap through toggleRevAction
+                     → writeDraftFlag, the same saved draft the sheet reads, so a tap on
+                     either surface is already pressed on the other. -->
+                <div class="sd-log-opts v3-rev-opts">
+                  <button class="sd-log-opt v3-rev-opt" data-k="listened" onclick="toggleRevAction(this, event)"><span class="sd-log-opt-ico">${SD_ICONS.ear}</span><span class="sd-log-opt-lbl">Listened</span></button>
+                  <button class="sd-log-opt v3-rev-opt" data-k="later" onclick="toggleRevAction(this, event)"><span class="sd-log-opt-ico">${SD_ICONS.clock}</span><span class="sd-log-opt-lbl">Listen later</span></button>
+                  <button class="sd-log-opt v3-rev-opt" data-k="fav" onclick="toggleRevAction(this, event)"><span class="sd-log-opt-ico">${SD_ICONS.heart}</span><span class="sd-log-opt-lbl">Favorite</span></button>
+                </div>
               </div>
 
             </div><!-- /v3-rev-top -->

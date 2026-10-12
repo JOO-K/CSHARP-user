@@ -8,6 +8,22 @@
 > **+** menu. **Open `index.html` at the ROOT.**
 >
 > ### What 0.14b changes
+> - **2026-10-09 — LISTENED · LISTEN LATER · FAVORITE BACK ON THE ALBUM PAGE**
+>   (`screens.js` `.v3-rev-opts` under `rateGroupHtml()` in `.v3-rev-mine`;
+>   `app.js` `toggleRevAction` / `syncQuickLog`; end of `app.css`;
+>   `screens.js?v=372`, `app.js?v=430`, `app.css?v=687`). Eric: "bring back the
+>   listened listen later and favorite … as a straight row below the rate
+>   circle same format as the review page, and if u press one on the album page
+>   and review page it should update accordingly".
+>   · **It is the log sheet's row, class for class** (`.sd-log-opts` /
+>   `.sd-log-opt` / `-ico` / `-lbl`), so it looks the same with no new
+>   styling — only the row's margin, and hidden on the artist page.
+>   · **One store, so they stay in step.** `.v3-rev-opt` is the hook:
+>   `toggleRevAction` writes it through `writeDraftFlag` (saved draft + any
+>   WIP, so the sheet opens with it already pressed), and `toggleLogOpt` →
+>   `syncQuickLog` repaints it from the draft when it's pressed in the sheet.
+>   ⚠️ A new copy of these toggles has to join BOTH selector lists in
+>   `toggleRevAction` and the one in `syncQuickLog`, or it goes out of step.
 > - **2026-10-09 — HOME'S FEED TABS: FRIENDS · POPULAR · YOU** (`screens.js`
 >   `homeShellHtml`; `app.js` — `FEED_TAB` / `pickFeedTab` / `paintFeedTabs` /
 >   `popularFeedHtml` / `myReviewsFeedHtml` / `renderFriendFeed`;

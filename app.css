@@ -13270,3 +13270,12 @@ html.sd-wire .wall2-art--artist[style*="url("] {
   .sd-log-song .sd-rec, .sd-log-song-fill { transition: none; }
   .sd-log-song-rate-track.is-rating .sd-rec { transform: none; }
 }
+
+/* 0.14b (2026-10-09): LISTENED · LISTEN LATER · FAVORITE back on the album
+   page, a straight row under the rate circle (`.v3-rev-opts`, screens.js).
+   It IS the log sheet's row — same `.sd-log-opts` / `.sd-log-opt` classes, so
+   size, spacing and the ON colours come from the sheet's rules above and the
+   two can't drift. Only the row's own air is set here. Hidden on the artist
+   page, which keeps its corner Favorite pill. */
+.v3-rev-opts { margin: 4px 0 14px; }
+.s-home-v3--artist .v3-rev-opts { display: none; }
