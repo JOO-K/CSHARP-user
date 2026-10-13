@@ -8700,7 +8700,11 @@ function ensureLogSheet() {
      ⚠ The textarea is nudged but NOT prevented — you must still be able to
      put the caret in your own review and scroll it. `readOnly` (paintLogLock)
      is what stops the typing there. */
-  const LOCKED_CTRLS = '.sd-log-stars-track, .sd-log-opt, .sd-log-song-rate-track,'
+  /* NOT the three toggles (0.20, Eric 2026-10-13: "i want to be able to change
+     those without pressing edit review"). They publish themselves
+     (toggleLogOpt) and never touch the posted review, so there is nothing for
+     the lock to protect. */
+  const LOCKED_CTRLS = '.sd-log-stars-track, .sd-log-song-rate-track,'
                      + ' .sd-log-song-fav, .sd-log-song-note, .sd-log-write';
   const refuseEdit = e => {
     if (!logLocked() || !e.target.closest) return;

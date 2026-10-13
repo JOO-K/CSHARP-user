@@ -29,6 +29,12 @@
 > - **PROFILE**: the favourite-albums wheel and its share button are off
 >   (`profFavsHtml` intact); the picker is Fav songs · Fav albums · Listened ·
 >   Listen later.
+> - **ALBUM-PAGE LISTENED · LISTEN LATER · FAVORITE WORK** (2026-10-13). The
+>   row was dead: `.v3-rate-group`'s negative margin-bottom hung its box over
+>   it and ate the taps — `.v3-rev-opts` now has `position: relative; z-index: 1`
+>   (end of app.css). And the sheet's three toggles are no longer in
+>   `LOCKED_CTRLS`, so they change without pressing Edit review (they publish
+>   themselves via `toggleLogOpt`; rating, text and songs stay locked).
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.

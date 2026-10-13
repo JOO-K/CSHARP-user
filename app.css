@@ -13039,8 +13039,7 @@ body.sd-return .s-home-v3--review .v3-body,
    NOT pointer-events:none — the tap has to land so it can be answered with
    the nudge above. */
 .sd-log-sheet.is-locked .sd-log-stars-track,
-.sd-log-sheet.is-locked .sd-log-opts,
-.sd-log-sheet.is-locked .sd-log-songs-list { opacity: .72; }
+.sd-log-sheet.is-locked .sd-log-songs-list { opacity: .72; }   /* not .sd-log-opts — the toggles stay live (0.20) */
 .sd-log-sheet.is-locked .sd-log-write { opacity: .82; cursor: default; }
 .s-home-v3--light .sd-log-savebar { background: linear-gradient(to bottom, transparent, var(--sd-bg, #f0ece3) 34%); }
 .s-home-v3--light .sd-log-delbtn { color: #c93b3b; border-color: rgba(201,59,59,0.32); }
@@ -13307,6 +13306,12 @@ html.sd-wire .wall2-art--artist[style*="url("] {
    page, which keeps its corner Favorite pill. */
 .v3-rev-opts { margin: 4px 0 14px; }
 .s-home-v3--artist .v3-rev-opts { display: none; }
+/* 0.20 (2026-10-13): the row was DEAD — Eric: "the listened listen later and
+   fav are not working on the album page". `.v3-rate-group`'s negative
+   margin-bottom (calc(10px - 17.74%), for the hidden wings) lets its
+   positioned box hang over this row and swallow every tap. Stack the row
+   above it. */
+.v3-rev-opts { position: relative; z-index: 1; }
 
 /* 0.14b (2026-10-12) — THE TRENDING CAROUSEL IS ALBUMS, NOT REVIEWS. Eric: "in
    the discover/trending page, can we take out the review and username from
