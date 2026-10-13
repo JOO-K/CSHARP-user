@@ -1,6 +1,41 @@
 # Spindeck — Music Review App Mockup
 
-> ## ⚠️ THIS IS **0.14b** — THE ROOT OF THE REPO, ON `main` (2026-10-09 → )
+> ## ⚠️ THIS IS **0.20** — THE ROOT OF THE REPO, ON `main`, LIVE (2026-10-13 → )
+> Eric: "lets try updating this version to the live and call it .20". 0.14b
+> plus the work below, renamed and pushed. The last committed 0.14b is frozen
+> at `versions/0.14b/` on `v0.14b` (b055c9a). **Open `index.html` at the ROOT.**
+>
+> ### What 0.20 changes
+> - **SETTINGS ARE REAL** (`SD_PREFS` / `sdPref` near the top of app.js;
+>   `settingsHtml`). Theme Dark/Light/Auto IS the variant (`sdApplyTheme`
+>   writes index 0/1 for every screen); Reduce motion is `html.sd-reduce-motion`
+>   (REDUCE MOTION block at the end of app.css, and `sdReducedMotion()` reads
+>   it); notification switches filter the inbox (`sdNtfAllowed`); "Share what
+>   you're listening to" is stored and shared with onboarding's tracking step.
+>   Playback, Privacy and the Profile theme row are gone.
+> - **CONNECTED SERVICES** (CONNECTED SERVICES block in app.js). A connect
+>   pulls the tester's albums, matches each on Deezer and builds the `me`
+>   persona (saved in `spindeck-taste`, re-registered by initPersonas). Deezer
+>   works keyless; Last.fm needs `LASTFM_KEY`, Spotify (PKCE) needs
+>   `SPOTIFY_CLIENT_ID` + the page as a redirect URI; Apple Music can't.
+> - **BACK** (2026-10-13). A search you open a result from comes back on Back
+>   (`sdsStash` / `sdsTagSnap` / `sdsRestore`); the bell and gear push where you
+>   were (`sdOpenFromHeader`); bottom-nav tabs clear the stack (`sdNavTab`);
+>   friends' profiles have a Back and come back as guests (snapshots carry
+>   `guest`); an album-page snapshot restores from another screen;
+>   `captureLocation` only reads a VISIBLE home shell (the phone build keeps
+>   hidden desktop shells); closing the + flow's rate sheet unposted reopens
+>   that search; Edit profile opened from Settings returns to Settings.
+> - **PROFILE**: the favourite-albums wheel and its share button are off
+>   (`profFavsHtml` intact); the picker is Fav songs · Fav albums · Listened ·
+>   Listen later.
+> - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
+>   the intro logo is the base four parts (belt, record, centre circle, motor)
+>   and runs ~0.2s longer.
+>
+> ---
+>
+> ## (inherited) THIS WAS **0.14b** — now frozen at `versions/0.14b/` (2026-10-09 → 2026-10-13)
 > Eric: "can we make a new version called 0.14b where we try something".
 > An EXPERIMENT off 0.14, in the root as usual — the active version always
 > lives here (see the 0.14 header below for why). 0.14 is frozen at

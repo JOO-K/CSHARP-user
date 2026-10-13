@@ -4390,6 +4390,11 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
 /* Panel padding matches the bento's 10px margin so % columns align exactly */
 .v3-review-panel { display: none; padding: 4px 10px 18px; }
 .s-home-v3--review .v3-scroll-area { display: none; }
+/* 0.14b (2026-10-12): home's feed tabs go with the feed. Album and artist
+   pages are this same shell with --review on (artist adds --artist), so the
+   bar sat on top of them. Eric: "that bar of categories is also on the album
+   page for some reason and the artist page". */
+.s-home-v3--review .v3-feed-tabs { display: none; }
 /* ⚠️ `backwards`, NOT `both` (2026-09-18) — the third place this bit. A
    fill-forwards animation keeps the panel on a compositing layer for good
    (this one even ends on `transform: none`, which still counts), and the
@@ -5788,6 +5793,17 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 .v3-cmt-like:hover, .v3-cmt-reply:hover { color: rgba(232,226,214,0.9); }
 .v3-cmt-like.is-on { color: #ff5c8a; }
 .v3-cmt-like.is-on svg { fill: currentColor; }
+/* Your own comment's trash — between the time and the heart (2026-10-12). Same
+   order as .v3-cmt-ago, so DOM order puts it right after the time. */
+.v3-cmt-del {
+  order: 1; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: none; padding: 3px; margin: 0 -2px 0 1px; cursor: pointer;
+  color: rgba(232,226,214,0.4); transition: color .14s;
+}
+.v3-cmt-del svg { width: 16px; height: 16px; }
+.v3-cmt-del:hover { color: #ff6b6b; }
+.s-home-v3--light .v3-cmt-del { color: rgba(26,18,8,0.42); }
+.s-home-v3--light .v3-cmt-del:hover { color: #d43c3c; }
 
 /* The first CMT_DEFAULT threads render; cmtAutoMore pages the rest in on
    scroll. ("View n more" and its .v3-cmt-more styles came off on 2026-10-09 —
@@ -12095,7 +12111,19 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
    ⚠ The gap has to be restored explicitly: the rule above zeroes it for
    space-between, and these chips are flat text with 2px of side padding, so
    with no gap the three words would run together. */
-.s-home-v3 .wall2-bar.v3-feed-tabs { justify-content: flex-start; gap: 18px; padding-left: 10px; }
+/* 0.14b (2026-10-12) — SPREAD AGAIN, LIKE THE WALL. Eric: "can we make the
+   categories at the top the same spacing and aes as the four categories in
+   the trending page … lets just put an empty live button u cant click at the
+   end on the right side". A fourth chip (Live, disabled) makes four, so the
+   wall's space-between reads right here too; the left-stacking below is
+   switched off rather than deleted.
+   ⚠ The sides are 16px, not the wall's 4px: the wall's bar sits inside
+   `.wall2-scroll` (12px side padding), home's sits straight in `.v3-body`,
+   so 12 + 4 puts the words on the same lines as the wall's. */
+.s-home-v3 .wall2-bar.v3-feed-tabs { padding: 2px 16px 12px; }
+.s-home-v3 .wall2-cat.v3-feed-tab--soon,
+.s-home-v3 .wall2-cat.v3-feed-tab--soon:hover { color: var(--sd-ink2, rgba(232,226,214,0.55)); opacity: 0.35; cursor: default; }
+/* (was, 2026-10-09: .s-home-v3 .wall2-bar.v3-feed-tabs { justify-content: flex-start; gap: 18px; padding-left: 10px; }) */
 /* … and OFF THE EDGE by the feed's own gutter (Eric: "a litte off the left
    side please tis like right on the edge offset by like 10px"). 10px is not a
    guess: `.s-home-v3 .v3-scroll-area` pads the feed by exactly 10px, so the
@@ -12104,7 +12132,7 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
    text would sit at 12px and miss that line by two. Zeroed on the chip rather
    than subtracted from the bar, so the bar keeps the feed's gutter as its
    value and this stays true if the chip padding ever changes. */
-.s-home-v3 .wall2-bar.v3-feed-tabs .wall2-cat:first-child { padding-left: 0; }
+/* (was: .s-home-v3 .wall2-bar.v3-feed-tabs .wall2-cat:first-child { padding-left: 0; } — off with the spread) */
 .s-home-v3 .wall2-cat, .s-home-v3--light .wall2-cat {
   background: none; box-shadow: none; padding: 6px 2px 5px;
   border-bottom: 1.5px solid transparent; border-radius: 0;
@@ -13279,3 +13307,90 @@ html.sd-wire .wall2-art--artist[style*="url("] {
    page, which keeps its corner Favorite pill. */
 .v3-rev-opts { margin: 4px 0 14px; }
 .s-home-v3--artist .v3-rev-opts { display: none; }
+
+/* 0.14b (2026-10-12) — THE TRENDING CAROUSEL IS ALBUMS, NOT REVIEWS. Eric: "in
+   the discover/trending page, can we take out the review and username from
+   the carousel, just leaving the album info and score and like and comment".
+   The deck (friendsBentoHtml / fbGo) still builds the whole `.v3-fbr`; on the
+   wall the face + name head, the review text, its View more and the when are
+   hidden, so the score row with its like and comment is all that is left
+   under the album. Scoped to `.s-wall2`, so the card markup and every other
+   place it shows stay as they were. */
+.s-wall2 .v3-fbr-head,
+.s-wall2 .v3-fbr-text,
+.s-wall2 .v3-fbr-more,
+.s-wall2 .v3-fbr-ago { display: none !important; }
+
+/* 0.14b (2026-10-12) — THE HOME INTRO (sdHomeIntro, end of app.js): the
+   belt-drive logo drawing itself over the phone screen between onboarding and
+   home. The cover sits on BODY, fixed over the phone's rect (navigate rebuilds
+   the phone), so it carries the screen's colour inline and the logo's ink in
+   --sd-intro-ink. */
+.sd-intro {
+  position: fixed; z-index: 9999; overflow: hidden; opacity: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  transition: opacity .34s ease;
+}
+.sd-intro.is-out { opacity: 0 !important; pointer-events: none; }
+.sd-intro-logo { width: 34%; max-width: 150px; overflow: visible; }
+.sd-intro-draw { fill: none; stroke: var(--sd-intro-ink); stroke-width: 26; stroke-linecap: round; stroke-linejoin: round; }
+.sd-intro-holes { fill: var(--sd-intro-ink); opacity: 0; transform-box: view-box; transform-origin: 969.17px 833.22px; }
+.sd-intro-word {
+  width: 46%; max-width: 190px; aspect-ratio: 1749 / 249; opacity: 0;
+  background-color: var(--sd-intro-ink);
+  -webkit-mask: url('images/spindeck-wordmark.png') center / contain no-repeat;
+  mask: url('images/spindeck-wordmark.png') center / contain no-repeat;
+}
+
+
+/* ═══ SETTINGS, MADE REAL (2026-10-12) ═══════════════════════════════════
+   Eric: "make most of the settings menu functional". */
+
+/* REDUCE MOTION — Settings › Appearance (html.sd-reduce-motion, app.js
+   sdApplyMotion). Every CSS animation and transition finishes at once, on its
+   end state; JS-driven motion asks sdReducedMotion(), which reads the class. */
+html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion *::after {
+  animation-duration: .001ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .001ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* A service the prototype cannot connect yet: dimmed, still tappable (the
+   sheet says why). */
+.set-row--na .set-row-label, .set-row--na .set-svc-dot { opacity: .5; }
+
+/* THE CONNECT SHEET (#sdsvc) — the playlist delete confirm's material
+   (.pldel-*), dark in both themes, with a field and a progress line. */
+.svc-hd { display: flex; align-items: center; gap: 9px; margin-top: 6px; }
+.svc-hd .pldel-title { margin-top: 0; }
+.svc-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.svc-sheet .svc-sub { font-family: var(--font-main); font-size: 11.5px; line-height: 1.45; }
+.svc-input {
+  display: block; width: 100%; box-sizing: border-box;
+  margin: 0 0 8px; padding: 12px 13px;
+  border: 1px solid rgba(232,226,214,0.14); border-radius: 12px;
+  background: rgba(232,226,214,0.06); color: #e8e2d6;
+  font-family: var(--font-main); font-size: 14px; outline: none;
+}
+.svc-input:focus { border-color: rgba(232,226,214,0.4); }
+.svc-input[hidden] { display: none; }
+.svc-msg {
+  min-height: 14px; margin: 0 0 10px;
+  font-family: var(--font-mono); font-size: 9.5px; line-height: 1.5;
+  color: rgba(232,226,214,0.6);
+}
+.svc-msg.is-err { color: #ff8a80; }
+.svc-go { background: #e8e2d6; color: #111116; }
+.svc-go:hover { filter: brightness(1.06); }
+.svc-go:disabled { opacity: .45; cursor: default; filter: none; }
+.svc-go--off { background: #e85656; color: #fff; }
+.svc-go[hidden] { display: none; }
+/* No action (an unavailable service): Cancel takes the row, reading as Close. */
+.svc-sheet .pldel-btns:has(.svc-go[hidden]) { grid-template-columns: 1fr; }
+
+/* Four tabs now (Fav songs · Fav albums · Listened · Listen later, 2026-10-13):
+   a little less tracking so each label fits its quarter. */
+.prof-picks-tab { letter-spacing: .03em; padding: 7px 2px; }

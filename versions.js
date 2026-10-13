@@ -42,18 +42,19 @@
      got a real frozen worktree at versions/0.13 — which is why 0.13 moved
      INTO WIP_VERSIONS and 0.14 moved out of it. Later that day 0.14b took
      the root the same way, and 0.14 went to versions/0.14 and back into the
-     list. The two halves always move together.
+     list. The two halves always move together. 2026-10-13: 0.14b went live
+     as 0.20 the same way — the root is 0.20, 0.14b is versions/0.14b.
      ⚠ Whatever ROOT_VERSION names must NOT be in WIP_VERSIONS: that list
      means "there is a versions/<name>/ folder". '0.13' sat in it for a day
      while 0.13 was still the root and no such folder existed, so `exists`
      HEAD-ed a 404 and silently dropped it from the menu. */
-  const ROOT_VERSION = '0.14b';
-  const WIP_VERSIONS = ['-1', '-0.1', '-0.11', '0.11', '0.12', '0.13', '0.14'];
+  const ROOT_VERSION = '0.20';
+  const WIP_VERSIONS = ['-1', '-0.1', '-0.11', '0.11', '0.12', '0.13', '0.14', '0.14b'];
   // The order the list is shown in, oldest first. -0.1 is the ORIGINAL app
   // (c-sharp, before the review-only fork), brought in on 2026-09-28.
   // ⚠ ROOT_VERSION has to appear here too, in its chronological place, or it
   // sorts to the end: anything missing from ORDER gets index 99.
-  const ORDER = ['-1', '-0.1', '-0.11', '0.11', '0.12', '0.13', '0.14', '0.14b'];   // -1 (2026-10-01): the original c-sharp app at 1c44670, untouched. -0.11 (2026-09-29): -0.1 with one For You card, no stack
+  const ORDER = ['-1', '-0.1', '-0.11', '0.11', '0.12', '0.13', '0.14', '0.14b', '0.20'];   // -1 (2026-10-01): the original c-sharp app at 1c44670, untouched. -0.11 (2026-09-29): -0.1 with one For You card, no stack
 
   const isFile = location.protocol === 'file:';
   const isLocal = isFile ||

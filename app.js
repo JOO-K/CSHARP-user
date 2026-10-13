@@ -50,6 +50,52 @@ function getVariantIdx(s) {
 }
 function getVariant(s)    { const i = getVariantIdx(s); return s.variants[Math.min(i, s.variants.length-1)]; }
 
+/* ── SETTINGS PREFS (2026-10-12) ───────────────────────────────
+   Eric: "make most of the settings menu functional". One object in
+   localStorage holds every switch on the Settings screen; `sdPref(k)` reads
+   it with a default. Declared up here, not beside the Settings handlers,
+   because `init()` reads the theme and reduce-motion before the first render. */
+const SD_PREFS_KEY = 'spindeck-settings';
+const SD_PREF_DEF = {
+  theme: 'dark',            // 'dark' | 'light' | 'auto'
+  reduceMotion: false,
+  shareListening: false,    // people on Spindeck can see what you're playing
+  ntfFollow: true, ntfReplies: true, ntfReleases: true, ntfRecap: false,
+};
+let SD_PREFS = {};
+try { SD_PREFS = JSON.parse(localStorage.getItem(SD_PREFS_KEY) || '{}') || {}; } catch (e) {}
+window.sdPref = function (k) { return k in SD_PREFS ? SD_PREFS[k] : SD_PREF_DEF[k]; };
+function sdPrefSet(k, v) {
+  SD_PREFS[k] = v;
+  try { localStorage.setItem(SD_PREFS_KEY, JSON.stringify(SD_PREFS)); } catch (e) {}
+}
+
+/* THE THEME is the variant. Every screen is a Dark/Light pair at index 0/1
+   (the alts sit after them), so picking a theme writes that index for every
+   screen. 'auto' follows the OS. */
+function sdThemeLight() {
+  const t = sdPref('theme');
+  return t === 'light' || (t === 'auto' && !!window.matchMedia
+    && matchMedia('(prefers-color-scheme: light)').matches);
+}
+function sdApplyTheme() {
+  const idx = sdThemeLight() ? 1 : 0;
+  SCREENS.forEach(s => { if (s.variants.filter(v => !v.alt).length > 1) variantState[s.id] = idx; });
+}
+// Reduce motion is a class on <html>; app.css's REDUCE MOTION block and
+// sdReducedMotion() both read it.
+function sdApplyMotion() {
+  document.documentElement.classList.toggle('sd-reduce-motion', !!sdPref('reduceMotion'));
+}
+/* Rebuild whatever is on screen. renderViewer() covers the desktop viewer;
+   the phone's Live mode paints through its own path. */
+function sdRerender() {
+  if (isMobile && typeof mobileViewMode !== 'undefined') {
+    if (mobileViewMode === 'live') renderMobileLive(currentIdx); else setMobileView(mobileViewMode);
+    if (typeof applyPersonaClass === 'function') applyPersonaClass();
+  } else renderViewer();
+}
+
 // ── Init ─────────────────────────────────────────────────────
 // ── Fillet PNG masks ──────────────────────────────────────────
 let filletBLUrl = null, filletTLUrl = null;
@@ -118,9 +164,21 @@ function init() {
   isMobile = window.matchMedia('(max-width: 767px)').matches;
   document.body.classList.toggle('sd-tools', SD_TOOLS);   // the dev chrome, only with ?tools
 
+  // Settings › Appearance, before anything paints.
+  sdApplyTheme();
+  sdApplyMotion();
+  if (window.matchMedia) {
+    const mq = matchMedia('(prefers-color-scheme: light)');
+    const onOs = () => { if (sdPref('theme') === 'auto') { sdApplyTheme(); sdRerender(); } };
+    if (mq.addEventListener) mq.addEventListener('change', onOs); else if (mq.addListener) mq.addListener(onOs);
+  }
+
   const params = new URLSearchParams(window.location.search);
   const p = params.get('screen');
-  if (p) { const i = SCREENS.findIndex(s => s.id === p); if (i !== -1) currentIdx = i; }
+  // Back from Spotify's sign-in: land on Settings, where the connect started.
+  const spBack = svcSpotifyPending(params);
+  if (spBack) { const i = SCREENS.findIndex(s => s.id === 'settings'); if (i !== -1) currentIdx = i; }
+  else if (p) { const i = SCREENS.findIndex(s => s.id === p); if (i !== -1) currentIdx = i; }
   /* 0.13 (Eric, 2026-10-03: "in this mockup we start with onboarding every
      time"): no ?screen and no ?tools → the first screen is onboarding, and
      sdAskSkipOnboarding offers the way past it (below). */
@@ -140,6 +198,7 @@ function init() {
   // last visit, swaps the catalogue over to it (which re-renders).
   initPersonas();
   if (!isMobile) { initDevBox(); initRecBox(); }
+  if (spBack) svcSpotifyFinish(params);
 }
 
 /* ⚠️ NO AUTOPLAY, and not because it is hard. Previews were briefly armed by the
@@ -300,7 +359,7 @@ function sdCover(el, url) {
   const paint = () => { el.style.backgroundImage = `url('${url}')`; };
 
   // Seen it already, or the user asked for less motion → just show the picture.
-  if (PIX_SEEN.has(url) || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (PIX_SEEN.has(url) || sdReducedMotion()) {
     PIX_SEEN.add(url); paint(); return;
   }
 
@@ -550,23 +609,41 @@ function homeShells() {
 function captureScreenSnap() {
   const id = currentScreen().id;
   const snap = { review: false, screenId: id };
-  if (id === 'profile')  snap.profile  = { ...window.PROFILE };
+  if (id === 'profile')  { snap.profile = { ...window.PROFILE }; snap.guest = window.PROFILE_GUEST || null; }
   if (id === 'playlist') snap.playlist = window.activePlaylist;
+  return sdsTagSnap(snap);
+}
+/* A SEARCH YOU LEFT FROM comes back (Eric, 2026-10-13: "when u go back from
+   the search into the album and back into search u lose the search u had").
+   sdsOpenResult stashes the overlay's state in `_sdsPending` just before it
+   opens the result; whichever snapshot the open takes next carries it, and
+   goBack reopens the search on top of the restored view (sdsRestore). */
+function sdsTagSnap(snap) {
+  if (window._sdsPending) { snap.search = window._sdsPending; window._sdsPending = null; }
   return snap;
 }
 function snapView(scr) {
   if (scr && scr.classList.contains('s-home-v3--review')) {
-    return {
+    return sdsTagSnap({
       review: true,
       album:  scr.classList.contains('s-home-v3--album'),
       artist: scr.classList.contains('s-home-v3--artist'),
       albumRef: scr._album,
-    };
+    });
   }
   return captureScreenSnap();   // bento home, or a plain screen (profile / playlist / …)
 }
 // The current view, whether a fullscreen home shell or a plain screen.
-function captureLocation() { return snapView(homeShells()[0]); }
+/* ⚠ Only a home shell that is ON SCREEN counts, and only while home is the
+   current screen. The phone build also keeps the desktop viewer's shells in the
+   document (hidden), and one of those left on an album page was being captured
+   as "where you are" from Settings — so Back from Edit profile opened an old
+   album (2026-10-13). */
+function captureLocation() {
+  if (currentScreen().id !== 'home') return captureScreenSnap();
+  const shells = homeShells();
+  return snapView(shells.find(e => e.offsetParent) || shells[0]);
+}
 function pushBack() { backStack.push(captureLocation()); }
 function measure2Line(scr) {
   const alb = scr.querySelector('.v3-blue-album');
@@ -621,6 +698,22 @@ function applyShellState(scr, snap) {
   }
   const body = scr.querySelector('.v3-body'); if (body) body.scrollTop = 0;
 }
+/* The header's bell and gear open a screen ON TOP of where you are, so Back
+   comes back to it (it used to be hard-wired: notifications → home, settings
+   → profile, whatever you came from). */
+window.sdOpenFromHeader = function (id) {
+  if (currentScreen().id === id) return;
+  backStack.push(captureLocation());
+  navigate(id);
+};
+/* A bottom-nav tab is a ROOT: nothing behind it. Without clearing, steps from
+   the tab you left stayed on the stack and a later Back popped one of them —
+   e.g. a stale album page under Settings › Edit profile. */
+window.sdNavTab = function (id) {
+  backStack.length = 0;
+  if (typeof closeSearch === 'function') closeSearch();
+  navigate(id);
+};
 window.goBack = function (fallbackId) {
   const snap = backStack.pop();
   const shells = homeShells();
@@ -628,9 +721,30 @@ window.goBack = function (fallbackId) {
     if (fallbackId) { navigate(fallbackId, 'back'); return; }         // caller's default (e.g. Library)
     shells.forEach(s => exitToBento(s)); return;                       // else the bento home
   }
-  if (snap.review) { shells.forEach(s => applyShellState(s, snap)); return; }   // an earlier shell state
+  if (snap.search) sdsRestore(snap.search);                           // reopen the search you left from
+  if (snap.review) {                                                  // an earlier shell state
+    /* From ANOTHER screen (album page → a friend's profile → Back) the home
+       shell isn't in the DOM: go home first, then put the album page back. */
+    if (currentScreen().id !== 'home' || !shells.length) {
+      navigate('home', 'back');
+      requestAnimationFrame(() => requestAnimationFrame(() => homeShells().forEach(s => applyShellState(s, snap))));
+      return;
+    }
+    shells.forEach(s => applyShellState(s, snap)); return;
+  }
   // A plain-screen snapshot — restore its sub-state, then go there WITHOUT re-randomising.
-  if (snap.profile)  Object.assign(window.PROFILE, snap.profile);
+  /* A FRIEND'S profile comes back as theirs, not yours (2026-10-13). Leaving it
+     for an album handed your own profile back (navigate → restoreOwnProfile),
+     so writing their snapshot over PROFILE without re-stashing yours made THEM
+     your profile from then on. Stash yours again and arrive as a guest. */
+  if (snap.profile && snap.guest) {
+    if (!PROFILE_OWNER) PROFILE_OWNER = Object.assign({}, window.PROFILE);
+    Object.assign(window.PROFILE, snap.profile);
+    window.PROFILE_GUEST = snap.guest;
+    navigate('profile', 'guest');
+    return;
+  }
+  if (snap.profile)  { restoreOwnProfile(); Object.assign(window.PROFILE, snap.profile); }
   if (snap.playlist) window.activePlaylist = snap.playlist;
   if (snap.screenId && snap.screenId !== currentScreen().id) {        // a different screen
     navigate(snap.screenId, 'back');
@@ -936,10 +1050,35 @@ window.ntfFollowBack = function (btn) {
 
 /* ── Settings (s-set) ───────────────────────────────────────── */
 
-// Switch row.
+/* Switch row. A switch carrying `data-pref` is real state: it is saved, and
+   both shells (Dark + Light on the desktop viewer) are flipped together. */
 window.sdToggle = function (btn) {
   const on = btn.classList.toggle('is-on');
   btn.setAttribute('aria-checked', String(on));
+  const k = btn.dataset.pref;
+  if (!k) return;
+  sdPrefSet(k, on);
+  document.querySelectorAll(`.set-sw[data-pref="${k}"]`).forEach(b => {
+    b.classList.toggle('is-on', on); b.setAttribute('aria-checked', String(on));
+  });
+  if (k === 'reduceMotion') sdApplyMotion();
+  if (k === 'shareListening' && typeof OB !== 'undefined' && OB.service) OB.tracking = on;
+};
+
+// Theme — Dark / Light / Auto. The theme is the variant, so this re-renders.
+window.sdSetTheme = function (mode) {
+  sdPrefSet('theme', mode);
+  sdApplyTheme();
+  sdRerender();
+};
+
+/* Notifications › which kinds reach the inbox. A switch that is off drops its
+   rows from Notifications (screens.js `notificationsHtml`). */
+window.sdNtfAllowed = function (it) {
+  if (it.type === 'follow') return sdPref('ntfFollow');
+  if (it.type === 'like' || it.type === 'comment' || it.type === 'milestone') return sdPref('ntfReplies');
+  if (it.type === 'release') return sdPref('ntfReleases');
+  return true;
 };
 
 // Segmented picker (Theme) — active moves within its own group.
@@ -950,14 +1089,339 @@ window.sdSeg = function (btn) {
   btn.classList.add('active');
 };
 
-// Connected-service row — flips the trailing pill between the two states.
-window.sdConnect = function (row) {
-  const pill = row.querySelector('.set-pill');
-  if (!pill) return;
-  // The pill alone carries the state; the sub-label stays the description of
-  // what the service gives you, connected or not.
-  const on = pill.classList.toggle('set-pill--on');
-  pill.textContent = on ? 'Connected' : 'Connect';
+/* ══════════════════════════════════════════════════════════════════════════
+   CONNECTED SERVICES — your own taste, from the real APIs (2026-10-12)
+   ══════════════════════════════════════════════════════════════════════════
+   Eric: "connect services so people can test this website out with their
+   tastes using stuff from the apis". Connecting pulls what a tester actually
+   listens to, matches every record on Deezer (so it is the same kind of
+   record as everything else here: cover, deezerId, seeded ratings), and
+   builds a persona out of it — `me` — which `applyPersona` swaps in like any
+   other. The home deck, the wall and the rec deal (seeded off YOUR artists)
+   all follow. One service at a time; connecting another replaces the taste.
+
+   What each service can do from a static page:
+     Deezer   — keyless. A public profile's favourite albums + artists.
+     Last.fm  — CORS-open, but every call needs an API key (LASTFM_KEY).
+     Spotify  — OAuth with PKCE, no secret needed, but the app has to be
+                registered (SPOTIFY_CLIENT_ID) with this page as a redirect
+                URI, and in development mode only allow-listed accounts
+                can sign in.
+     Apple    — MusicKit needs a signed developer token. Not possible here.
+
+   ⚠ The taste is saved (`spindeck-taste`) and re-registered by initPersonas
+   before it re-applies the saved persona, so a reload keeps you on it. */
+const SPOTIFY_CLIENT_ID = '';   // developer.spotify.com → your app → Client ID
+const LASTFM_KEY        = '';   // last.fm/api/account/create → API key
+const TASTE_KEY = 'spindeck-taste';
+const TASTE_MAX = 36;           // albums a connect brings in
+const SD_SVC = {
+  spotify: { name: 'Spotify',     brand: '#1db954', what: 'Your top tracks',
+             ask: null },
+  deezer:  { name: 'Deezer',      brand: '#a238ff', what: 'Your favourite albums',
+             ask: 'Deezer username or profile link' },
+  lastfm:  { name: 'Last.fm',     brand: '#d51007', what: 'Your most-played albums',
+             ask: 'Last.fm username' },
+  apple:   { name: 'Apple Music', brand: '#fa2d48', what: 'Not available in the prototype yet',
+             ask: null },
+};
+window.SD_SVC = SD_SVC;
+window.sdTaste = function () {
+  try { return JSON.parse(localStorage.getItem(TASTE_KEY) || 'null'); } catch (e) { return null; }
+};
+function svcAvailable(id) {
+  return id === 'deezer' || (id === 'lastfm' && !!LASTFM_KEY) || (id === 'spotify' && !!SPOTIFY_CLIENT_ID);
+}
+window.svcAvailable = svcAvailable;
+
+// A taste → the `me` persona. You stay yourself: the profile and skin are the
+// ones you were already wearing; only the catalogue is yours.
+function svcRegister(t) {
+  if (!t || !t.albums || !t.albums.length) return null;
+  const base = personaById(t.prev) || personaById('eric') || (window.PERSONAS || [])[0];
+  const me = {
+    id: 'me',
+    profile: Object.assign({}, base ? base.profile : {}, { name: (base && base.profile.name) || 'You' }),
+    skin: base ? base.skin : { radius: '15px', dark: {}, light: {} },
+    albums: t.albums,
+  };
+  window.PERSONAS = (window.PERSONAS || []).filter(p => p.id !== 'me').concat([me]);
+  return me;
+}
+window.svcRestore = function () { svcRegister(sdTaste()); };
+
+function svcApply(t) {
+  try { localStorage.setItem(TASTE_KEY, JSON.stringify(t)); } catch (e) {}
+  svcRegister(t);
+  applyPersonaSkins();
+  applyPersona('me');            // re-renders the desktop viewer itself
+  if (isMobile) sdRerender();
+}
+window.svcDisconnect = function () {
+  const t = sdTaste();
+  try { localStorage.removeItem(TASTE_KEY); } catch (e) {}
+  window.PERSONAS = (window.PERSONAS || []).filter(p => p.id !== 'me');
+  svcSheetClose();
+  applyPersona((t && personaById(t.prev)) ? t.prev : 'eric');
+  if (isMobile) sdRerender();
+};
+
+// Same name, however it's spelled: case, accents, punctuation and spaces go.
+function svcNorm(s) {
+  return String(s || '').toLowerCase().normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '').replace(/[\s\p{P}\p{S}]+/gu, '');
+}
+/* One (artist, album) from Last.fm or Spotify → that record on Deezer. The
+   artist has to agree (a cover band outranks the real thing in a plain
+   search); a strict `artist:"" album:""` query first, a loose one after. */
+async function svcFindOnDeezer(artist, title) {
+  const want = svcNorm(artist);
+  const pick = r => (((r || {}).data) || []).find(a => a && a.artist &&
+    (!want || svcNorm(a.artist.name) === want));
+  let hit = pick(await dz('search/album?limit=6&q=' +
+    encodeURIComponent(`artist:"${artist}" album:"${title}"`)));
+  if (!hit) hit = pick(await dz('search/album?limit=6&q=' + encodeURIComponent(artist + ' ' + title)));
+  return hit ? dzRecord(hit, hit.artist) : null;
+}
+// Records that are YOURS, not recommendations: `_rec` off so the rec deal
+// seeds from them, and a genre so the artist blurb has something to say.
+function svcOwn(recs) {
+  const seen = new Set(), out = [];
+  recs.forEach(r => {
+    if (!r || !r.album || !r.image) return;
+    if (/^various( artists)?$/i.test(String(r.artist).trim())) return;   // compilations aren't an artist
+    const k = dzKey(r.artist, r.album);
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push(Object.assign(r, { _rec: false, genre: r.genre || 'Alternative' }));
+  });
+  return out.slice(0, TASTE_MAX);
+}
+async function svcResolvePairs(pairs, progress) {
+  const out = [];
+  let done = 0;
+  await Promise.all(pairs.map(p => svcFindOnDeezer(p.artist, p.album).then(r => {
+    if (r) out.push(r);
+    progress && progress(++done, pairs.length);
+  })));
+  return out;
+}
+
+/* Deezer — a username, a profile link (deezer.com/…/profile/123) or the id. */
+async function svcFromDeezer(input, progress) {
+  let id = (String(input).match(/profile\/(\d+)/) || [])[1] || (/^\d+$/.test(input) ? input : '');
+  let label = input;
+  if (!id) {
+    const r = await dz('search/user?limit=5&q=' + encodeURIComponent(input));
+    const list = ((r || {}).data) || [];
+    const u = list.find(x => svcNorm(x.name) === svcNorm(input)) || list[0];
+    if (!u) throw new Error('No Deezer profile called “' + input + '”.');
+    id = String(u.id); label = u.name;
+  } else {
+    const u = await dz('user/' + id);
+    if (!u || u.error) throw new Error('That Deezer profile could not be found.');
+    label = u.name || id;
+  }
+  progress && progress(0, 0, 'Reading favourites…');
+  const [al, ar] = await Promise.all([dz('user/' + id + '/albums?limit=50'), dz('user/' + id + '/artists?limit=30')]);
+  const recs = (((al || {}).data) || []).filter(a => a && a.artist).map(a => dzRecord(a, a.artist));
+  // Favourite ARTISTS whose albums aren't already in: one of their best.
+  const have = new Set(recs.map(r => svcNorm(r.artist)));
+  const more = (((ar || {}).data) || []).filter(a => a && !have.has(svcNorm(a.name)))
+    .slice(0, Math.max(0, TASTE_MAX - recs.length));
+  let n = 0;
+  const lists = await Promise.all(more.map(a => dz('artist/' + a.id + '/albums?limit=20').then(r => {
+    progress && progress(++n, more.length, 'Adding favourite artists');
+    return dzPickAlbums(((r || {}).data) || [], 1).map(x => dzRecord(x, a));
+  })));
+  const all = svcOwn(recs.concat(...lists));
+  if (!all.length) throw new Error('That profile has no public favourites to read.');
+  return { user: label, albums: all };
+}
+
+/* Last.fm — most-played albums over the last six months. */
+async function svcFromLastfm(user, progress) {
+  const url = 'https://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&period=6month&limit=50&format=json'
+    + '&user=' + encodeURIComponent(user) + '&api_key=' + LASTFM_KEY;
+  const d = await fetch(url).then(r => r.json()).catch(() => null);
+  if (!d || d.error) throw new Error((d && d.message) || 'Last.fm did not answer.');
+  const pairs = (((d.topalbums || {}).album) || [])
+    .map(a => ({ artist: (a.artist || {}).name, album: a.name }))
+    .filter(p => p.artist && p.album).slice(0, 45);
+  if (!pairs.length) throw new Error('No listening history on that account yet.');
+  const all = svcOwn(await svcResolvePairs(pairs, (i, n) => progress && progress(i, n, 'Matching albums')));
+  if (!all.length) throw new Error('None of those albums could be matched.');
+  return { user: user, albums: all };
+}
+
+/* Spotify — PKCE. The page leaves for Spotify's sign-in and comes back with
+   ?code=; init() notices (svcSpotifyPending) and finishes here. */
+const SP_VERIFIER = 'sd-sp-verifier', SP_STATE = 'sd-sp-state';
+function svcB64url(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function svcRedirect() { return location.origin + location.pathname; }
+async function svcSpotifyStart() {
+  const rnd = crypto.getRandomValues(new Uint8Array(48));
+  const verifier = svcB64url(rnd);
+  const challenge = svcB64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+  const state = svcB64url(crypto.getRandomValues(new Uint8Array(12)));
+  try { sessionStorage.setItem(SP_VERIFIER, verifier); sessionStorage.setItem(SP_STATE, state); } catch (e) {}
+  location.href = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({
+    client_id: SPOTIFY_CLIENT_ID, response_type: 'code', redirect_uri: svcRedirect(),
+    scope: 'user-top-read', code_challenge_method: 'S256', code_challenge: challenge, state: state,
+  });
+}
+function svcSpotifyPending(params) {
+  let st = null;
+  try { st = sessionStorage.getItem(SP_STATE); } catch (e) {}
+  return !!(st && params.get('state') === st && (params.get('code') || params.get('error')));
+}
+async function svcSpotifyFinish(params) {
+  let verifier = '';
+  try { verifier = sessionStorage.getItem(SP_VERIFIER) || '';
+        sessionStorage.removeItem(SP_VERIFIER); sessionStorage.removeItem(SP_STATE); } catch (e) {}
+  history.replaceState(null, '', svcRedirect());          // a reload must not replay the code
+  if (params.get('error') || !verifier) return;           // they said no — nothing to do
+  const host = [...document.querySelectorAll('.s-set')].find(e => e.offsetParent) || document.querySelector('.s-set');
+  if (host) svcSheetOpen(host, 'spotify', true);
+  const say = (i, n, what) => svcSheetBusy(n ? `${what} · ${i} / ${n}` : what);
+  try {
+    say(0, 0, 'Signing in…');
+    const tok = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'authorization_code', code: params.get('code'),
+        redirect_uri: svcRedirect(), client_id: SPOTIFY_CLIENT_ID, code_verifier: verifier }),
+    }).then(r => r.json());
+    if (!tok || !tok.access_token) throw new Error('Spotify sign-in did not complete.');
+    say(0, 0, 'Reading your top tracks…');
+    const top = await fetch('https://api.spotify.com/v1/me/top/tracks?limit=50&time_range=medium_term', {
+      headers: { Authorization: 'Bearer ' + tok.access_token } }).then(r => r.json());
+    const me = await fetch('https://api.spotify.com/v1/me', {
+      headers: { Authorization: 'Bearer ' + tok.access_token } }).then(r => r.json()).catch(() => ({}));
+    const seen = new Set(), pairs = [];
+    ((top && top.items) || []).forEach(t => {
+      const al = t.album || {}, ar = ((al.artists || t.artists || [])[0] || {}).name;
+      const k = svcNorm(ar) + '::' + svcNorm(al.name);
+      if (!ar || !al.name || seen.has(k)) return;
+      seen.add(k); pairs.push({ artist: ar, album: al.name });
+    });
+    if (!pairs.length) throw new Error('Spotify has no top tracks for this account yet.');
+    const all = svcOwn(await svcResolvePairs(pairs, (i, n) => say(i, n, 'Matching albums')));
+    if (!all.length) throw new Error('None of those albums could be matched.');
+    svcDone('spotify', (me && (me.display_name || me.id)) || 'Spotify', all);
+  } catch (err) { svcSheetFail(err.message || String(err)); }
+}
+
+function svcDone(svc, user, albums) {
+  const prev = window.ACTIVE_PERSONA && window.ACTIVE_PERSONA !== 'me'
+    ? window.ACTIVE_PERSONA : ((sdTaste() || {}).prev || 'eric');
+  svcSheetClose();
+  svcApply({ svc, user, prev, at: Date.now(), albums });
+}
+
+/* ── The sheet — connect / disconnect ───────────────────────────────────── */
+function svcSheet() {
+  let ov = document.getElementById('sdsvc');
+  if (ov) return ov;
+  ov = document.createElement('div');
+  ov.id = 'sdsvc';
+  ov.className = 'sd-log-overlay pldel-overlay svc-overlay';
+  ov.innerHTML = `
+    <div class="pldel-sheet svc-sheet" role="dialog" aria-modal="true" aria-labelledby="sdsvc-title">
+      <div class="sd-log-grab"></div>
+      <div class="svc-hd"><span class="svc-dot"></span><div class="pldel-title" id="sdsvc-title"></div></div>
+      <p class="pldel-sub svc-sub"></p>
+      <input class="svc-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <p class="svc-msg" aria-live="polite"></p>
+      <div class="pldel-btns">
+        <button class="pldel-cancel" type="button">Cancel</button>
+        <button class="svc-go" type="button"></button>
+      </div>
+    </div>`;
+  ov.addEventListener('click', e => { if (e.target === ov) svcSheetClose(); });
+  ov.querySelector('.pldel-cancel').addEventListener('click', svcSheetClose);
+  ov.querySelector('.svc-input').addEventListener('keydown', e => { if (e.key === 'Enter') svcGo(); });
+  ov.querySelector('.svc-go').addEventListener('click', svcGo);
+  wireSheetGrab(ov, '.svc-sheet', svcSheetClose);
+  return ov;
+}
+function svcSheetClose() {
+  const ov = document.getElementById('sdsvc');
+  if (ov) { ov.classList.remove('open'); ov._busy = false; }
+}
+function svcSheetBusy(text) {
+  const ov = svcSheet();
+  ov._busy = true;
+  ov.querySelector('.svc-msg').textContent = text;
+  ov.querySelector('.svc-msg').classList.remove('is-err');
+  ov.querySelector('.svc-go').disabled = true;
+}
+function svcSheetFail(text) {
+  const ov = svcSheet();
+  ov._busy = false;
+  ov.querySelector('.svc-msg').textContent = text;
+  ov.querySelector('.svc-msg').classList.add('is-err');
+  ov.querySelector('.svc-go').disabled = false;
+}
+function svcSheetOpen(host, id, busy) {
+  const s = SD_SVC[id];
+  const t = sdTaste();
+  const on = !!(t && t.svc === id);
+  const ov = svcSheet();
+  ov._svc = id; ov._on = on; ov._busy = false;
+  ov.querySelector('.svc-dot').style.background = s.brand;
+  const sub = ov.querySelector('.svc-sub'), inp = ov.querySelector('.svc-input'),
+        go = ov.querySelector('.svc-go'), msg = ov.querySelector('.svc-msg');
+  msg.textContent = ''; msg.classList.remove('is-err');
+  go.disabled = false; go.hidden = false;
+  go.classList.toggle('svc-go--off', on);
+  inp.hidden = true; inp.value = '';
+  if (on) {
+    ov.querySelector('.pldel-title').textContent = `Disconnect ${s.name}?`;
+    sub.textContent = `Home goes back to the sample catalogue. ${t.albums.length} albums from ${t.user} will be cleared.`;
+    go.textContent = 'Disconnect';
+  } else if (!svcAvailable(id)) {
+    ov.querySelector('.pldel-title').textContent = s.name;
+    sub.textContent = id === 'apple'
+      ? 'Apple Music needs a signed developer token, so it can’t connect from the prototype yet. Last.fm can read Apple Music listening if you scrobble it.'
+      : id === 'lastfm'
+      ? 'Last.fm needs an API key before it can connect (LASTFM_KEY in app.js).'
+      : 'Spotify needs the app registered first (SPOTIFY_CLIENT_ID in app.js).';
+    go.hidden = true;
+  } else {
+    ov.querySelector('.pldel-title').textContent = `Connect ${s.name}`;
+    sub.textContent = `${s.what} become your catalogue: home, the wall and recommendations are dealt from them. Nothing is posted anywhere.`;
+    if (s.ask) { inp.hidden = false; inp.placeholder = s.ask; }
+    go.textContent = id === 'spotify' ? 'Sign in with Spotify' : 'Connect';
+  }
+  host.appendChild(ov);
+  if (busy) svcSheetBusy('Connecting…');
+  requestAnimationFrame(() => {
+    ov.classList.add('open');
+    if (!inp.hidden) setTimeout(() => inp.focus(), 280);
+  });
+}
+async function svcGo() {
+  const ov = svcSheet();
+  if (ov._busy) return;
+  const id = ov._svc;
+  if (ov._on) return svcDisconnect();
+  if (id === 'spotify') { svcSheetBusy('Opening Spotify…'); return svcSpotifyStart(); }
+  const val = ov.querySelector('.svc-input').value.trim();
+  if (!val) { svcSheetFail('Type your ' + SD_SVC[id].ask.toLowerCase() + ' first.'); return; }
+  const say = (i, n, what) => svcSheetBusy(n ? `${what} · ${i} / ${n}` : (what || 'Connecting…'));
+  say(0, 0, 'Connecting…');
+  try {
+    const r = id === 'deezer' ? await svcFromDeezer(val, say) : await svcFromLastfm(val, say);
+    if (ov._svc !== id) return;                       // the sheet changed hands meanwhile
+    svcDone(id, r.user, r.albums);
+  } catch (err) { svcSheetFail(err.message || String(err)); }
+}
+// The service row's tap.
+window.sdServiceTap = function (row, id) {
+  const host = row.closest('.app-screen');
+  if (host && SD_SVC[id]) svcSheetOpen(host, id);
 };
 
 // Playlists page — in-page tab switching (Lists / Artists / Albums / Songs / Genres).
@@ -2439,6 +2903,9 @@ function cmtNodeHtml(key, c) {
               aria-pressed="${lk}" aria-label="Like this comment"
               onclick="event.stopPropagation(); cmtLike(this)">${typeof RVP_HEART !== 'undefined' ? RVP_HEART : '♥'}<span>${c.likes + (lk ? 1 : 0)}</span></button>
             <span class="v3-cmt-ago">${c.ago}</span>
+            ${c.mine ? `<button class="v3-cmt-del" type="button"
+              data-k="${_revAttr(key)}" data-i="${c.id}" aria-label="Delete your comment"
+              onclick="event.stopPropagation(); cmtDelete(this)">${CMT_TRASH_SVG}</button>` : ''}
           </div>
           <div class="v3-cmt-text">${c.text}</div>
           ${CMT_FLAT ? '' : `<div class="v3-cmt-acts"><button class="v3-cmt-reply" type="button"
@@ -2643,7 +3110,7 @@ window.rvpRecordTap = function (btn, name) {
    the album colour — stays put, so the screen never flashes; the next screen's
    content fades in on its own (rvpIn / rvpReturn). Reduced motion skips it. */
 function sdFadeOut(el, then) {
-  const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = sdReducedMotion();
   if (!el || !el.animate || reduced) { then(); return; }
   let done = false;
   const go = () => { if (!done) { done = true; then(); } };
@@ -2765,6 +3232,23 @@ window.cmtReply = function (btn) {
   cmtRender(k);
   const input = wrap && wrap.querySelector('.v3-cmt-input');
   if (input) input.focus();
+};
+/* Your own comments carry a trash can at the right end of their top row
+   (Eric, 2026-10-12: "a little trash icon on the right side of the icons row
+   and it lets you delete your comment"). One tap removes it — no confirm, a
+   comment is a line, not a review. Works on a base comment (CMT_MINE) or a
+   nested reply (its parent's `kids`); a reply under it goes with it. */
+const CMT_TRASH_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>`;
+window.cmtDelete = function (btn) {
+  const k = btn.dataset.k, id = btn.dataset.i;
+  const hit = cmtFind(k, id);
+  if (!hit || !hit.node.mine) return;
+  const list = hit.parent ? hit.parent.kids : (CMT_MINE[k] || []);
+  const i = list.indexOf(hit.node);
+  if (i >= 0) list.splice(i, 1);
+  delete CMT_LIKED[k + '::' + id];
+  if (CMT_REPLY_TO[k] === id) delete CMT_REPLY_TO[k];
+  cmtRender(k);
 };
 window.cmtReplyCancel = function (btn) {
   delete CMT_REPLY_TO[btn.dataset.k];
@@ -4266,6 +4750,20 @@ window.fbOpenFront = function (el, e) {
   const scr = el.closest('.s-home-v3');
   const f = scr && fbListOf(scr)[scr._fbCur || 0];   // the deck's OWN list (see renderFriendsBento), never the live one
   if (!f) return;
+  /* 0.14b (2026-10-12) — ON THE TRENDING WALL THE CARD IS THE ALBUM, not a
+     friend's review (the review and its name are hidden there, app.css). Eric:
+     "tapping the album should take you to album page directly and also the
+     comment should take you to the general reviews on the album". So: the
+     comment pill → the album page glided down to its review list (the
+     openFriendReview glide, no review pinned); anything else on the card →
+     the album page from the top. The artist line keeps fbArtistTap. */
+  if (scr.classList.contains('s-wall2')) {
+    const album = f._dd ? f.rec : fbAlbumOf(f);
+    if (!album) return;
+    openAlbumPage(album);
+    if (el.closest('.v3-fbr-act--cmt')) setTimeout(fbGlideToReviews, 400);   // after navigate('home')'s two frames land the album state
+    return;
+  }
   // The REVIEW SHEET (Eric, 2026-09-24): the review, its comments and the
   // composer slide up over the deck. From the comment pill, the composer is
   // aimed. The entry was written by fbGo under the feed's key.
@@ -4274,6 +4772,19 @@ window.fbOpenFront = function (el, e) {
      cards' pill. */
   openReviewSheet(feedRevKey(f), false, el);
 };
+
+// Glide each home shell down to the album page's review list — openFriendReview's
+// move. Rect deltas are visually scaled by the phone-wrap transform → divided out.
+function fbGlideToReviews() {
+  homeShells().forEach(s => {
+    const body = s.querySelector('.v3-body');
+    const target = s.querySelector('.v3-rev-list');
+    if (!body || !target) return;
+    const scale = body.getBoundingClientRect().width / body.offsetWidth || 1;
+    const top = (target.getBoundingClientRect().top - body.getBoundingClientRect().top) / scale + body.scrollTop - 130;
+    body.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' });
+  });
+}
 
 /* A review of two lines or fewer under the deck reads better CENTRED (Eric,
    2026-09-24: "when there is only two lines, centre that"); a longer one
@@ -5564,7 +6075,7 @@ function initScenes() {
   const els = document.querySelectorAll('.sd-scene');
   if (!els.length) return;
   els.forEach(el => paintScene(el, 'smile'));   // never a blank box
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (sdReducedMotion()) return;
   if (!_sceneT) sceneTick();
 }
 
@@ -7595,6 +8106,7 @@ function commitLog() {
   SDLOG.unlocked = false;        // posted → locked again, so Edit review is what reopens
   const subj = SDLOG.subject;
   const snap = logDrafts()[key] || {};
+  window._sdlogFromQuick = null;   // posted: the exit goes home, not back to the + list
   flashLogSaved();
   /* POST REVIEW GOES HOME (0.13, Eric 2026-10-08: "after u press it it takes
      you to the homepage where it shows it being posted at the top"). Only an
@@ -7629,7 +8141,9 @@ function commitLog() {
    ⚠ Reduced motion skips all three and lands straight on the centred feed. */
 const SDLOG_SLIDE_MS = 320;      // .sd-log-sheet's .3s transform, plus a frame
 function sdReducedMotion() {
-  return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  // Settings › Reduce motion, or the OS asking for it.
+  return document.documentElement.classList.contains('sd-reduce-motion')
+    || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 }
 function postReviewExit() {
   if (sdReducedMotion()) { goHomeFeed(); centerMyPost(); return; }
@@ -8122,7 +8636,7 @@ function ensureLogSheet() {
         <textarea class="sd-log-write" rows="3" placeholder="Write a review…"></textarea>
       </div>
       <div class="sd-log-songs" hidden>
-        <div class="sd-log-songs-hd">Optional <span class="sd-log-songs-sub">only rated songs get logged</span></div>
+        <div class="sd-log-songs-hd">Songs <span class="sd-log-songs-sub">only rated songs get logged</span></div>
         <div class="sd-log-songs-list"></div>
       </div>
       <!-- SONG COMMENTS (0.14) — only ever shown on a SONG's sheet, filled by
@@ -8597,6 +9111,10 @@ window.closeLogSheet = function() {
   // (Not `forEach(syncQuickLog)` — that hands the array INDEX in as the album,
   // so the second shell read albumDraft(1) → {} and was wiped on every close.)
   homeShells().forEach(s => syncQuickLog(s));
+  // Opened from the +'s list and closed without posting → back to that list.
+  const fromQuick = window._sdlogFromQuick;
+  window._sdlogFromQuick = null;
+  if (fromQuick && ov) sdsRestore(fromQuick);
   // Onboarding's quick-review step (0.12) marks the row it just reviewed.
   if (document.querySelector('.s-onboarding') && typeof obSync === 'function') obSync();
 };
@@ -8801,6 +9319,13 @@ function sdsPickRowHtml(a, i) {
 function sdsPickForReview(a, host) {
   const rec = a && a.ref;
   if (!rec) { closeSearch(); return; }
+  /* Dismissing the sheet without posting goes BACK to this list, as typed
+     (2026-10-13) — closeLogSheet reads it; a post clears it (commitLog). */
+  const so0 = document.getElementById('sd-search');
+  sdsStash(so0);
+  if (window._sdsPending) window._sdsPending.mode = 'review';
+  window._sdlogFromQuick = window._sdsPending;
+  window._sdsPending = null;
   if (rec._rec && typeof dzAdopt === 'function') dzAdopt([rec]);
   const go = () => {
     const lg = typeof ensureLogSheet === 'function' ? ensureLogSheet() : null;
@@ -8947,16 +9472,23 @@ function runSearch() {
 }
 
 // Result tap → browse to it (artist / album page), then close the overlay.
+// Back from a result returns to this search, typed and scrolled as it was.
+function sdsStash(ov) {
+  window._sdsPending = ov ? { q: ov.querySelector('.sds-input').value, cat: ov._cat || 'all',
+    scroll: ov.querySelector('.sds-body').scrollTop } : null;
+}
 function sdsOpenResult(type, i) {
   const ov = document.getElementById('sd-search');
   const last = (ov && ov._last) || {};
   const host = ov && ov.parentNode;
   // The + flow keeps the list up until the sheet has covered it (0.13 — see sdsPickForReview).
   if (ov && ov._mode === 'review') return sdsPickForReview((last.albums || [])[i], host);
+  sdsStash(ov);
   closeSearch();
   if (type === 'artist') { const a = (last.artists || [])[i]; if (a) window.openArtistPageFor(a.name); }
   else if (type === 'album') { const a = (last.albums || [])[i]; if (a && a.ref) window.openAlbumPage(a.ref); }
   else if (type === 'song') { const s = (last.songs || [])[i]; if (s && s.ref) window.openAlbumPage(s.ref); }
+  window._sdsPending = null;   // taken by the open's snapshot, or nothing opened — never left for a later one
 }
 
 function ensureSearchOverlay() {
@@ -9020,7 +9552,7 @@ function ensureSearchOverlay() {
 /* `mode` (0.11): 'review' is the nav's + — the same overlay asking "which
    album?", albums only, no tabs, and a pick opens the log sheet instead of
    the album page (runSearch / sdsOpenResult read `ov._mode`). */
-window.openSearch = function (triggerEl, mode) {
+window.openSearch = function (triggerEl, mode, restoring) {
   const host = (triggerEl && triggerEl.closest && triggerEl.closest('.app-screen'))
              || document.querySelector('.app-screen') || document.body;
   mode = mode === 'review' ? 'review' : 'browse';
@@ -9042,7 +9574,8 @@ window.openSearch = function (triggerEl, mode) {
   inp.value = '';
   ov.querySelector('.sds-body').scrollTop = 0;
   runSearch();
-  requestAnimationFrame(() => { ov.classList.add('open'); setTimeout(() => inp.focus(), 80); });
+  // Restored by Back: no focus, so a phone's keyboard doesn't cover the results.
+  requestAnimationFrame(() => { ov.classList.add('open'); if (!restoring) setTimeout(() => inp.focus(), 80); });
 };
 
 document.addEventListener('click', e => {
@@ -9055,6 +9588,27 @@ window.openReviewSearch = function (btn, e) {
   if (e) e.stopPropagation();
   openSearch(btn, 'review');
 };
+/* Reopen the search as it was left (see sdsTagSnap). Waits for goBack's
+   navigate to paint, so the overlay mounts into the screen you land on. */
+function sdsRestore(st) {
+  const open = () => {
+    const host = [...document.querySelectorAll('.app-screen')].find(e => e.offsetParent) || document.querySelector('.app-screen');
+    if (!host) return;
+    openSearch(host, st.mode === 'review' ? 'review' : 'browse', true);
+    const ov = document.getElementById('sd-search');
+    if (!ov) return;
+    ov._cat = st.cat || 'all';
+    ov.querySelectorAll('.sds-tab').forEach(x => x.classList.toggle('active', x.dataset.cat === ov._cat));
+    const inp = ov.querySelector('.sds-input');
+    inp.value = st.q || '';
+    runSearch();
+    // Deezer's rows arrive ~300ms later (cached by then); scroll after them.
+    const body = ov.querySelector('.sds-body');
+    body.scrollTop = st.scroll || 0;
+    setTimeout(() => { body.scrollTop = st.scroll || 0; }, 450);
+  };
+  requestAnimationFrame(() => requestAnimationFrame(open));
+}
 window.closeSearch = function () {
   const ov = document.getElementById('sd-search');
   if (!ov) return;
@@ -9376,7 +9930,7 @@ function obRenderGenreList(panel) {
 /* The dial's entrance, replayed on every arrival at the step and every switch
    back to the wheel — the same `is-opening` keyframe the home plays. */
 function obMixSpinWrap(wrap) {
-  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const still = sdReducedMotion();
   if (still) return;
   wrap.classList.remove('is-opening');
   void wrap.getBoundingClientRect();
@@ -10043,7 +10597,7 @@ function mixToggle(g, d = MIX) {
 const MIX_ANIM_MS = 240;
 
 function mixDialRender(dir, d = MIX) {
-  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const still = sdReducedMotion();
   /* ⚠ EVERY wrap this dial is drawn in. On the home that is one; in onboarding
      it is one per rendered `.s-onboarding` (dark + light in the viewer), and a
      step into a main has to happen on all of them or the two variants end up
@@ -10414,7 +10968,7 @@ window.openMixDial = function (fromEl) {
      ⚠️ Removed and re-added around a reflow so a reopen actually replays it;
      an animation does not restart just because its element was re-marked. */
   const wrap = host.querySelector('.mix-inline');
-  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const still = sdReducedMotion();
   if (wrap && !still) {
     wrap.classList.remove('is-opening');
     void wrap.getBoundingClientRect();
@@ -10553,7 +11107,7 @@ window.obSetUsername = function (v) {
   });
 };
 window.obConnect      = function (id)  { OB.service = OB.service === id ? null : id; obSync(); };
-window.obSetTracking  = function (v)   { OB.tracking = v; obSync(); setTimeout(() => obNext(), 240); };
+window.obSetTracking  = function (v)   { OB.tracking = v; sdPrefSet('shareListening', !!v); obSync(); setTimeout(() => obNext(), 240); };
 // ⚠ Called as (el, name) by the chip row and as (name) by the bubbles; `el` was never used.
 window.obToggleGenre  = function (a, b) { const name = b === undefined ? a : b; OB.genres.has(name) ? OB.genres.delete(name) : OB.genres.add(name); obSync(); };
 window.obToggleArtist = function (name){ OB.artists.has(name) ? OB.artists.delete(name) : OB.artists.add(name); obSync(); };
@@ -10584,7 +11138,7 @@ window.obBack = function () {
   obMixArrive();
 };
 function obScrollTop() { document.querySelectorAll('.s-onboarding .ob-stage').forEach(s => s.scrollTop = 0); }
-window.obFinish = function () { navigate('home'); };
+window.obFinish = function () { sdHomeIntro(() => navigate('home')); };   // 0.14b: the logo draws first (sdHomeIntro, end of app.js)
 
 // ══════════════════════════════════════════════════════════════
 //  PROFILE — "Funky" theme 01 (5 favourite albums · social · info)
@@ -10800,6 +11354,7 @@ window.sdPerson = function (el, e) {
 };
 window.openFriendProfile = function (name) {
   if (!name) return;
+  backStack.push(captureLocation());   // their page gets a Back to wherever you tapped them
   if (!PROFILE_OWNER) PROFILE_OWNER = Object.assign({}, window.PROFILE);
   randomizeProfile(name);
   /* ⚠️ THE PERSON YOU TAPPED (2026-09-26). randomizeProfile seeds everything
@@ -11526,6 +12081,7 @@ window.devBoxCopy = function (btn) {
 // the UI, so booting into it would leave every button unlit.
 function initPersonas() {
   if (!(window.PERSONAS || []).length) return;
+  svcRestore();          // a connected service's taste is the `me` persona
   applyPersonaSkins();
   let saved = '';
   try { saved = localStorage.getItem('spindeck-persona') || ''; } catch (e) {}
@@ -11885,8 +12441,9 @@ window.pfeditSave = function () {
   // edit and goBack Object.assign()s it back, which would silently revert the
   // save. Drop that snapshot and go forward-as-back instead — the 'back'
   // direction is what stops navigate() from re-rolling the random persona.
-  backStack.pop();
-  navigate('profile', 'back');
+  // Opened from Settings (2026-10-13): back to Settings, the way Cancel goes.
+  const from = backStack.pop();
+  navigate(from && from.screenId === 'settings' ? 'settings' : 'profile', 'back');
 };
 
 window.closeProfPicker = function () {
@@ -12989,6 +13546,7 @@ sdsOpenResult = function (type, i) {
   const last = (ov && ov._last) || {};
   const a = type === 'artist' ? (last.artists || [])[i] : null;
   if (a && a._dzArtist) {
+    sdsStash(ov);              // the page opens after the fetch; the stash waits for it
     closeSearch();
     dz('artist/' + a._dzArtist.id + '/albums?limit=40').then(function (r) {
       // Same junk filter as the rec pool — a legacy act's raw album list is
@@ -12998,7 +13556,15 @@ sdsOpenResult = function (type, i) {
         .sort(function (x, y) { return (y.fans || 0) - (x.fans || 0); });
       dzAdopt((good.length ? good : raw).slice(0, 12)
         .map(function (al) { return dzRecord(al, a._dzArtist); }));
+      // Nothing usable on Deezer for them: don't strand the tap on a closed
+      // search with nothing opened — put the search back.
+      if (!(window.ARCHIVE || []).some(function (x) { return x.artist === a._dzArtist.name; })) {
+        const st = window._sdsPending; window._sdsPending = null;
+        if (st) sdsRestore(st);
+        return;
+      }
       window.openArtistPageFor(a._dzArtist.name);
+      window._sdsPending = null;
     });
     return;
   }
@@ -13212,7 +13778,7 @@ window.sdSetViewMode = function (mode) {
    else gets this card over step 1 once per load. Skip → home. */
 window.sdSkipOnboarding = function () {
   document.querySelectorAll('.sd-obskip').forEach(o => o.remove());
-  if (typeof navigate === 'function') navigate('home');
+  if (typeof navigate === 'function') sdHomeIntro(() => navigate('home'));   // 0.14b: skipping gets the intro too
 };
 function sdAskSkipOnboarding() {
   if (!window.SD_BOOT_ONBOARDING || window.SD_REC_WILL_ASK) return;
@@ -13238,3 +13804,78 @@ function sdAskSkipOnboarding() {
 }
 // After the first render has put onboarding on stage.
 document.addEventListener('DOMContentLoaded', () => setTimeout(sdAskSkipOnboarding, 400));
+
+/* ── THE HOME INTRO (0.14b, 2026-10-12) ────────────────────────────────────
+   Eric: "a little transition animation between going from onboarding to
+   starting the homepage, like a logo svg draw using anime js with our logo a
+   quick one just so u know its homepage like official, and if u press the
+   skip onboarding i want it to play before going to the hp".
+   The belt-drive logo (the marketing site's SVG — belt, record, motor) draws
+   itself on a cover the colour of the screen, the wordmark comes up under it,
+   then home is swapped in BEHIND the cover and the cover fades away. ~1.7s.
+   ⚠ The cover is position: fixed on BODY, laid over the phone screen's rect,
+   not inside the phone: navigate() rebuilds the phone's DOM, and a cover
+   inside it would be torn out mid-draw.
+   ⚠ It never blocks the way in: no anime.js (CDN down), reduced motion, or no
+   onboarding on screen → straight to go(). And a 3.2s timer finishes it
+   regardless — anime runs on rAF, which never fires in a background tab. */
+const SD_INTRO_BELT = 'M478.336 963.436L482.065 963.441C482.065 963.441 912.289 963.507 982.013 963.507C1051.74 963.507 1126.74 888.278 1088.6 776.094C1050.46 663.91 951.832 354.175 951.832 354.175C889.26 159.306 702.337 0.749782 480.668 0.749763C215.616 0.749801 0.750065 216.256 0.74992 482.097C0.749897 747.157 214.356 962.176 478.336 963.436Z';
+function sdIntroHtml() {
+  return `
+    <svg class="sd-intro-logo" viewBox="-20 -20 1140 1005" aria-hidden="true">
+      <path class="sd-intro-draw sd-intro-belt" d="${SD_INTRO_BELT}"/>
+      <circle class="sd-intro-draw sd-intro-cd" cx="480.68" cy="479.79" r="409.75" transform="rotate(-90 480.68 479.79)"/>
+      <!-- The base logo, four parts (Eric, 2026-10-13): belt, record, the
+           record's centre circle, motor. No bolt holes in the motor. -->
+      <circle class="sd-intro-draw sd-intro-small" cx="480.68" cy="479.79" r="41.85" transform="rotate(-90 480.68 479.79)"/>
+      <circle class="sd-intro-draw sd-intro-small" cx="969.17" cy="833.22" r="79.7" transform="rotate(-90 969.17 833.22)"/>
+    </svg>
+    <div class="sd-intro-word" role="img" aria-label="Spindeck"></div>`;
+}
+// The logo's ink against the screen's colour: dark ink on a light screen, else the house off-white.
+function sdIntroInk(bg) {
+  const m = String(bg).match(/\d+(\.\d+)?/g);
+  if (!m || m.length < 3 || (m.length > 3 && +m[3] === 0)) return null;
+  const [r, g, b] = m.map(Number);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.56 ? '#1a1208' : '#e8e2d6';
+}
+window.sdHomeIntro = function (go) {
+  const reduce = sdReducedMotion();
+  const hosts = [...document.querySelectorAll('.s-onboarding')].filter(e => e.getBoundingClientRect().width);
+  if (reduce || typeof anime !== 'function' || !hosts.length || window._sdIntro) { go(); return; }
+  window._sdIntro = true;
+  const covers = hosts.map(h => {
+    const frame = h.closest('.phone-screen') || h;
+    const r = frame.getBoundingClientRect();
+    const bg = getComputedStyle(h).backgroundColor;
+    const ink = sdIntroInk(bg);
+    const c = document.createElement('div');
+    c.className = 'sd-intro';
+    c.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;` +
+      `border-radius:${getComputedStyle(frame).borderRadius};` +
+      `background:${ink ? bg : '#111116'};--sd-intro-ink:${ink || '#e8e2d6'}`;
+    c.innerHTML = sdIntroHtml();
+    document.body.appendChild(c);
+    return c;
+  });
+  const all = sel => covers.flatMap(c => [...c.querySelectorAll(sel)]);
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    go();
+    covers.forEach(c => c.classList.add('is-out'));
+    setTimeout(() => { covers.forEach(c => c.remove()); window._sdIntro = false; }, 380);
+  };
+  setTimeout(finish, 3200);
+  const tl = anime.timeline({ easing: 'easeInOutSine' });
+  tl.add({ targets: covers, opacity: [0, 1], duration: 160, easing: 'linear' })
+    // 0.2s longer (Eric, 2026-10-12): every beat ×1.2, the hold to 275ms.
+    .add({ targets: all('.sd-intro-belt'), strokeDashoffset: [anime.setDashoffset, 0], duration: 745 })
+    .add({ targets: all('.sd-intro-cd'), strokeDashoffset: [anime.setDashoffset, 0], duration: 625 }, '-=505')
+    .add({ targets: all('.sd-intro-small'), strokeDashoffset: [anime.setDashoffset, 0], duration: 385, delay: anime.stagger(95) }, '-=360')
+    .add({ targets: all('.sd-intro-word'), opacity: [0, 1], translateY: [8, 0], duration: 410, easing: 'easeOutCubic' }, '-=455')
+    .add({ targets: covers, duration: 275 });
+  tl.finished.then(finish);
+};
+

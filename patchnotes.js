@@ -21,6 +21,19 @@
 
 const PATCH_NOTES = [
   {
+    date: '13 Oct 2026',
+    title: 'Version 0.20',
+    items: [
+      'Settings work now: Dark / Light / Auto theme, Reduce motion, and which notifications you get.',
+      'Connect Deezer in Settings to fill the app with your own albums (Spotify and Last.fm are coming).',
+      'A switch for whether people on Spindeck can see what you’re listening to.',
+      'Back is smarter: going back from an album returns to your search as you left it, and friends’ profiles, Settings and Notifications all go back where you came from.',
+      'Closing the rate sheet from the + search takes you back to that search.',
+      'Your profile’s saved things: Fav songs · Fav albums · Listened · Listen later.',
+      'Delete your own comments with the trash icon beside the heart.',
+    ],
+  },
+  {
     date: '25 Sep 2026',
     title: 'Simpler, calmer',
     items: [

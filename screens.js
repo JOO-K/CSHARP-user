@@ -502,7 +502,7 @@ function homeShellHtml(light, coversUp, cls) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
               </button>
               <button class="v3-bubble v3-bubble--notif has-notif" title="Notifications" aria-label="Notifications"
-                      onclick="navigate('notifications')">
+                      onclick="sdOpenFromHeader('notifications')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 <span class="v3-bubble-count">+5</span>
               </button>
@@ -519,7 +519,7 @@ function homeShellHtml(light, coversUp, cls) {
             <div class="v3-header-right">
               <!-- Settings. csharpuser (2026-09-23): the Search bubble that sat
                    outside it is gone — Search lives in the bottom nav now. -->
-              <button class="v3-bubble v3-bubble--settings" title="Settings" aria-label="Settings" onclick="navigate('settings')">
+              <button class="v3-bubble v3-bubble--settings" title="Settings" aria-label="Settings" onclick="sdOpenFromHeader('settings')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               </button>
               <!-- FEEDBACK (0.13, Eric 2026-10-03): the gear lives on your profile
@@ -560,7 +560,10 @@ function homeShellHtml(light, coversUp, cls) {
           <div class="wall2-bar v3-feed-tabs">
             <button class="wall2-cat v3-feed-tab" data-tab="friends" onclick="event.stopPropagation(); pickFeedTab(this)">Friends</button>
             <button class="wall2-cat v3-feed-tab" data-tab="popular" onclick="event.stopPropagation(); pickFeedTab(this)">Popular</button>
-            <button class="wall2-cat v3-feed-tab" data-tab="you" onclick="event.stopPropagation(); pickFeedTab(this)">You</button>
+            <button class="wall2-cat v3-feed-tab" data-tab="you" onclick="event.stopPropagation(); pickFeedTab(this)">Your reviews</button>
+            <!-- 2026-10-12: a placeholder, coming soon — disabled, no data-tab, so
+                 pickFeedTab / paintFeedTabs never touch it. -->
+            <button class="wall2-cat v3-feed-tab--soon" disabled aria-disabled="true" title="Coming soon">Live</button>
           </div>
 
           <!-- SCROLL: activity feed — notification-style rows, filled by
@@ -916,7 +919,7 @@ function appHeader(subtitle) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
               </button>
               <button class="v3-bubble v3-bubble--notif has-notif" title="Notifications" aria-label="Notifications"
-                      onclick="navigate('notifications')">
+                      onclick="sdOpenFromHeader('notifications')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 <span class="v3-bubble-count">+5</span>
               </button>
@@ -931,7 +934,7 @@ function appHeader(subtitle) {
               <div class="v3-header-handle"></div>
             </div>
             <div class="v3-header-right">
-              <button class="v3-bubble v3-bubble--settings" title="Settings" aria-label="Settings" onclick="navigate('settings')">
+              <button class="v3-bubble v3-bubble--settings" title="Settings" aria-label="Settings" onclick="sdOpenFromHeader('settings')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               </button>
               <!-- FEEDBACK (0.13, Eric 2026-10-03): the gear lives on your profile
@@ -2126,11 +2129,22 @@ function profPicksLists(P) {
     push(later, seenT, { kind: 'album', title: a.album, artist: a.artist, album: a.album,
                          sub: a.artist + (a.year ? ` · ${a.year}` : ''), image: a.image });
   }
-  return { songs, listened: listened.slice(0, PROF_PICK_ROWS), later: later.slice(0, PROF_PICK_ROWS) };
+  /* Favourite albums (2026-10-13 — they were the wheel): the ones you hearted
+     on an album, newest first, then the profile's five favourites. */
+  const albums = [], seenA = {};
+  mine('fav').forEach(r => push(albums, seenA, r));
+  (P.favs || []).forEach(name => {
+    const a = findAlb(name);
+    if (a) push(albums, seenA, { kind: 'album', title: a.album, artist: a.artist, album: a.album,
+                                 sub: a.artist + (a.year ? ` · ${a.year}` : ''), image: a.image });
+  });
+  return { songs, albums: albums.slice(0, PROF_PICK_ROWS),
+           listened: listened.slice(0, PROF_PICK_ROWS), later: later.slice(0, PROF_PICK_ROWS) };
 }
 
 const PROF_PICK_TABS = [
-  ['songs',    'Favourite songs', 'No favourite songs yet.'],
+  ['songs',    'Fav songs',       'No favourite songs yet.'],
+  ['albums',   'Fav albums',      'No favourite albums yet — tap the heart on an album.'],
   ['listened', 'Listened',        'Nothing logged as listened yet.'],
   ['later',    'Listen later',    'Nothing queued yet — tap the clock on an album.'],
 ];
@@ -2146,6 +2160,7 @@ function profPicksHtml(P) {
   const tail = (r, k) => {
     if (k === 'songs')    return `<span class="prof-song-play">${playIco}</span>`;
     if (k === 'later')    return `<span class="prof-song-play prof-song-play--dot">${ico.clock || ''}</span>`;
+    if (k === 'albums')   return `<span class="prof-song-play prof-song-play--dot">${ico.heart || ''}</span>`;
     return r.rating ? `<span class="prof-song-score">${r.rating}</span>`
                     : `<span class="prof-song-play prof-song-play--dot">${ico.ear || ''}</span>`;
   };
@@ -2300,18 +2315,18 @@ function profileHtml(light) {
         ${appHeader()}
         <div class="v3-body">
           <div class="prof2-scroll">
+            ${window.PROFILE_GUEST ? `<button class="plp-back-pill" onclick="goBack('home')" title="Back"></button>` : ''}
 
             ${profHeadHtml(P)}
 
             ${profStatsHtml(P)}
 
-            <!-- THE ALBUM WHEEL is back (0.12, Eric 2026-10-02): the five favourite
-                 albums as discs on an endless arc (profFavsHtml; profFavBoot
-                 lays it out from applyProfColors). No backticks here: template. -->
-            ${profFavsHtml(P)}
+            <!-- The album wheel (and its share button) is OFF for now (Eric,
+                 2026-10-13); its favourites are the picker's Fav albums tab.
+                 profFavsHtml is intact; put it back here to bring it back. -->
 
-            <!-- The picks — Favourite songs · Listened · Listen later, one
-                 picker ABOVE the pins (Eric, 2026-09-25; it opened under them). -->
+            <!-- The picks — Fav songs · Fav albums · Listened · Listen later,
+                 one picker ABOVE the pins. No backticks here: template. -->
             ${profPicksHtml(P)}
 
             ${profPinsHtml(P)}
@@ -3351,7 +3366,8 @@ function ntfItems() {
 function notificationsHtml(light) {
   const arch  = window.ARCHIVE || [];
   const pics  = ntfPeople();
-  const items = ntfItems();
+  // Settings › Notifications: a kind switched off never reaches the inbox.
+  const items = ntfItems().filter(it => !window.sdNtfAllowed || window.sdNtfAllowed(it));
   const esc   = s => String(s).replace(/'/g, '\\\'');
   // A hand-authored row names a demo album that a persona's archive may not
   // hold. Then it takes a STEADY stand-in (seeded off the name, not arch[0]),
@@ -3450,7 +3466,7 @@ function notificationsHtml(light) {
         <div class="v3-body">
           <div class="ntf-scroll">
             <div class="ntf-top">
-              <button class="plp-back-pill" onclick="navigate('home')" title="Back">
+              <button class="plp-back-pill" onclick="goBack('home')" title="Back">
                 <span class="v3-ring plp-ring"><span class="v3-ring-spin">${'<i class="v3-ring-dot"></i>'.repeat(6)}</span></span>
               </button>
               <div class="ntf-top-r">
@@ -3494,12 +3510,16 @@ function settingsHtml(light) {
   const dots = '<i class="v3-ring-dot"></i>'.repeat(6);
 
   // — controls —
-  const sw = (on) => `
-                  <button class="set-sw${on ? ' is-on' : ''}" role="switch" aria-checked="${!!on}"
+  // A switch is a saved pref (sdPref / sdToggle in app.js).
+  const pref = k => (window.sdPref ? window.sdPref(k) : false);
+  const sw = (k) => `
+                  <button class="set-sw${pref(k) ? ' is-on' : ''}" role="switch" aria-checked="${!!pref(k)}" data-pref="${k}"
                           onclick="event.stopPropagation(); sdToggle(this)"><span class="set-sw-knob"></span></button>`;
-  const seg = (opts, active) => `
-                  <div class="set-seg">${opts.map(o =>
-                    `<button class="${o === active ? 'active' : ''}" onclick="event.stopPropagation(); sdSeg(this)">${o}</button>`).join('')}</div>`;
+  // Theme picker — Dark / Light / Auto, saved; picking one re-renders (sdSetTheme).
+  const theme = window.sdPref ? window.sdPref('theme') : (light ? 'light' : 'dark');
+  const seg = `
+                  <div class="set-seg">${['Dark', 'Light', 'Auto'].map(o =>
+                    `<button class="${o.toLowerCase() === theme ? 'active' : ''}" onclick="event.stopPropagation(); sdSeg(this); sdSetTheme('${o.toLowerCase()}')">${o}</button>`).join('')}</div>`;
   const pill  = (txt, on) => `<span class="set-pill${on ? ' set-pill--on' : ''}">${txt}</span>`;
   const chev  = `<svg class="set-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`;
 
@@ -3520,29 +3540,38 @@ function settingsHtml(light) {
                 <div class="set-card">${rows}</div>
               </section>`;
 
-  // Connected services — brand dot + name + connect state.
-  const service = (name, sub, brand, on) => `
-                <div class="set-row set-row--link" onclick="event.stopPropagation(); sdConnect(this)">
-                  <span class="set-svc-dot" style="background:${brand}"></span>
+  /* Connected services — brand dot + name + connect state. A connected one says
+     whose taste came in; the rest say what they would bring (SD_SVC, app.js). */
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const taste = window.sdTaste ? window.sdTaste() : null;
+  const service = (id) => {
+    const s = (window.SD_SVC || {})[id] || { name: id, brand: '#888', what: '' };
+    const on = !!(taste && taste.svc === id);
+    const ok = on || (window.svcAvailable ? window.svcAvailable(id) : false);
+    const sub = on ? `${esc(taste.user)} · ${taste.albums.length} albums in your catalogue` : s.what;
+    return `
+                <div class="set-row set-row--link${ok ? '' : ' set-row--na'}" onclick="event.stopPropagation(); sdServiceTap(this, '${id}')">
+                  <span class="set-svc-dot" style="background:${s.brand}"></span>
                   <div class="set-row-body">
-                    <div class="set-row-label">${name}</div>
+                    <div class="set-row-label">${s.name}</div>
                     <div class="set-row-sub">${sub}</div>
                   </div>
-                  ${pill(on ? 'Connected' : 'Connect', on)}
+                  ${pill(on ? 'Connected' : ok ? 'Connect' : 'Soon', on)}
                 </div>`;
+  };
 
   return `
       <div class="app-screen s-home-v3 s-set${light ? ' s-home-v3--light' : ''}">
         ${appHeader()}
         <div class="v3-body">
           <div class="set-scroll">
-            <button class="plp-back-pill" onclick="navigate('profile')" title="Back">
+            <button class="plp-back-pill" onclick="goBack('profile')" title="Back">
               <span class="v3-ring plp-ring"><span class="v3-ring-spin">${dots}</span></span>
             </button>
 
             <h2 class="set-title">Settings</h2>
 
-            <div class="set-acct" onclick="navigate('profile-edit')">
+            <div class="set-acct" onclick="openProfileEdit()">
               <div class="set-acct-pic" style="background-image:url('${P.pic || 'images/rp-01.jpg'}')"></div>
               <div class="set-acct-body">
                 <div class="set-acct-name">${P.name || 'You'}</div>
@@ -3554,39 +3583,31 @@ function settingsHtml(light) {
             <button class="set-signout" onclick="navigate('auth')">Sign out</button>
 
             ${section('Appearance', [
-              setRow('Theme', null, seg(['Dark', 'Light', 'Auto'], light ? 'Light' : 'Dark')),
-              setRow('Profile theme', 'Funky 01', chev, "navigate('profile-edit')"),
-              // csharpuser: the Furry theme row (a shop item) is gone with the shop.
-              setRow('Reduce motion', 'Stops the spinning CD', sw(false)),
+              setRow('Theme', null, seg),
+              // Profile theme moved out (Eric, 2026-10-12) — it lives in Edit Profile.
+              setRow('Reduce motion', 'Turns off animations and transitions', sw('reduceMotion')),
             ].join('')) }
 
             ${section('Connected services', [
-              service('Spotify',     'Export playlists · scrobble plays', '#1db954', true),
-              service('Apple Music', 'Sync your library',                 '#fa2d48', false),
-              service('Last.fm',     'Import your listening history',     '#d51007', false),
-            ].join('')) }
-
-            ${section('Playback', [
-              setRow('30-second previews', 'Tap the CD to play a clip', sw(false)),
-              setRow('Autoplay next track', null, sw(true)),
-              setRow('Explicit content', null, sw(true)),
-              setRow('Audio quality', 'High', chev, 'void 0'),
+              setRow('Share what you’re listening to', 'People on Spindeck can see what’s playing', sw('shareListening')),
+              service('spotify'),
+              service('deezer'),
+              service('lastfm'),
+              service('apple'),
             ].join('')) }
 
             ${section('Notifications', [
-              setRow('New followers', null, sw(true)),
-              setRow('Review likes &amp; replies', null, sw(true)),
-              setRow('New releases from artists you follow', null, sw(true)),
-              setRow('Weekly recap', 'Your listening, every Sunday', sw(false)),
+              setRow('New followers', null, sw('ntfFollow')),
+              setRow('Review likes &amp; replies', null, sw('ntfReplies')),
+              setRow('New releases from artists you follow', null, sw('ntfReleases')),
+              setRow('Weekly recap', 'Your listening, every Sunday', sw('ntfRecap')),
             ].join('')) }
 
-            ${section('Privacy', [
-              setRow('Private profile', 'Only approved followers see your reviews', sw(false)),
-              setRow('Blocked accounts', '2', chev, 'void 0'),
-            ].join('')) }
+            <!-- Playback (30-second previews) and Privacy (private profile,
+                 blocked accounts) came out on 2026-10-12. -->
 
             ${section('About', [
-              setRow('Version', 'Spindeck 0.9 (prototype)', ''),
+              setRow('Version', 'Spindeck 0.20 (prototype)', ''),
               setRow('Terms of service', null, chev, 'void 0'),
               setRow('Privacy policy', null, chev, 'void 0'),
             ].join('')) }
@@ -3954,15 +3975,15 @@ function bottomNav(active = 'home') {
                  it (sdScrollWatch, app.js). No backticks in here: template literal. -->
             <button class="v3-nav-top" type="button" onclick="sdBackToTop(this, event)">back 2 top</button>
             <div class="v3-nav-items">
-              <button class="v3-nav-item${on('home')}" onclick="navigate('home')" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></button>
+              <button class="v3-nav-item${on('home')}" onclick="sdNavTab('home')" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></button>
               <button class="v3-nav-item" onclick="event.stopPropagation(); openSearch(this)" title="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
               <!-- 0.11 (Eric, 2026-09-28): the + in the MIDDLE writes a review. It opens
                    the search in review mode (albums only; an artist or a song
                    brings up the album) and the pick opens the log sheet. No
                    backticks in here: template literal. -->
               <button class="v3-nav-item v3-nav-item--add" onclick="openReviewSearch(this, event)" title="Write a review" aria-label="Write a review"><span class="v3-nav-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></button>
-              <button class="v3-nav-item${on('wall')}" onclick="navigate('wall')" title="Trending"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="2.5" y="2.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="2.5" width="5" height="5" rx="1.2"/><rect x="16.5" y="2.5" width="5" height="5" rx="1.2"/><rect x="2.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="16.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="2.5" y="16.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="16.5" width="5" height="5" rx="1.2"/><rect x="16.5" y="16.5" width="5" height="5" rx="1.2"/></svg></button>
-              <button class="v3-nav-item${on('profile')}" onclick="navigate('profile')" title="Profile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
+              <button class="v3-nav-item${on('wall')}" onclick="sdNavTab('wall')" title="Trending"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="2.5" y="2.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="2.5" width="5" height="5" rx="1.2"/><rect x="16.5" y="2.5" width="5" height="5" rx="1.2"/><rect x="2.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="16.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="2.5" y="16.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="16.5" width="5" height="5" rx="1.2"/><rect x="16.5" y="16.5" width="5" height="5" rx="1.2"/></svg></button>
+              <button class="v3-nav-item${on('profile')}" onclick="sdNavTab('profile')" title="Profile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
             </div>
             <!-- The CD console. WARNING: it lives INSIDE the nav, not beside it.
                  It was a sibling positioned in px from the screen bottom, and the
