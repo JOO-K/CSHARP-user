@@ -4734,9 +4734,9 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
   font-weight: 400; line-height: 1.4; color: rgba(232,226,214,0.6);
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden;
 }
-.s-home-v3--light.s-home-v3--artist .v3-ai-lbl { color: rgba(26,18,8,0.4); }
-.s-home-v3--light.s-home-v3--artist .v3-ai-val { color: rgba(26,18,8,0.7); }
-.s-home-v3--light.s-home-v3--artist .v3-ai-row--description .v3-ai-val { color: rgba(26,18,8,0.6); }
+.s-home-v3--light.s-home-v3--album .v3-ai-lbl { color: rgba(26,18,8,0.4); }
+.s-home-v3--light.s-home-v3--album .v3-ai-val { color: rgba(26,18,8,0.7); }
+.s-home-v3--light.s-home-v3--album .v3-ai-row--description .v3-ai-val { color: rgba(26,18,8,0.6); }
 /* Left-align the artist name / genre / stars */
 .s-home-v3--artist .v3-blue {
   left: 0; width: 100%;
@@ -4763,11 +4763,11 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
 /* …and it is the HOMEPAGE's bg, not a fixed #111116 (Eric): --sd-bg, which a
    persona skin re-points per screen, so home and the album page match. */
 .s-home-v3--review.s-home-v3--album { --v3-box1-color: var(--sd-bg, #111116) !important; background: var(--sd-bg, #111116); }
-/* Light theme: the album page stays DARK too — every `.v3-rev-*` ink on it is
-   light, written for a dark surface. Only the artist page goes cream (it has
-   its own `--light.--artist` re-inks). */
-.s-home-v3--light.s-home-v3--review.s-home-v3--album:not(.s-home-v3--artist) { --v3-box1-color: #111116 !important; background: #111116; }
-.s-home-v3--light.s-home-v3--review.s-home-v3--album.s-home-v3--artist { --v3-box1-color: #f0ece3 !important; background: #f0ece3; }
+/* Light theme: the album page goes cream like the artist page (Eric,
+   2026-10-14 — it used to stay dark). The artist page's `--light.--artist`
+   re-inks are scoped `--light.--album` now, so they cover both; the album-only
+   bits are re-inked in the ALBUM PAGE, LIGHT block at the end of the file. */
+.s-home-v3--light.s-home-v3--review.s-home-v3--album { --v3-box1-color: #f0ece3 !important; background: #f0ece3; }
 /* 0.12 (2026-10-02): ONE YELLOW on the album page (Eric) — the histogram
    bars, the discs and every rating read the house gold instead of the
    cover-derived colour. applyColorVars sets --v3-star / --v3-accent INLINE,
@@ -4793,46 +4793,46 @@ body.sd-skin-furry .v3-body { padding-top: 40px; }
    is light ink. The artist page forces the cream bg instead, so that same ink
    lands invisible — these re-ink the panel dark. Scoped `--light.--artist`
    (0,3,0) so it beats the generic `--light` rules without !important. */
-.s-home-v3--light.s-home-v3--artist .v3-blue-album { color: #1a1208; }
-.s-home-v3--light.s-home-v3--artist .v3-blue-count,
-.s-home-v3--light.s-home-v3--artist .v3-rev-count { color: rgba(26,18,8,0.4); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-cta {
+.s-home-v3--light.s-home-v3--album .v3-blue-album { color: #1a1208; }
+.s-home-v3--light.s-home-v3--album .v3-blue-count,
+.s-home-v3--light.s-home-v3--album .v3-rev-count { color: rgba(26,18,8,0.4); }
+.s-home-v3--light.s-home-v3--album .v3-rev-cta {
   background: rgba(26,18,8,0.06); border-color: rgba(26,18,8,0.12); color: #1a1208;
 }
-.s-home-v3--light.s-home-v3--artist .v3-rev-rec {
+.s-home-v3--light.s-home-v3--album .v3-rev-rec {
   background: rgba(26,18,8,0.05); border-color: rgba(26,18,8,0.1); color: rgba(26,18,8,0.7);
 }
-.s-home-v3--light.s-home-v3--artist .v3-rev-rec-name { color: #1a1208; }
-.s-home-v3--light.s-home-v3--artist .v3-rev-filters { border-top-color: rgba(26,18,8,0.12); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-filter { color: rgba(26,18,8,0.4); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-filter.active { color: #b06a2a; }
-.s-home-v3--light.s-home-v3--artist .v3-rev-card { border-bottom-color: rgba(26,18,8,0.1); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-name { color: rgba(26,18,8,0.85); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-text { color: rgba(26,18,8,0.55); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-score { color: rgba(26,18,8,0.5); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-time,
-.s-home-v3--light.s-home-v3--artist .v3-rev-likes { color: rgba(26,18,8,0.3); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-empty { color: rgba(26,18,8,0.4); }
+.s-home-v3--light.s-home-v3--album .v3-rev-rec-name { color: #1a1208; }
+.s-home-v3--light.s-home-v3--album .v3-rev-filters { border-top-color: rgba(26,18,8,0.12); }
+.s-home-v3--light.s-home-v3--album .v3-rev-filter { color: rgba(26,18,8,0.4); }
+.s-home-v3--light.s-home-v3--album .v3-rev-filter.active { color: #b06a2a; }
+.s-home-v3--light.s-home-v3--album .v3-rev-card { border-bottom-color: rgba(26,18,8,0.1); }
+.s-home-v3--light.s-home-v3--album .v3-rev-name { color: rgba(26,18,8,0.85); }
+.s-home-v3--light.s-home-v3--album .v3-rev-text { color: rgba(26,18,8,0.55); }
+.s-home-v3--light.s-home-v3--album .v3-rev-score { color: rgba(26,18,8,0.5); }
+.s-home-v3--light.s-home-v3--album .v3-rev-time,
+.s-home-v3--light.s-home-v3--album .v3-rev-likes { color: rgba(26,18,8,0.3); }
+.s-home-v3--light.s-home-v3--album .v3-rev-empty { color: rgba(26,18,8,0.4); }
 /* Comment thread, re-inked for the artist page's cream panel (see the ⚠️ on
    `.v3-cmt-*` — every rule there needs one of these). */
-.s-home-v3--light.s-home-v3--artist .v3-cmt-kids { border-left-color: rgba(26,18,8,0.14); }
-.s-home-v3--light.s-home-v3--artist .v3-cmt-av { background-color: rgba(26,18,8,0.08); }
-.s-home-v3--light.s-home-v3--artist .v3-cmt-user { color: rgba(26,18,8,0.8); }
-.s-home-v3--light.s-home-v3--artist .v3-cmt-text { color: rgba(26,18,8,0.55); }
-.s-home-v3--light.s-home-v3--artist .v3-cmt { border-top-color: rgba(26,18,8,0.08); }
-.s-home-v3--light.s-home-v3--artist .v3-cmt-handle { color: rgba(26,18,8,0.42); }
-.s-home-v3--light.s-home-v3--artist .v3-cmt-ago,
-.s-home-v3--light.s-home-v3--artist .v3-cmt-like,
-.s-home-v3--light.s-home-v3--artist .v3-cmt-reply { color: rgba(26,18,8,0.32); }
-.s-home-v3--light.s-home-v3--artist .v3-cmt-like:hover,
-.s-home-v3--light.s-home-v3--artist .v3-cmt-reply:hover { color: rgba(26,18,8,0.75); }
-.s-home-v3--light.s-home-v3--artist .v3-cmt-like.is-on { color: #b06a2a; }
-.s-home-v3--light.s-home-v3--artist .v3-cmt-none { color: rgba(26,18,8,0.4); }
-.s-home-v3--light.s-home-v3--artist .v3-cmt-input {
+.s-home-v3--light.s-home-v3--album .v3-cmt-kids { border-left-color: rgba(26,18,8,0.14); }
+.s-home-v3--light.s-home-v3--album .v3-cmt-av { background-color: rgba(26,18,8,0.08); }
+.s-home-v3--light.s-home-v3--album .v3-cmt-user { color: rgba(26,18,8,0.8); }
+.s-home-v3--light.s-home-v3--album .v3-cmt-text { color: rgba(26,18,8,0.55); }
+.s-home-v3--light.s-home-v3--album .v3-cmt { border-top-color: rgba(26,18,8,0.08); }
+.s-home-v3--light.s-home-v3--album .v3-cmt-handle { color: rgba(26,18,8,0.42); }
+.s-home-v3--light.s-home-v3--album .v3-cmt-ago,
+.s-home-v3--light.s-home-v3--album .v3-cmt-like,
+.s-home-v3--light.s-home-v3--album .v3-cmt-reply { color: rgba(26,18,8,0.32); }
+.s-home-v3--light.s-home-v3--album .v3-cmt-like:hover,
+.s-home-v3--light.s-home-v3--album .v3-cmt-reply:hover { color: rgba(26,18,8,0.75); }
+.s-home-v3--light.s-home-v3--album .v3-cmt-like.is-on { color: #b06a2a; }
+.s-home-v3--light.s-home-v3--album .v3-cmt-none { color: rgba(26,18,8,0.4); }
+.s-home-v3--light.s-home-v3--album .v3-cmt-input {
   color: #1a1208; background: rgba(26,18,8,0.05); border-color: rgba(26,18,8,0.14);
 }
-.s-home-v3--light.s-home-v3--artist .v3-cmt-input::placeholder { color: rgba(26,18,8,0.3); }
-.s-home-v3--light.s-home-v3--artist .v3-cmt-to { background: rgba(176,106,42,0.16); color: #b06a2a; }
+.s-home-v3--light.s-home-v3--album .v3-cmt-input::placeholder { color: rgba(26,18,8,0.3); }
+.s-home-v3--light.s-home-v3--album .v3-cmt-to { background: rgba(176,106,42,0.16); color: #b06a2a; }
 
 /* ── Artist albums — only shown on the artist page ────────────────
    Replaces the rating histogram. A section head with a row/grid toggle, then
@@ -6320,11 +6320,11 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
   color: rgba(232,226,214,0.4); white-space: nowrap;
 }
 /* The artist page's cream panel: dark ink for the top row's acts and time. */
-.s-home-v3--light.s-home-v3--artist .v3-rev-card--page .v3-rev-top-acts .v3-up { color: rgba(26,18,8,0.42); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-card--page .v3-rev-top-acts .v3-up:hover,
-.s-home-v3--light.s-home-v3--artist .v3-rev-card--page .v3-rev-top-acts .v3-cmt-btn.is-open { color: rgba(26,18,8,0.85); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-card--page .v3-rev-top-acts .v3-up--heart.is-on { color: #e0396e; }
-.s-home-v3--light.s-home-v3--artist .v3-rev-card--page .v3-rev-time { color: rgba(26,18,8,0.42); }
+.s-home-v3--light.s-home-v3--album .v3-rev-card--page .v3-rev-top-acts .v3-up { color: rgba(26,18,8,0.42); }
+.s-home-v3--light.s-home-v3--album .v3-rev-card--page .v3-rev-top-acts .v3-up:hover,
+.s-home-v3--light.s-home-v3--album .v3-rev-card--page .v3-rev-top-acts .v3-cmt-btn.is-open { color: rgba(26,18,8,0.85); }
+.s-home-v3--light.s-home-v3--album .v3-rev-card--page .v3-rev-top-acts .v3-up--heart.is-on { color: #e0396e; }
+.s-home-v3--light.s-home-v3--album .v3-rev-card--page .v3-rev-time { color: rgba(26,18,8,0.42); }
 
 /* ── The first two comments, on the card (Eric, 2026-09-16) ─────────────
    `preview` on revCardInner: two root comments under the text — face · name ·
@@ -6352,10 +6352,10 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 }
 .v3-rev-cmt-body b { font-weight: 700; color: rgba(232,226,214,0.85); margin-right: 2px; }
 .v3-rev-cmt-more { font-family: var(--font-main); font-size: 11px; color: rgba(232,226,214,0.38); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-cmt-av { background-color: rgba(26,18,8,0.08); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-cmt-body { color: rgba(26,18,8,0.55); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-cmt-body b { color: rgba(26,18,8,0.85); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-cmt-more { color: rgba(26,18,8,0.4); }
+.s-home-v3--light.s-home-v3--album .v3-rev-cmt-av { background-color: rgba(26,18,8,0.08); }
+.s-home-v3--light.s-home-v3--album .v3-rev-cmt-body { color: rgba(26,18,8,0.55); }
+.s-home-v3--light.s-home-v3--album .v3-rev-cmt-body b { color: rgba(26,18,8,0.85); }
+.s-home-v3--light.s-home-v3--album .v3-rev-cmt-more { color: rgba(26,18,8,0.4); }
 
 /* ── The review page's hero is the CARD, larger (2026-09-11; rebuilt
    2026-09-16 on the page card's skeleton) ──────────────────────────────────
@@ -12835,13 +12835,13 @@ body.sd-return .s-home-v3--review .v3-body,
 .s-home-v3--album:not(.s-home-v3--artist) .v3-rev-card--page.v3-rev-card--split .v3-rsp-rec { display: none; }
 .s-home-v3--album:not(.s-home-v3--artist) .v3-rev-card--page.v3-rev-card--split .v3-rev-card-top { max-width: 100%; }
 .s-home-v3--album:not(.s-home-v3--artist) .v3-rev-card--page.v3-rev-card--split .v3-rsp-side { margin-top: 16px; }
-.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rsp-time,
-.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up,
-.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rev-record-year { color: rgba(26,18,8,0.42); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rev-record-album,
-.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rev-big-n { color: #1a1208; }
-.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rev-record-artist { color: rgba(26,18,8,0.6); }
-.s-home-v3--light.s-home-v3--artist .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up--heart.is-on { color: #e0396e; }
+.s-home-v3--light.s-home-v3--album .v3-rev-card--page.v3-rev-card--split .v3-rsp-time,
+.s-home-v3--light.s-home-v3--album .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up,
+.s-home-v3--light.s-home-v3--album .v3-rev-card--page.v3-rev-card--split .v3-rev-record-year { color: rgba(26,18,8,0.42); }
+.s-home-v3--light.s-home-v3--album .v3-rev-card--page.v3-rev-card--split .v3-rev-record-album,
+.s-home-v3--light.s-home-v3--album .v3-rev-card--page.v3-rev-card--split .v3-rev-big-n { color: #1a1208; }
+.s-home-v3--light.s-home-v3--album .v3-rev-card--page.v3-rev-card--split .v3-rev-record-artist { color: rgba(26,18,8,0.6); }
+.s-home-v3--light.s-home-v3--album .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up--heart.is-on { color: #e0396e; }
 
 /* 0.12 (2026-10-02): THE DECK'S REVIEW IS 0.1's AGAIN — centred, no box.
    fbGo puts 0.1's `.v3-fbr` block back into `.v3-fb-review`, so 0.11's panel
@@ -13579,3 +13579,41 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
   .v3-song-row:hover, .s-home-v3--light .v3-song-row:hover,
   .v3-song-rate--tap:hover, .v3-songs-more:hover { background: none; }
 }
+
+/* ── ALBUM PAGE, LIGHT (Eric, 2026-10-14) ───────────────────────────────
+   The album page goes cream in the light theme now (see the `--light.--album`
+   bg rule by the artist page). The artist page's re-inks are scoped `--album`
+   so they cover the review cards and comments; these are the album-only bits
+   that were written as light ink for the old dark flood. */
+.s-home-v3--light.s-home-v3--album .v3-blue-album { color: #1a1208; }
+.s-home-v3--light.s-home-v3--album .v3-blue-artist { color: rgba(26,18,8,0.85); }
+.s-home-v3--light.s-home-v3--album .v3-blue-date { color: rgba(26,18,8,0.5); }
+.s-home-v3--light.s-home-v3--album .v3-cred-lbl { color: rgba(26,18,8,0.4); }
+.s-home-v3--light.s-home-v3--album .v3-cred-names { color: rgba(26,18,8,0.65); }
+/* The round rate button and its lobes */
+.s-home-v3--light.s-home-v3--album .v3-rate-group { color: rgba(26,18,8,0.75); }
+.s-home-v3--light.s-home-v3--album .v3-rg-wing,
+.s-home-v3--light.s-home-v3--album .v3-rg-disc { fill: rgba(26,18,8,0.04); stroke: rgba(26,18,8,0.16); }
+.s-home-v3--light.s-home-v3--album .v3-rate-group:has(.v3-rg-rate.is-rated) .v3-rg-disc { fill: rgba(26,18,8,0.04); stroke: var(--star, #e8a83c); }
+.s-home-v3--light.s-home-v3--album .v3-rg-word,
+.s-home-v3--light.s-home-v3--album .v3-rg-word--sm { color: #1a1208; }
+.s-home-v3--light.s-home-v3--album .v3-rg-blank { fill: rgba(26,18,8,0.22); }
+.s-home-v3--light.s-home-v3--album .v3-rg-rate.is-rated { color: #1a1208; --vinyl-empty: rgba(26,18,8,0.25); }
+.s-home-v3--light.s-home-v3--album .v3-rg-rate .v3-rg-did,
+.s-home-v3--light.s-home-v3--album .v3-rg-rate .v3-rg-wrote { color: rgba(26,18,8,0.7); }
+/* Community review + histogram */
+.s-home-v3--light.s-home-v3--album .v3-rev-lbl,
+.s-home-v3--light.s-home-v3--album .v3-rev-score-count,
+.s-home-v3--light.s-home-v3--album .v3-rev-hist-axis { color: rgba(26,18,8,0.45); }
+.s-home-v3--light.s-home-v3--album .v3-rev-score-n { color: #1a1208; }
+.s-home-v3--light.s-home-v3--album { --vinyl-empty: rgba(26,18,8,0.25); }
+/* Tracklist */
+.s-home-v3--light.s-home-v3--album .v3-song-row { color: #1a1208; border-top-color: rgba(26,18,8,0.08); }
+.s-home-v3--light.s-home-v3--album .v3-song-row:hover { background: rgba(26,18,8,0.04); }
+.s-home-v3--light.s-home-v3--album .v3-song-num,
+.s-home-v3--light.s-home-v3--album .v3-song-dur,
+.s-home-v3--light.s-home-v3--album .v3-song-cmt-n { color: rgba(26,18,8,0.45); }
+.s-home-v3--light.s-home-v3--album .v3-song-head,
+.s-home-v3--light.s-home-v3--album .v3-song-head * { color: rgba(26,18,8,0.4); }
+.s-home-v3--light.s-home-v3--album .v3-songs-more { border-color: rgba(26,18,8,0.08); color: #b06a2a; }
+.s-home-v3--light.s-home-v3--album .v3-rev-count { color: rgba(26,18,8,0.45); }

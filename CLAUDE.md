@@ -26,6 +26,14 @@
 >   `captureLocation` only reads a VISIBLE home shell (the phone build keeps
 >   hidden desktop shells); closing the + flow's rate sheet unposted reopens
 >   that search; Edit profile opened from Settings returns to Settings.
+> - **LIGHT THEME REACHES SEARCH, THE + FLOW AND THE ALBUM PAGE** (Eric,
+>   2026-10-14). Search / "Write a review" stayed dark because `openSearch`
+>   looked for `.s-home-v3--light` INSIDE the host screen (querySelector skips
+>   the host itself) — it now `matches()` the host too. The album page was
+>   pinned dark on purpose; it's cream now (`--light.--review.--album` bg), the
+>   artist page's `--light.--artist` re-inks were rescoped `--light.--album`
+>   (the artist page carries `--album`), and the album-only bits are in the
+>   ALBUM PAGE, LIGHT block at the end of app.css.
 > - **PROFILE**: the favourite-albums wheel is BACK (Eric, 2026-10-14 — it was
 >   off for one day in 0.20); the picker below it is still Fav songs · Fav
 >   albums · Listened · Listen later.

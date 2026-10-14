@@ -9705,7 +9705,8 @@ window.openSearch = function (triggerEl, mode, restoring) {
   ov.querySelector('.sds-input').placeholder = mode === 'review' ? 'Album, artist or song' : 'Artists, albums, songs';
   host.querySelectorAll('.v3-nav-item--add').forEach(b => b.classList.toggle('is-on', mode === 'review'));
   host.classList.add('is-searching');       // lifts the bottom nav over the overlay (app.css)
-  ov.classList.toggle('sds-overlay--light', !!host.querySelector('.s-home-v3--light'));
+  // `host` IS the screen, and querySelector skips the element itself — check both.
+  ov.classList.toggle('sds-overlay--light', !!(host.matches('.s-home-v3--light, .sd-theme-light') || host.querySelector('.s-home-v3--light')));
   host.appendChild(ov);   // mount into the current phone screen so it stays in-frame
   ov._cat = 'all';
   ov.querySelectorAll('.sds-tab').forEach(x => x.classList.toggle('active', x.dataset.cat === 'all'));
