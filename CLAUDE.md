@@ -35,6 +35,21 @@
 >   (end of app.css). And the sheet's three toggles are no longer in
 >   `LOCKED_CTRLS`, so they change without pressing Edit review (they publish
 >   themselves via `toggleLogOpt`; rating, text and songs stay locked).
+> - **SONG COMMENTS IN THE REVIEW PAGE** (2026-10-13). Each song row's big
+>   number (`.sd-log-song-val`) is replaced by a comment bubble + count
+>   (`.sd-log-song-cmt`, `fillLogSongs`); a tap opens that song's thread in
+>   `.sd-log-song-cmts` right under the row (click handler on
+>   `.sd-log-songs-list`). Same `songCmtKey` as the song popup and the
+>   tracklist, so it's one thread; `cmtRender` repaints `.sd-log-song-cmt-n`.
+>   Works while the review is locked. These threads end in a **See more
+>   comments** button (`cmtSeeMore`; wraps flagged `data-more="btn"`, which
+>   `cmtAutoMore` skips) instead of the infinite-scroll dots.
+>   The bubble is a fixed 36px box (icon pinned left) so the hearts, bubbles
+>   and discs line up whatever the count.
+>   Same on the album page's tracklist: `.v3-song-cmt-n` keeps a fixed 3ch
+>   left-aligned slot (empty too), so the bubbles form one column.
+>   The "COMMENTS" headings over the comment boxes (`.rvp-cmts-hd` review
+>   page, `.sd-log-cmts-hd` song popup) are hidden at the end of app.css.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.

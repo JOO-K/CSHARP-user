@@ -12963,6 +12963,11 @@ body.sd-return .s-home-v3--review .v3-body,
 .v3-song-cmt-n { font-family: var(--font-mono); font-size: 10px; }
 /* A song nobody has talked about yet: the glyph alone, dimmed, no 0. */
 .v3-song-cmt-n:empty { display: none; }
+/* 0.20 (2026-10-13): THE GLYPHS LINE UP (Eric: "they are offset by number of
+   comments rn"). The count gets a fixed three-digit slot, left-aligned, so the
+   bubble sits in the same place on every row — empty included (the slot stays,
+   only the 0 is missing). `ch` is exact in the mono face. */
+.v3-song-cmt-n, .v3-song-cmt-n:empty { display: inline-block; min-width: 3ch; text-align: left; }
 /* 0.13 (2026-10-08): the bar is a ROW capped at the old button's width. SAVE
    CHANGES and EDIT REVIEW each FILL it (they are never up together — Edit is
    the locked state), and the delete circle sits to their right.
@@ -13039,7 +13044,7 @@ body.sd-return .s-home-v3--review .v3-body,
    NOT pointer-events:none — the tap has to land so it can be answered with
    the nudge above. */
 .sd-log-sheet.is-locked .sd-log-stars-track,
-.sd-log-sheet.is-locked .sd-log-songs-list { opacity: .72; }   /* not .sd-log-opts — the toggles stay live (0.20) */
+.sd-log-sheet.is-locked .sd-log-song > :not(.sd-log-song-cmt) { opacity: .72; }   /* rows, not the song threads (0.20) */   /* not .sd-log-opts — the toggles stay live (0.20) */
 .sd-log-sheet.is-locked .sd-log-write { opacity: .82; cursor: default; }
 .s-home-v3--light .sd-log-savebar { background: linear-gradient(to bottom, transparent, var(--sd-bg, #f0ece3) 34%); }
 .s-home-v3--light .sd-log-delbtn { color: #c93b3b; border-color: rgba(201,59,59,0.32); }
@@ -13399,3 +13404,40 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
 /* Four tabs now (Fav songs · Fav albums · Listened · Listen later, 2026-10-13):
    a little less tracking so each label fits its quarter. */
 .prof-picks-tab { letter-spacing: .03em; padding: 7px 2px; }
+
+/* 0.20 (2026-10-13): COMMENTS ON SONGS IN THE REVIEW PAGE. The bubble took the
+   per-song number's place left of the discs (`.sd-log-song-cmt`, fillLogSongs);
+   the thread opens in `.sd-log-song-cmts` under the row and wears the review
+   cards' comment styles as-is. Count reads like the tracklist's. */
+.sd-log-song-cmt {
+  /* FIXED WIDTH, icon pinned left (Eric 2026-10-13: "the icons are always
+     aligned despite how many comment numbers") — room for a three-digit count,
+     so 0, 8 and 120 all leave the bubble and the discs in the same place. */
+  flex: 0 0 36px; width: 36px; height: 26px; padding: 0; margin-right: -2px;
+  display: inline-flex; align-items: center; justify-content: flex-start; gap: 3px;
+  background: none; border: none; cursor: pointer;
+  color: rgba(232,226,214,0.4); font: 600 10.5px var(--font-main);
+  font-variant-numeric: tabular-nums; transition: color .15s;
+}
+.sd-log-song-cmt svg { width: 14px; height: 14px; }
+.sd-log-song-cmt:hover { color: rgba(232,226,214,0.75); }
+.sd-log-song-cmt.is-open { color: var(--star, #e8a83c); }
+.sd-log-song-cmt-n:empty { display: none; }
+.sd-log-song-cmts { padding: 4px 0 12px; border-top: 1px solid rgba(232,226,214,0.06); }
+.sd-log-song-cmts[hidden] { display: none; }
+.s-home-v3--light .sd-log-song-cmt { color: rgba(26,18,8,0.45); }
+.s-home-v3--light .sd-log-song-cmt.is-open { color: var(--star, #e8a83c); }
+/* "See more comments" ends a review-page song thread in place of the dots. */
+.v3-cmt-seemore {
+  display: block; width: 100%; margin-top: 6px; padding: 9px 0;
+  background: rgba(232,226,214,0.06); border: 1px solid rgba(232,226,214,0.1); border-radius: 10px;
+  color: rgba(232,226,214,0.75); font: 600 12px var(--font-main); cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.v3-cmt-seemore:hover { background: rgba(232,226,214,0.1); color: #e8e2d6; }
+.s-home-v3--light .v3-cmt-seemore { background: rgba(26,18,8,0.05); border-color: rgba(26,18,8,0.1); color: rgba(26,18,8,0.7); }
+/* 0.20 (2026-10-13): no "COMMENTS" heading over the comment box (Eric: "get
+   rid of that text 'comments' in all caps above the comment box for all pages
+   review page song review page"). Hidden, not removed — cmtRender still
+   repaints the counts inside, harmlessly. */
+.rvp-cmts-hd, .sd-log-cmts-hd { display: none; }

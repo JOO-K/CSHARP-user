@@ -2914,7 +2914,7 @@ function cmtNodeHtml(key, c) {
         </div>${kids}`;
 }
 
-function cmtThreadHtml(key, total) {
+function cmtThreadHtml(key, total, moreBtn) {
   if (!CMT_OPEN[key]) return '';
   const roots = cmtRoots(key, total);
   const shown = CMT_ALL[key] ? roots : roots.slice(0, CMT_SHOWN[key] || CMT_DEFAULT);
@@ -2950,7 +2950,14 @@ function cmtThreadHtml(key, total) {
         </form>
         ${shown.map(c => cmtNodeHtml(key, c)).join('')
           || `<div class="v3-cmt-none">No comments yet — start it off.</div>`}
-        ${more ? `<div class="v3-cmt-loading" aria-hidden="true"><i></i><i></i><i></i></div>` : ''}
+        ${more ? (moreBtn
+          /* A BUTTON instead of the dots in the review page's song threads
+             (0.20, Eric 2026-10-13: "instead of the dot dot dot ... can we have
+             a see more comments button"). Those wraps carry data-more="btn"
+             and cmtAutoMore leaves them alone, so nothing pages by itself. */
+          ? `<button class="v3-cmt-seemore" type="button" data-k="${_revAttr(key)}"
+              onclick="event.stopPropagation(); cmtSeeMore(this)">See more comments</button>`
+          : `<div class="v3-cmt-loading" aria-hidden="true"><i></i><i></i><i></i></div>`) : ''}
       </div>`;
 }
 
@@ -2973,7 +2980,7 @@ function cmtAutoMore(body) {
   if (!body || body.scrollTop + body.clientHeight < body.scrollHeight - 140) return;
   body.querySelectorAll('.v3-cmt-wrap').forEach(wrap => {
     const key = wrap.dataset.cmt;
-    if (!key) return;
+    if (!key || wrap.dataset.more === 'btn') return;   // paged by its See more button instead
     const roots = cmtRoots(key, +wrap.dataset.n || 0);
     const shown = CMT_ALL[key] ? roots.length : (CMT_SHOWN[key] || CMT_DEFAULT);
     if (shown >= roots.length) return;                  // the whole thread is out
@@ -3005,10 +3012,16 @@ function cmtFill() {
    now toggles the thread — so without this, clicking a comment, or just the
    space beside one, would bubble up and collapse the whole thread you were
    reading. */
-function cmtWrapHtml(key, total) {
-  return `<div class="v3-cmt-wrap" data-cmt="${_revAttr(key)}" data-n="${Math.max(0, Number(total) || 0)}"
-    onclick="event.stopPropagation()">${cmtThreadHtml(key, total)}</div>`;
+function cmtWrapHtml(key, total, moreBtn) {
+  return `<div class="v3-cmt-wrap" data-cmt="${_revAttr(key)}" data-n="${Math.max(0, Number(total) || 0)}"${moreBtn ? ' data-more="btn"' : ''}
+    onclick="event.stopPropagation()">${cmtThreadHtml(key, total, moreBtn)}</div>`;
 }
+// The See more button (review page's song threads): the next CMT_PAGE.
+window.cmtSeeMore = function (btn) {
+  const key = btn.dataset.k;
+  CMT_SHOWN[key] = (CMT_SHOWN[key] || CMT_DEFAULT) + CMT_PAGE;
+  cmtRender(key);
+};
 
 /* ⚠️ Repaint EVERY wrap carrying this key, not the one that was clicked. The
    dark and light shells render side by side in the viewer and both hold a copy
@@ -3017,7 +3030,7 @@ function cmtWrapHtml(key, total) {
 function cmtRender(key) {
   document.querySelectorAll('.v3-cmt-wrap').forEach(w => {
     if (w.dataset.cmt !== key) return;
-    w.innerHTML = cmtThreadHtml(key, +w.dataset.n || 0);
+    w.innerHTML = cmtThreadHtml(key, +w.dataset.n || 0, w.dataset.more === 'btn');
   });
   setTimeout(cmtFill, 0);                    // a thread must overflow the screen to be scrollable
   document.querySelectorAll('.rvp-cmts-n').forEach(n => {
@@ -3026,7 +3039,7 @@ function cmtRender(key) {
   /* The tracklist's per-song counter and the song popup's heading (0.14). Same
      rule as the wraps above: repaint EVERY copy carrying this key, because the
      dark and light shells both hold the tracklist. */
-  document.querySelectorAll('.v3-song-cmt-n, .sd-log-cmts-n').forEach(n => {
+  document.querySelectorAll('.v3-song-cmt-n, .sd-log-cmts-n, .sd-log-song-cmt-n').forEach(n => {
     // `|| ''` so a song with no comments shows the glyph alone, not a "0"
     // (.v3-song-cmt-n:empty is display:none) — and the moment you post the
     // first one the number appears.
@@ -8864,6 +8877,23 @@ function ensureLogSheet() {
       homeShells().forEach(sc => refreshSongFavs(sc));
       return;
     }
+    /* The comment bubble (0.20): open / close that song's thread right under
+       its row. CMT_OPEN is forced on while it shows — the slot IS the thread —
+       and the slot is emptied on close so a closed song holds no DOM. */
+    const cb = e.target.closest('.sd-log-song-cmt');
+    if (cb) {
+      e.stopPropagation();
+      const slot = cb.closest('.sd-log-song').nextElementSibling;
+      if (!slot || !slot.classList.contains('sd-log-song-cmts')) return;
+      const open = slot.hidden;
+      const ck = cb.dataset.k, ct = +cb.dataset.n || 0;
+      if (open) { CMT_OPEN[ck] = true; slot.innerHTML = cmtWrapHtml(ck, ct, true); }
+      else slot.innerHTML = '';
+      slot.hidden = !open;
+      cb.classList.toggle('is-open', open);
+      cb.setAttribute('aria-expanded', String(open));
+      return;
+    }
     if (e.target.closest('.sd-log-song-rate-track')) return;   // the pointer pair below already rated it
     const nb = e.target.closest('.sd-log-song-note-btn');
     if (nb) {
@@ -9063,17 +9093,30 @@ function fillLogSongs(ov, album) {
   });
   box.hidden = false;
   const heart = typeof RVP_HEART !== 'undefined' ? RVP_HEART : '♥';
-  list.innerHTML = songs.map((s, i) => `
+  /* SONG COMMENTS IN THE REVIEW PAGE (0.20, Eric 2026-10-13: "take out that
+     large number score on the left side of the vinyls and replace that with a
+     comment icon, and if u press that the comments appear below the song").
+     The number (`.sd-log-song-val`) is gone — the discs already say it. The
+     bubble opens the song's thread in `.sd-log-song-cmts`, a sibling under the
+     row (not inside it: the row's logged tint and hover must not paint the
+     thread). Same key as the song popup and the tracklist's count
+     (songCmtKey), so it is ONE thread wherever it is read or written. */
+  const albumName = (album && album.album) || '';
+  list.innerHTML = songs.map((s, i) => {
+    const ck = songCmtKey(s.title, albumName), ct = songCmtTotal(s.title, albumName);
+    return `
     <div class="sd-log-song" data-i="${i}">
       <span class="sd-log-song-num">${i + 1}</span>
       <span class="sd-log-song-title">${s.title}</span>
       <button class="sd-log-song-fav${songIsFav(album, s.title) ? ' on' : ''}" type="button" aria-label="Favourite">${heart}</button>
-      <span class="sd-log-song-val is-blank">0.0</span>
+      <button class="sd-log-song-cmt" type="button" data-k="${_revAttr(ck)}" data-n="${ct}" aria-expanded="false" aria-label="Comments on ${sdAttr(s.title)}">${CMT_SVG}<span class="sd-log-song-cmt-n" data-k="${_revAttr(ck)}" data-n="${ct}">${cmtCount(ck, ct) || ''}</span></button>
       <span class="sd-log-song-rate-track" role="slider" tabindex="0" aria-label="Rate ${s.title}" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0">
         <span class="sd-log-song-empty">${SDLOG_RECS}</span>
         <span class="sd-log-song-fill" style="width:0">${SDLOG_RECS}</span>
       </span>
-    </div>`).join('');
+    </div>
+    <div class="sd-log-song-cmts" hidden></div>`;
+  }).join('');
   // Repaint whatever came back from the draft (rows render empty).
   if (SDLOG) SDLOG.songs.forEach((s, i) => { if (s.rating) setSongRating(i, s.rating); });
 }
