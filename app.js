@@ -8597,7 +8597,7 @@ function sdHaptic(ms) {
     const lb = document.createElement('label');
     lb.setAttribute('aria-hidden', 'true'); lb.style.display = 'none';
     lb.innerHTML = '<input type="checkbox" switch>';
-    document.head.appendChild(lb);
+    document.body.appendChild(lb);   // ⚠ body, not head: a label in <head> clicks without the tick (tested on Eric's phone)
     lb.click();
     lb.remove();
   } catch (x) {}
@@ -9709,6 +9709,7 @@ window.openSearch = function (triggerEl, mode, restoring) {
   runSearch();
   // Restored by Back: no focus, so a phone's keyboard doesn't cover the results.
   requestAnimationFrame(() => { ov.classList.add('open'); if (!restoring) setTimeout(() => inp.focus(), 80); });
+  sdNavBubbleSync();
 };
 
 document.addEventListener('click', e => {
@@ -9749,6 +9750,7 @@ window.closeSearch = function () {
   document.querySelectorAll('.v3-nav-item--add.is-on').forEach(b => b.classList.remove('is-on'));
   document.querySelectorAll('.is-searching').forEach(h => h.classList.remove('is-searching'));
   const inp = ov.querySelector('.sds-input'); if (inp) inp.blur();
+  sdNavBubbleSync();
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -14304,3 +14306,61 @@ window.sdHomeIntro = function (go) {
     open(f);
   });
 })();
+
+/* ── THE NAV BUBBLE (0.20, 2026-10-13) ─────────────────────────────────────
+   Eric: "the page that its on has a white bubble that travels across the nav
+   bar to get to the page u are looking at, its what instagram has". Every
+   screen renders its OWN nav (bottomNav, screens.js), so the travel is faked
+   across screens: SD_NAV_X remembers where the bubble last sat (a fraction of
+   the items row), a freshly mounted nav starts its bubble there with no
+   transition, and the next frame slides it to its own tab. The target is the
+   `.active` tab, or Search while the browse search is up; the + never holds it
+   (it is an action, and a filled disc already). No target = bubble hidden.
+   Runs on any DOM insertion (a MutationObserver, once per frame) and from
+   openSearch / closeSearch. */
+let SD_NAV_X = null, _sdNavRaf = 0;
+function sdNavBubble(nav) {
+  const row = nav.querySelector('.v3-nav-items'), bub = row && row.querySelector('.v3-nav-bubble');
+  if (!bub || !row.offsetWidth) return;
+  const host = nav.closest('.app-screen');
+  const ov = document.getElementById('sd-search');
+  const searching = host && host.classList.contains('is-searching') && ov && ov._mode !== 'review';
+  const item = searching ? row.querySelector('.v3-nav-item[title="Search"]') : row.querySelector('.v3-nav-item.active');
+  if (!item) { bub.classList.remove('is-on'); return; }
+  const x = item.offsetLeft + (item.offsetWidth - bub.offsetWidth) / 2;
+  const frac = x / row.offsetWidth;
+  if (!nav._sdBub) {                                  // just mounted: start where the last one was
+    nav._sdBub = true;
+    bub.classList.add('no-anim');
+    bub.style.transform = `translateX(${(SD_NAV_X == null ? frac : SD_NAV_X) * row.offsetWidth}px)`;
+    bub.classList.add('is-on');
+    void bub.offsetWidth;
+    bub.classList.remove('no-anim');
+    /* Screens crossfade (~200ms): hold at the old tab while this one fades in,
+       so the slide is seen rather than spent at opacity 0. */
+    if (SD_NAV_X != null && Math.abs(SD_NAV_X - frac) > 0.01) {
+      bub._x = x;
+      setTimeout(() => { bub.style.transform = `translateX(${x}px)`; }, 130);
+      SD_NAV_X = frac;
+      return;
+    }
+  }
+  if (bub._x !== x) { bub._x = x; bub.style.transform = `translateX(${x}px)`; }
+  bub.classList.add('is-on');
+  SD_NAV_X = frac;
+}
+function sdNavBubbleSync() {
+  if (_sdNavRaf) return;
+  _sdNavRaf = requestAnimationFrame(() => {
+    _sdNavRaf = 0;
+    document.querySelectorAll('.v3-bottom-nav').forEach(n => { if (n.offsetParent) sdNavBubble(n); });
+  });
+}
+window.sdNavBubbleSync = sdNavBubbleSync;
+new MutationObserver(muts => {
+  for (const m of muts) if (m.addedNodes.length) { sdNavBubbleSync(); return; }
+}).observe(document.documentElement, { childList: true, subtree: true });
+window.addEventListener('resize', () => {
+  document.querySelectorAll('.v3-nav-bubble').forEach(b => { b._x = null; });
+  sdNavBubbleSync();
+});

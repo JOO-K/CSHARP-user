@@ -3975,6 +3975,7 @@ function bottomNav(active = 'home') {
                  it (sdScrollWatch, app.js). No backticks in here: template literal. -->
             <button class="v3-nav-top" type="button" onclick="sdBackToTop(this, event)">back 2 top</button>
             <div class="v3-nav-items">
+              <span class="v3-nav-bubble" aria-hidden="true"></span>
               <button class="v3-nav-item${on('home')}" onclick="sdNavTab('home')" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></button>
               <button class="v3-nav-item" onclick="event.stopPropagation(); openSearch(this)" title="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
               <!-- 0.11 (Eric, 2026-09-28): the + in the MIDDLE writes a review. It opens

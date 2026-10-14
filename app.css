@@ -3234,7 +3234,7 @@
 .v3-bottom-nav {
   position: absolute;
   left: 50%; transform: translateX(-50%);   /* centred */
-  bottom: 19px;                              /* floating off the bottom — 14 → 19 (Eric, 0.12, 2026-10-02: "raise the nav bar by like 5px") */
+  bottom: 27px;                              /* floating off the bottom — 14 → 19 (Eric, 0.12, 2026-10-02: "raise the nav bar by like 5px") → 27 (0.20, 2026-10-13: "push the bottom nav up by like 8 px") */
   width: 72%;                                /* the only scale lever — keeps proportions */
   /* Keeps the fillet curves undistorted — height follows the width. Don't swap
      this for a fixed height: the SVG is preserveAspectRatio="none" and WILL
@@ -13530,3 +13530,23 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
 .sd-inst-steps li { margin-bottom: 10px; padding-left: 4px; }
 .sd-inst-steps b { font-weight: 700; }
 .sd-inst-ico { display: inline-block; width: 18px; height: 18px; vertical-align: -4px; margin-left: 2px; color: #3b82f6; }
+
+/* 0.20 (2026-10-13): THE NAV BUBBLE — Eric: "the page that its on has a white
+   bubble that travels across the nav bar to get to the page u are looking at,
+   its what instagram has". One capsule behind the icons (`.v3-nav-bubble`,
+   first child of .v3-nav-items); sdNavBubble (app.js) parks it under the
+   active tab — or Search while the search is up — and carries it over from
+   the tab you left when a new screen's nav mounts. */
+.v3-nav-bubble {
+  position: absolute; left: 0; top: 50%; z-index: 0;
+  width: 52px; height: 38px; margin-top: -19px; border-radius: 999px;
+  background: rgba(255,255,255,0.2);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+  pointer-events: none; opacity: 0;
+  transition: transform .42s cubic-bezier(.3, 1.25, .45, 1), opacity .2s ease;
+}
+.v3-nav-bubble.is-on { opacity: 1; }
+.v3-nav-bubble.no-anim { transition: none; }
+.v3-nav-items > .v3-nav-item { position: relative; z-index: 1; }
+.s-home-v3--light .v3-nav-bubble { background: rgba(26,18,8,0.09); box-shadow: inset 0 0 0 1px rgba(26,18,8,0.06); }
+@media (prefers-reduced-motion: reduce) { .v3-nav-bubble { transition: opacity .2s ease; } }
