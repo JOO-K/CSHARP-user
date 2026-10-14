@@ -62,6 +62,19 @@
 >   events and any two-finger `touchmove`, since iOS ignores user-scalable=no
 >   for pinches; `html { touch-action: manipulation }` (end of style.css) kills
 >   double-tap zoom.
+> - **THE KEYBOARD COMPOSER** (2026-10-13; `sdKbComposer`, end of app.js;
+>   `.sd-kb-*` at the end of app.css). Touch phones only. Focusing the review
+>   box or any comment box opens one body-level bar riding the keyboard's top
+>   edge (`visualViewport`) over a dim scrim; a tap on the scrim, Done, or the
+>   keyboard's own Done closes it. It's a PROXY textarea that mirrors every
+>   keystroke into the real field with a real `input` event (re-parenting the
+>   focused field would drop the keyboard, and the sheet is transformed so
+>   fixed wouldn't work inside it). Comments get Post (Enter posts too); a
+>   locked (read-only) review is left alone. ⚠ `post()` drops `src` before
+>   clearing the bar, or `close()`'s mirror blanks the field before submit.
+> - **LISTENED IS BLUE when on** (2026-10-13, end of app.css): `#3b82f6`, the
+>   bell's blue, on the review sheet and the album page's row. Listen later
+>   stays gold, Favorite pink.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.

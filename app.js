@@ -13995,3 +13995,121 @@ window.sdHomeIntro = function (go) {
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, stop, { passive: false }));
   document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 })();
+
+/* ── THE KEYBOARD COMPOSER (0.20, 2026-10-13) ──────────────────────────────
+   Eric: "when u write a review or comment the box stays fixed right above the
+   keyboard like they do in tiktok … i cant exit out of review quickly unless i
+   press a checkmark … make it so u can still exit out of commenting pretty
+   easily". On a touch phone, focusing the review box (`.sd-log-write`) or a
+   comment box (`.v3-cmt-input`) hands the typing to ONE body-level bar that
+   rides the top edge of the keyboard (`visualViewport`), over a dim scrim.
+   A tap on the scrim — anywhere above the bar — closes it; so does the
+   keyboard's own Done. What you typed stays in the real field.
+   ⚠ A PROXY, not the real field moved: re-parenting a focused input blurs it
+   (and drops the keyboard), and the review box lives in a transformed sheet,
+   where position: fixed stops meaning the screen. So the bar has its own
+   textarea and MIRRORS every keystroke into the real field with a real
+   `input` event — saveLog, cmtGrow, `.has-text` all run as if typed there.
+   ⚠ Focus is handed over inside the same tap (focusin), which is what lets
+   iOS keep the keyboard up. A read-only (locked) review is left alone, so the
+   Edit-review nudge still answers.
+   ⚠ Post / Done take `pointerdown` + preventDefault so the textarea keeps
+   focus — otherwise the blur closes the bar before the click lands. */
+(function sdKbComposer() {
+  const coarse = window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches;
+  if (!coarse) return;
+  const SEL = '.sd-log-write, .v3-cmt-input';
+  let src = null, bar = null, ta = null, act = null, scrim = null, closing = false;
+
+  function build() {
+    scrim = document.createElement('div');
+    scrim.className = 'sd-kb-scrim';
+    bar = document.createElement('div');
+    bar.className = 'sd-kb-bar';
+    bar.innerHTML = '<textarea class="sd-kb-input" rows="1"></textarea><button class="sd-kb-act" type="button"></button>';
+    ta = bar.querySelector('.sd-kb-input');
+    act = bar.querySelector('.sd-kb-act');
+    document.body.append(scrim, bar);
+    // Tap / drag anywhere above the bar = done.
+    scrim.addEventListener('pointerdown', e => { e.preventDefault(); close(); });
+    scrim.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    ta.addEventListener('input', () => { grow(); mirror(); });
+    ta.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== ta) close(); }, 0));
+    ta.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey && src && src.classList.contains('v3-cmt-input')) { e.preventDefault(); post(); }
+    });
+    act.addEventListener('pointerdown', e => e.preventDefault());
+    act.addEventListener('click', () => { if (src && src.classList.contains('v3-cmt-input')) post(); else close(); });
+    const vv = window.visualViewport;
+    if (vv) { vv.addEventListener('resize', place); vv.addEventListener('scroll', place); }
+  }
+  function mirror() {
+    if (!src) return;
+    if (src.value !== ta.value) {
+      src.value = ta.value;
+      src.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    if (act && src.classList.contains('v3-cmt-input')) act.disabled = !ta.value.trim();
+  }
+  function grow() {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 132) + 'px';
+    place();
+  }
+  // Sit the bar on the keyboard's top edge: the visual viewport's bottom.
+  function place() {
+    if (!bar || !bar.classList.contains('is-open')) return;
+    const vv = window.visualViewport;
+    const top0 = vv ? vv.offsetTop : 0;
+    const bottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+    bar.style.top = (bottom - bar.offsetHeight) + 'px';
+    scrim.style.top = top0 + 'px';
+    scrim.style.height = Math.max(0, bottom - bar.offsetHeight - top0) + 'px';
+  }
+  function open(field) {
+    if (!bar) build();
+    src = field;
+    const isCmt = field.classList.contains('v3-cmt-input');
+    const light = !!field.closest('.s-home-v3--light, .sd-theme-light');
+    bar.classList.toggle('is-light', light);
+    scrim.classList.toggle('is-light', light);
+    ta.value = field.value;
+    ta.placeholder = field.placeholder || '';
+    if (field.maxLength > 0) ta.maxLength = field.maxLength; else ta.removeAttribute('maxlength');
+    const btn = isCmt && field.form && field.form.querySelector('.v3-cmt-post');
+    act.textContent = isCmt ? ((btn && btn.textContent.trim()) || 'Post') : 'Done';
+    act.classList.toggle('is-post', isCmt);
+    act.disabled = isCmt && !ta.value.trim();
+    bar.classList.add('is-open'); scrim.classList.add('is-open');
+    ta.focus({ preventScroll: true });
+    try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (x) {}
+    grow();
+    setTimeout(place, 60); setTimeout(place, 300);   // the keyboard arrives a beat later
+  }
+  function close() {
+    if (!bar || !bar.classList.contains('is-open') || closing) return;
+    closing = true;
+    mirror();
+    if (src && src.classList.contains('v3-cmt-input') && typeof cmtGrow === 'function') cmtGrow(src);
+    bar.classList.remove('is-open'); scrim.classList.remove('is-open');
+    if (document.activeElement === ta) ta.blur();
+    src = null;
+    closing = false;
+  }
+  function post() {
+    if (!src || !ta.value.trim()) return;
+    mirror();
+    const form = src.form;
+    // Let go of the field BEFORE clearing the bar, or close()'s mirror copies
+    // the empty bar back into it and the post goes out blank.
+    src = null;
+    ta.value = '';
+    close();
+    if (form) form.requestSubmit();
+  }
+  document.addEventListener('focusin', e => {
+    const f = e.target;
+    if (!f || !f.matches || !f.matches(SEL) || f.readOnly || f === ta) return;
+    open(f);
+  });
+})();

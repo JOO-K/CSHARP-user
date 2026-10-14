@@ -13450,3 +13450,49 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
    review page song review page"). Hidden, not removed — cmtRender still
    repaints the counts inside, harmlessly. */
 .rvp-cmts-hd, .sd-log-cmts-hd { display: none; }
+
+/* 0.20 (2026-10-13): THE KEYBOARD COMPOSER (sdKbComposer, end of app.js) —
+   the bar that rides the keyboard while you write a review or a comment, and
+   the scrim above it that closes it on a tap. Body-level and fixed; `top` is
+   set from visualViewport. 16px type so iOS never zooms. */
+.sd-kb-scrim {
+  position: fixed; left: 0; right: 0; top: 0; height: 100%; z-index: 10001;
+  background: rgba(0,0,0,.38); opacity: 0; pointer-events: none;
+  transition: opacity .16s ease; touch-action: none;
+}
+.sd-kb-scrim.is-open { opacity: 1; pointer-events: auto; }
+.sd-kb-bar {
+  position: fixed; left: 0; right: 0; top: 100%; z-index: 10002;
+  display: none; align-items: flex-end; gap: 8px; box-sizing: border-box;
+  padding: 8px 10px; background: #18181e;
+  border-top: 1px solid rgba(232,226,214,0.1);
+}
+.sd-kb-bar.is-open { display: flex; }
+.sd-kb-input {
+  flex: 1; min-width: 0; box-sizing: border-box; resize: none; margin: 0;
+  max-height: 132px; padding: 9px 12px; border-radius: 18px;
+  border: 1px solid rgba(232,226,214,0.14); background: rgba(232,226,214,0.06);
+  color: #e8e2d6; font: 400 16px/1.35 var(--font-main, 'DM Sans', sans-serif);
+  outline: none;
+}
+.sd-kb-input::placeholder { color: rgba(232,226,214,0.4); }
+.sd-kb-act {
+  flex-shrink: 0; height: 38px; padding: 0 14px; border-radius: 19px; border: none;
+  background: rgba(232,226,214,0.12); color: #e8e2d6;
+  font: 700 14px var(--font-main, 'DM Sans', sans-serif); cursor: pointer;
+}
+.sd-kb-act.is-post { background: var(--star, #e8a83c); color: #1a1208; }
+.sd-kb-act:disabled { opacity: .4; }
+.sd-kb-bar.is-light { background: #f7f4ee; border-top-color: rgba(26,18,8,0.1); }
+.sd-kb-bar.is-light .sd-kb-input { background: rgba(26,18,8,0.05); border-color: rgba(26,18,8,0.14); color: #1a1208; }
+.sd-kb-bar.is-light .sd-kb-input::placeholder { color: rgba(26,18,8,0.4); }
+.sd-kb-bar.is-light .sd-kb-act:not(.is-post) { background: rgba(26,18,8,0.08); color: #1a1208; }
+
+/* 0.20 (2026-10-13): LISTENED goes BLUE when on (Eric: "get the listened icon
+   on the review and album page to turn blue") — the bell's #3b82f6. Covers the
+   review sheet's row and the album page's copy of it (same classes), icon and
+   label, both themes. Listen later stays gold, Favorite pink. */
+.sd-log-opt[data-k="listened"].on .sd-log-opt-ico,
+.sd-log-opt[data-k="listened"].on .sd-log-opt-lbl,
+.s-home-v3--light .sd-log-opt[data-k="listened"].on .sd-log-opt-ico,
+.s-home-v3--light .sd-log-opt[data-k="listened"].on .sd-log-opt-lbl { color: #3b82f6; }
