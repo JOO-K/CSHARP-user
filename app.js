@@ -715,6 +715,7 @@ window.sdNavTab = function (id) {
   navigate(id);
 };
 window.goBack = function (fallbackId) {
+  sdHaptic(8);                                     // every Back ticks (0.20) — a no-op outside a tap
   const snap = backStack.pop();
   const shells = homeShells();
   if (!snap) {                                                         // nothing recorded
@@ -8590,7 +8591,11 @@ function sdPtrIndicator(scr, body) {
    the tick goes through a LABEL wrapping the switch — clicking the input
    itself toggles it without the tick on some builds — and the light taps of
    the app now call it (sdHapticTaps below, the rating discs, the carousel). */
+let _sdHapT = 0;
 function sdHaptic(ms) {
+  const now = performance.now();
+  if (now - _sdHapT < 60) return;                  // one tick per tap, however many hooks fire
+  _sdHapT = now;
   try { if (navigator.vibrate) navigator.vibrate(ms || 12); } catch (x) {}
   // A fresh hidden label each time, clicked and removed at once.
   try {
@@ -8606,7 +8611,8 @@ function sdHaptic(ms) {
    rate-group buttons, likes, Post / Reply, the song comment icon, the bottom
    nav. One capture-phase listener, so no handler has to remember to. */
 const SD_HAPTIC_TAPS = '.sd-log-opt, .v3-rev-opt, .v3-rev-q, .v3-rg-btn, .v3-cmt-like, .v3-cmt-post,'
-  + ' .sd-kb-act.is-post, .sd-log-song-cmt, .v3-song-cmt, .v3-nav-item, .v3-cmt-seemore';
+  + ' .sd-kb-act.is-post, .sd-log-song-cmt, .v3-song-cmt, .v3-nav-item, .v3-cmt-seemore,'
+  + ' .plp-back-pill, .v3-hdr-back, .sds-back, .app-nav-back, .ob-back, .ob-mix-back, .v3-back-content';
 document.addEventListener('click', e => {
   const t = e.target && e.target.closest && e.target.closest(SD_HAPTIC_TAPS);
   if (t && !t.disabled) sdHaptic(8);

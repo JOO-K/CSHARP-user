@@ -45,6 +45,10 @@
 <div class="row"><span><b>7. vibrate()</b><i>Android only</i></span>
   <button id="t7">Tap</button></div>
 
+<div class="row" id="drag8" style="height:140px;touch-action:none"><span><b>8. Drag down in this box</b><i>Should tick every ~40px while your finger moves (touchmove). Count: <span id="c8">0</span></i></span></div>
+
+<div class="row" id="drag9" style="height:140px;touch-action:none"><span><b>9. Same, pointer events</b><i>pointermove. Count: <span id="c9">0</span></i></span></div>
+
 <div id="ua"></div>
 <script>
   document.getElementById('ua').textContent = navigator.userAgent +
@@ -63,6 +67,18 @@
     i.setAttribute('switch', ''); i.style.cssText = 'position:fixed;opacity:0;left:-9px';
     document.body.appendChild(i); i.click(); i.remove(); };
   t6.onclick = () => hiddenLabel('position:fixed;left:-100px;top:0;opacity:0.01');
+  function dragTest(el, cnt, down, move) {
+    let y0 = null, n = 0;
+    el.addEventListener(down, e => { y0 = (e.touches ? e.touches[0] : e).clientY; });
+    el.addEventListener(move, e => {
+      if (y0 == null) return;
+      const y = (e.touches ? e.touches[0] : e).clientY;
+      if (Math.abs(y - y0) >= 40) { y0 = y; cnt.textContent = ++n; hiddenLabel('display:none'); }
+    }, { passive: false });
+    el.addEventListener(down === 'touchstart' ? 'touchend' : 'pointerup', () => { y0 = null; });
+  }
+  dragTest(drag8, c8, 'touchstart', 'touchmove');
+  dragTest(drag9, c9, 'pointerdown', 'pointermove');
   t7.onclick = () => { if (navigator.vibrate) navigator.vibrate(30); else t7.textContent = 'n/a'; };
 </script>
 </body>
