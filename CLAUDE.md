@@ -88,6 +88,12 @@
 >   settle duration is solved from the finger's speed (ease-out cubic starts at
 >   3·dist/dur), a finger that paused >70ms before lifting is 0 velocity, and
 >   `FB_FLICK` is 0.35 px/ms. Still one cover per swipe.
+> - **USE AS AN APP** (2026-10-13; `sdInstallOpen` / `sdIsStandalone` /
+>   `SD_INSTALL` after `sdFeedbackOpen`; `.sd-fb-app` / `.sd-inst-*` at the end
+>   of app.css). The top row of the feedback bubble's sheet, hidden when already
+>   running standalone. iOS can't add a page to the home screen from code, so
+>   it opens a 3-step Share → Add to Home Screen guide; Android Chrome's
+>   `beforeinstallprompt` is held and fired for a one-tap install.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.

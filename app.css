@@ -13512,3 +13512,21 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
   background-image: linear-gradient(rgba(232,226,214,0.12), rgba(232,226,214,0.12));
 }
 .sd-kb-bar.is-review.is-light .sd-kb-act { background-image: linear-gradient(rgba(26,18,8,0.08), rgba(26,18,8,0.08)); }
+
+/* 0.20 (2026-10-13): USE AS AN APP — the top row of the feedback sheet and
+   the steps card it opens (sdInstallOpen, app.js). Same sheet material. */
+.sd-fb-app {
+  display: flex; align-items: center; gap: 11px; width: 100%; margin: 0 0 16px;
+  padding: 11px 12px; border: 1px solid #3a3a3a; border-radius: 10px;
+  background: rgba(255,255,255,0.04); color: #e8e8e8; font: inherit; text-align: left; cursor: pointer;
+}
+.sd-fb-app:hover { border-color: #6a6a6a; }
+.sd-fb-app > svg:first-child { width: 22px; height: 22px; flex-shrink: 0; }
+.sd-fb-app span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.sd-fb-app b { font-size: 14px; font-weight: 700; }
+.sd-fb-app i { font-style: normal; font-size: 12px; color: #9a9a9a; }
+.sd-fb-app-go { width: 16px; height: 16px; flex-shrink: 0; color: #9a9a9a; }
+.sd-inst-steps { margin: 0 0 14px; padding: 0 0 0 20px; color: #e8e8e8; font-size: 14px; line-height: 1.5; }
+.sd-inst-steps li { margin-bottom: 10px; padding-left: 4px; }
+.sd-inst-steps b { font-weight: 700; }
+.sd-inst-ico { display: inline-block; width: 18px; height: 18px; vertical-align: -4px; margin-left: 2px; color: #3b82f6; }

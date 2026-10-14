@@ -13840,6 +13840,11 @@ window.sdFeedbackOpen = function (btn) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
+      ${sdIsStandalone() ? '' : `<button class="sd-fb-app" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 8.5v6M9 11.5h6"/></svg>
+        <span><b>Use as an app</b><i>Full screen, no Safari bar</i></span>
+        <svg class="sd-fb-app-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>`}
       <label class="sd-fb-lbl" for="sd-fb-area">What's it about?</label>
       <div class="sd-fb-selwrap">
         <select class="sd-fb-sel" id="sd-fb-area">${SD_FB_AREAS.map(([k, t]) => `<option value="${k}"${k === 'general' ? ' selected' : ''}>${t}</option>`).join('')}</select>
@@ -13855,6 +13860,8 @@ window.sdFeedbackOpen = function (btn) {
   ov.addEventListener('click', e => { if (e.target === ov) close(); });
   ov.querySelector('.sd-fb-x').addEventListener('click', close);
   ov.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  const appBtn = ov.querySelector('.sd-fb-app');
+  if (appBtn) appBtn.addEventListener('click', () => { close(); sdInstallOpen(host); });
   const ta = ov.querySelector('.sd-fb-text'), st = ov.querySelector('.sd-fb-status'), sel = ov.querySelector('.sd-fb-sel');
   ov.querySelector('form').addEventListener('submit', e => {
     e.preventDefault();
@@ -13873,6 +13880,59 @@ window.sdFeedbackOpen = function (btn) {
   requestAnimationFrame(() => ov.classList.add('open'));
   setTimeout(() => ta.focus(), 220);
 };
+
+/* USE AS AN APP (0.20, Eric 2026-10-13: "can we add that button to make it
+   easier to try as an app … in the upper right testing bubble"). The top row
+   of the feedback sheet. ⚠ An iPhone gives a web page NO way to add itself to
+   the home screen, so on iOS this is a three-step guide to Safari's own Share
+   -> Add to Home Screen. Android Chrome does offer a real install prompt
+   (`beforeinstallprompt`, held in SD_INSTALL) and gets one tap. Already
+   running from the home screen (standalone), the row is not shown at all.
+   The manifest + apple-mobile-web-app-capable tags (index.html, 2026-09-26)
+   are what make the installed copy open full screen. */
+let SD_INSTALL = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); SD_INSTALL = e; });
+function sdIsStandalone() {
+  return !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+}
+function sdInstallOpen(host) {
+  if (SD_INSTALL) {
+    const ev = SD_INSTALL; SD_INSTALL = null;
+    ev.prompt();
+    return;
+  }
+  host = host || document.querySelector('.var-active .app-screen') || document.body;
+  host.querySelectorAll('.sd-install').forEach(o => o.remove());
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const share = '<svg class="sd-inst-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>';
+  const plus = '<svg class="sd-inst-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+  const steps = ios
+    ? [`Tap the <b>Share</b> button ${share} in Safari's bar.`,
+       `Scroll down and tap <b>Add to Home Screen</b> ${plus}, then <b>Add</b>.`,
+       `Open <b>Spindeck</b> from your home screen — it runs full screen, no address bar.`]
+    : [`Open your browser's menu <b>⋮</b>.`,
+       `Tap <b>Add to Home screen</b> or <b>Install app</b>.`,
+       `Open <b>Spindeck</b> from your home screen — it runs full screen.`];
+  const ov = document.createElement('div');
+  ov.className = 'sd-fb sd-install';
+  ov.innerHTML = `
+    <div class="sd-fb-card" role="dialog" aria-modal="true" aria-label="Use Spindeck as an app">
+      <div class="sd-fb-hd">
+        <span class="sd-fb-title">Use as an app</span>
+        <button class="sd-fb-x" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <ol class="sd-inst-steps">${steps.map(t => `<li>${t}</li>`).join('')}</ol>
+      <p class="sd-obskip-note">It still loads this site, so every update shows up there. It keeps its own saved data, so it will ask your name once.</p>
+      <button class="sd-fb-send" type="button" data-go="ok">Got it</button>
+    </div>`;
+  host.appendChild(ov);
+  const close = () => { ov.classList.remove('open'); setTimeout(() => ov.remove(), 200); };
+  ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('.sd-fb-x, [data-go="ok"]')) close(); });
+  requestAnimationFrame(() => ov.classList.add('open'));
+}
+window.sdInstallOpen = sdInstallOpen;
 
 /* WIREFRAME MODE (0.13, Eric 2026-10-03) — the switch at the top of
    Notifications. 'wire' (the default) puts `sd-wire` on <html>, and app.css
