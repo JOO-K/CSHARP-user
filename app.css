@@ -13570,3 +13570,12 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
 @media (prefers-reduced-motion: reduce) {
   .sd-ptr.is-armed .sd-ptr-disc, .sd-ptr.is-armed .sd-ptr-disc::after { animation: none; }
 }
+
+/* 0.20 (2026-10-13): NO SONG-ROW HOVER ON A PHONE — Eric: "on the album page
+   the hover for the songs is ... glitching out when im not even touching it".
+   iOS fires :hover on whatever a scrolling finger crosses and leaves it stuck,
+   so the tracklist flickered. Touch screens get no hover; a mouse still does. */
+@media (hover: none) {
+  .v3-song-row:hover, .s-home-v3--light .v3-song-row:hover,
+  .v3-song-rate--tap:hover, .v3-songs-more:hover { background: none; }
+}
