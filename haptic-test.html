@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Haptic Test</title>
+<style>
+  :root { --bg: #111; --ink: #eee; --card: #222; --line: #444; }
+  body { margin: 0; padding: 20px 16px 60px; background: var(--bg); color: var(--ink);
+         font: 16px/1.4 -apple-system, system-ui, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 18px; color: #999; font-size: 14px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+         background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+         padding: 14px; margin-bottom: 10px; }
+  .row b { display: block; }
+  .row i { font-style: normal; color: #999; font-size: 13px; }
+  button { font: 600 15px inherit; padding: 10px 16px; border-radius: 10px; border: 0;
+           background: #3b82f6; color: #fff; flex-shrink: 0; }
+  #ua { color: #777; font-size: 12px; margin-top: 18px; word-break: break-all; }
+</style>
+</head>
+<body>
+<h1>Haptic test</h1>
+<p class="sub">Try each one and note which numbers tick.</p>
+
+<div class="row"><span><b>1. Real switch</b><i>Flip it with your finger. If this doesn't tick, haptics are off on the phone.</i></span>
+  <input type="checkbox" switch style="transform:scale(1.4)"></div>
+
+<div class="row"><span><b>2. Hidden label, on click</b><i>What the app does now</i></span>
+  <button id="t2">Tap</button></div>
+
+<div class="row"><span><b>3. Visible label, on click</b><i>Switch on screen, label clicked from code</i></span>
+  <label id="l3"><input type="checkbox" switch></label><button id="t3">Tap</button></div>
+
+<div class="row"><span><b>4. Hidden label, on touchend</b></span>
+  <button id="t4">Tap</button></div>
+
+<div class="row"><span><b>5. Hidden switch .click()</b><i>The old version</i></span>
+  <button id="t5">Tap</button></div>
+
+<div class="row"><span><b>6. Hidden label, off-screen (not display:none)</b></span>
+  <button id="t6">Tap</button></div>
+
+<div class="row"><span><b>7. vibrate()</b><i>Android only</i></span>
+  <button id="t7">Tap</button></div>
+
+<div id="ua"></div>
+<script>
+  document.getElementById('ua').textContent = navigator.userAgent +
+    (navigator.standalone ? '  [home screen]' : '  [browser]');
+  function hiddenLabel(style) {
+    const lb = document.createElement('label');
+    lb.setAttribute('aria-hidden', 'true'); lb.style.cssText = style;
+    lb.innerHTML = '<input type="checkbox" switch>';
+    document.body.appendChild(lb);
+    lb.click(); lb.remove();
+  }
+  t2.onclick = () => hiddenLabel('display:none');
+  t3.onclick = () => l3.click();
+  t4.addEventListener('touchend', () => hiddenLabel('display:none'));
+  t5.onclick = () => { const i = document.createElement('input'); i.type = 'checkbox';
+    i.setAttribute('switch', ''); i.style.cssText = 'position:fixed;opacity:0;left:-9px';
+    document.body.appendChild(i); i.click(); i.remove(); };
+  t6.onclick = () => hiddenLabel('position:fixed;left:-100px;top:0;opacity:0.01');
+  t7.onclick = () => { if (navigator.vibrate) navigator.vibrate(30); else t7.textContent = 'n/a'; };
+</script>
+</body>
+</html>
