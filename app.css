@@ -13550,3 +13550,8 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
 .v3-nav-items > .v3-nav-item { position: relative; z-index: 1; }
 .s-home-v3--light .v3-nav-bubble { background: rgba(26,18,8,0.09); box-shadow: inset 0 0 0 1px rgba(26,18,8,0.06); }
 @media (prefers-reduced-motion: reduce) { .v3-nav-bubble { transition: opacity .2s ease; } }
+
+/* 0.20 (2026-10-13): THE REVIEW SHEET IS ONE HEIGHT — Eric: "that popup to
+   always be the same height like 70% of the screen height from the bottom".
+   Was content-sized up to 90%; now 70% whatever the review, the body scrolls. */
+.v3-rsh { height: 70%; max-height: 70%; }
