@@ -13886,6 +13886,55 @@ function sdIntroInk(bg) {
   const [r, g, b] = m.map(Number);
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.56 ? '#1a1208' : '#e8e2d6';
 }
+/* THE WORDMARK LANDS IN THE HEADER (0.20, Eric 2026-10-13: "after the logo
+   loads and it starts to fade the other stuff out can i get the logo from the
+   animation to go to the top where the logo is on our homepage … seamless …
+   and the logo isn't there [until] it goes there"). The intro's wordmark and
+   the header's (`.v3-header-logo`) are the same mask PNG, so a body-level clone
+   of the intro's glides — translate + one uniform scale, the aspect is the
+   same — onto the header's glyph box while the cover fades round it. The
+   header's own wordmark is held invisible (`.sd-intro-hold`) until the clone
+   is sitting exactly on it, then they swap: no beat, no double.
+   ⚠ The header box is 106×30 with the mask `contain`ed, so the glyphs are a
+   centred strip inside it — the target is that strip, not the box.
+   ⚠ Cleanup runs off a timer, not `onfinish`: a Web Animation in a
+   background tab never finishes (the same reason sdHomeIntro has its 3.2s). */
+const SD_INTRO_FLY_MS = 620;
+const SD_WORD_AR = 1749 / 249;
+function sdIntroFly(cover) {
+  const word = cover.querySelector('.sd-intro-word');
+  if (!word) return null;
+  const cr = cover.getBoundingClientRect();
+  const target = [...document.querySelectorAll('.v3-header-logo')].find(el => {
+    const r = el.getBoundingClientRect();
+    if (!r.width) return false;
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    return cx > cr.left && cx < cr.right && cy > cr.top && cy < cr.bottom;
+  });
+  if (!target) return null;
+  const from = word.getBoundingClientRect();
+  const tb = target.getBoundingClientRect();
+  const tw = Math.min(tb.width, tb.height * SD_WORD_AR), th = tw / SD_WORD_AR;
+  const to = { left: tb.left + (tb.width - tw) / 2, top: tb.top + (tb.height - th) / 2, width: tw };
+  const ink = getComputedStyle(target).backgroundColor;
+  const fly = document.createElement('div');
+  fly.className = 'sd-intro-fly';
+  fly.style.cssText = `left:${from.left}px;top:${from.top}px;width:${from.width}px;height:${from.height}px;` +
+    `background-color:${getComputedStyle(word).backgroundColor}`;
+  document.body.appendChild(fly);
+  word.style.visibility = 'hidden';
+  target.classList.add('sd-intro-hold');
+  const s = to.width / from.width;
+  fly.animate([
+    { transform: 'none' },
+    { transform: `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(${s})`, backgroundColor: ink },
+  ], { duration: SD_INTRO_FLY_MS, easing: 'cubic-bezier(.65,0,.25,1)', fill: 'forwards' });
+  return () => {
+    // Every header logo that came up in the meantime (a re-render replaces the node).
+    document.querySelectorAll('.sd-intro-hold').forEach(el => el.classList.remove('sd-intro-hold'));
+    fly.remove();
+  };
+}
 window.sdHomeIntro = function (go) {
   const reduce = sdReducedMotion();
   const hosts = [...document.querySelectorAll('.s-onboarding')].filter(e => e.getBoundingClientRect().width);
@@ -13911,8 +13960,11 @@ window.sdHomeIntro = function (go) {
     if (done) return;
     done = true;
     go();
+    // Home is in behind the covers now — the wordmark flies up into its header.
+    const flights = covers.map(sdIntroFly).filter(Boolean);
     covers.forEach(c => c.classList.add('is-out'));
     setTimeout(() => { covers.forEach(c => c.remove()); window._sdIntro = false; }, 380);
+    setTimeout(() => flights.forEach(f => f()), SD_INTRO_FLY_MS + 40);
   };
   setTimeout(finish, 3200);
   const tl = anime.timeline({ easing: 'easeInOutSine' });
@@ -13926,3 +13978,20 @@ window.sdHomeIntro = function (go) {
   tl.finished.then(finish);
 };
 
+
+/* ── NO ZOOM, LIKE THE APP (0.20, 2026-10-13) ───────────────────────────────
+   Eric: "on the phone when u write a review or write a comment it zooms into
+   the box … on the app we make it so u cant pinch zoom or zoom out". The
+   viewport meta (index.html) does most of it — maximum-scale=1 is what stops
+   iOS zooming into a sub-16px field on focus, and Android honours
+   user-scalable=no. iOS Safari IGNORES user-scalable=no for pinches (an
+   accessibility choice), so its own gesture events are cancelled here, and a
+   two-finger move is refused everywhere. Double-tap zoom is off in CSS
+   (touch-action: manipulation on html, style.css).
+   ⚠ Passive: false, or preventDefault is ignored. Nothing in the app uses two
+   fingers, so refusing them costs no gesture. */
+(function sdNoZoom() {
+  const stop = e => e.preventDefault();
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, stop, { passive: false }));
+  document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+})();

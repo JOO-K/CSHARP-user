@@ -50,6 +50,18 @@
 >   left-aligned slot (empty too), so the bubbles form one column.
 >   The "COMMENTS" headings over the comment boxes (`.rvp-cmts-hd` review
 >   page, `.sd-log-cmts-hd` song popup) are hidden at the end of app.css.
+> - **THE INTRO'S WORDMARK FLIES INTO THE HEADER** (2026-10-13; `sdIntroFly`
+>   + `SD_INTRO_FLY_MS` beside `sdHomeIntro`, `.sd-intro-fly` /
+>   `.sd-intro-hold` after the intro CSS). As the cover fades, a body-level clone
+>   of the intro's wordmark glides (translate + uniform scale, 620ms) onto the
+>   home header's `.v3-header-logo` glyph strip; that logo is held hidden until
+>   the clone lands, then they swap. Cleanup is on a timer (background tabs).
+> - **NO ZOOM ON THE PHONE, LIKE THE APP** (2026-10-13). Viewport meta has
+>   `maximum-scale=1, user-scalable=no` (also stops iOS zooming into a sub-16px
+>   field on focus); `sdNoZoom` (end of app.js) cancels Safari's `gesture*`
+>   events and any two-finger `touchmove`, since iOS ignores user-scalable=no
+>   for pinches; `html { touch-action: manipulation }` (end of style.css) kills
+>   double-tap zoom.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.
