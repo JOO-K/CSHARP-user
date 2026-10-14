@@ -93,7 +93,13 @@
 >   of app.css). The top row of the feedback bubble's sheet, hidden when already
 >   running standalone. iOS can't add a page to the home screen from code, so
 >   it opens a 3-step Share → Add to Home Screen guide; Android Chrome's
->   `beforeinstallprompt` is held and fired for a one-tap install.
+>   `beforeinstallprompt` is held and fired for a one-tap install. The iOS
+>   steps follow iOS 26 Safari: ••• → Share → More → Add to Home Screen.
+> - **HAPTICS** (2026-10-13; `sdHaptic` + `SD_HAPTIC_TAPS` before
+>   `sdRefreshShell`). Android vibrates; iOS 18+ gets a Taptic tick by clicking
+>   a hidden label around a `<input type=checkbox switch>` — only inside a user
+>   gesture. Ticks on toggles, likes, Post, the song comment icon, the nav,
+>   rating discs, and a carousel side tap / swipe that changes cover.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.

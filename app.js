@@ -2494,7 +2494,7 @@ window.songRateFlip = function (el) {
   el.textContent = toAgg ? el.dataset.agg : el.dataset.mine;
   el.classList.toggle('is-mine', !toAgg);
   el.title = toAgg ? 'The album\u2019s score \u2014 tap for yours' : 'Your rating \u2014 tap for the album\u2019s score';
-  if (typeof buzz === 'function') buzz();
+  sdHaptic(6);
 };
 /* The rate cells after a post, without rebuilding the list — and whichever
    side a row is showing is kept, so posting a review for song 3 does not
@@ -4612,6 +4612,7 @@ function fbSideStep(scr, flow, e) {
   const r = flow.getBoundingClientRect();
   const x = e && e.clientX != null ? e.clientX : r.left + r.width / 2;
   const dir = x < r.left + r.width / 2 ? -1 : 1;
+  sdHaptic(6);
   if (flow && flow._fbGlide) flow._fbGlide(dir);
   else fbGo(scr, (scr._fbCur || 0) + dir);
 }
@@ -5220,7 +5221,9 @@ function fbSwipe(screenEl, flow) {
     caughtTo = null;
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
     if (performance.now() - lastT > FB_STALE_MS) vx = 0;     // stopped before lifting = no flick
-    settle(p, fbTarget(p, vx), vx);                     // the glide takes it from here
+    const tgt = fbTarget(p, vx);
+    if (tgt) sdHaptic(6);                               // a new cover is coming
+    settle(p, tgt, vx);                                 // the glide takes it from here
     setTimeout(() => { flow._swiped = false; }, 60);   // let the click after a drag see the flag
   };
   flow.addEventListener('pointerup', end);
@@ -8413,7 +8416,7 @@ function nudgeEditReview() {
   bar.classList.add('is-nudging');
   clearTimeout(_sdlogNudgeT);
   _sdlogNudgeT = setTimeout(() => bar.classList.remove('is-nudging'), 1700);
-  try { navigator.vibrate && navigator.vibrate(10); } catch (x) {}
+  sdHaptic(10);
 }
 /* What the lock LOOKS like. `readOnly` as well as the swallowed keydown below:
    a paste or an IME commit never sends a keydown, so the attribute is the
@@ -8581,21 +8584,33 @@ function sdPtrIndicator(scr, body) {
 }
 /* Haptics where the web has them. Android: navigator.vibrate. iOS Safari has
    no vibration API; toggling a native `switch` checkbox is the one thing that
-   clicks the Taptic engine from a page (17.4+), and only inside a user gesture
-   — so it is tried, and nothing is promised. */
+   clicks the Taptic engine from a page (iOS 18+), and only inside a user
+   gesture — so it is tried, and nothing is promised.
+   0.20 (2026-10-13, Eric: "are we able to add haptic feedback to the app"):
+   the tick goes through a LABEL wrapping the switch — clicking the input
+   itself toggles it without the tick on some builds — and the light taps of
+   the app now call it (sdHapticTaps below, the rating discs, the carousel). */
 function sdHaptic(ms) {
   try { if (navigator.vibrate) navigator.vibrate(ms || 12); } catch (x) {}
+  // A fresh hidden label each time, clicked and removed at once.
   try {
-    let sw = document.getElementById('sd-haptic');
-    if (!sw) {
-      sw = document.createElement('input');
-      sw.type = 'checkbox'; sw.id = 'sd-haptic'; sw.setAttribute('switch', '');
-      sw.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-9px;top:-9px';
-      document.body.appendChild(sw);
-    }
-    sw.click();
+    const lb = document.createElement('label');
+    lb.setAttribute('aria-hidden', 'true'); lb.style.display = 'none';
+    lb.innerHTML = '<input type="checkbox" switch>';
+    document.head.appendChild(lb);
+    lb.click();
+    lb.remove();
   } catch (x) {}
 }
+/* The taps that tick: toggles (Listened / Later / Favorite, both pages), the
+   rate-group buttons, likes, Post / Reply, the song comment icon, the bottom
+   nav. One capture-phase listener, so no handler has to remember to. */
+const SD_HAPTIC_TAPS = '.sd-log-opt, .v3-rev-opt, .v3-rev-q, .v3-rg-btn, .v3-cmt-like, .v3-cmt-post,'
+  + ' .sd-kb-act.is-post, .sd-log-song-cmt, .v3-song-cmt, .v3-nav-item, .v3-cmt-seemore';
+document.addEventListener('click', e => {
+  const t = e.target && e.target.closest && e.target.closest(SD_HAPTIC_TAPS);
+  if (t && !t.disabled) sdHaptic(8);
+}, true);
 function sdRefreshShell(kind) {
   if (kind === 'feed') {
     window._FEED = null;                                   // feedEvents() deals a fresh feed
@@ -8866,7 +8881,7 @@ function ensureLogSheet() {
     const half = (x - i * cell) < cell / 2;
     return Math.min(5, i + (half ? 0.5 : 1));
   };
-  const buzz = () => { try { navigator.vibrate && navigator.vibrate(6); } catch (x) {} };
+  const buzz = () => sdHaptic(6);
   /* 0.13 (2026-10-08) — A TAP CYCLES THE DISC IT LANDS ON (Eric): empty →
      half → full → empty, climbing on each tap and resetting on the third.
      Read the disc's OWN state, never equality with the rating: disc n is
@@ -13907,8 +13922,8 @@ function sdInstallOpen(host) {
   const share = '<svg class="sd-inst-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>';
   const plus = '<svg class="sd-inst-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
   const steps = ios
-    ? [`Tap the <b>Share</b> button ${share} in Safari's bar.`,
-       `Scroll down and tap <b>Add to Home Screen</b> ${plus}, then <b>Add</b>.`,
+    ? [`Tap <b>•••</b> in Safari's bar, then <b>Share</b> ${share}.`,
+       `Tap <b>More</b> (or scroll down), then <b>Add to Home Screen</b> ${plus}, then <b>Add</b>.`,
        `Open <b>Spindeck</b> from your home screen — it runs full screen, no address bar.`]
     : [`Open your browser's menu <b>⋮</b>.`,
        `Tap <b>Add to Home screen</b> or <b>Install app</b>.`,
