@@ -2321,9 +2321,11 @@ function profileHtml(light) {
 
             ${profStatsHtml(P)}
 
-            <!-- The album wheel (and its share button) is OFF for now (Eric,
-                 2026-10-13); its favourites are the picker's Fav albums tab.
-                 profFavsHtml is intact; put it back here to bring it back. -->
+            <!-- THE ALBUM WHEEL is back again (Eric, 2026-10-14; it was off for
+                 0.20 on 10-13): the five favourite albums as discs on an endless
+                 arc (profFavsHtml; profFavBoot lays it out from applyProfColors).
+                 No backticks here: template. -->
+            ${profFavsHtml(P)}
 
             <!-- The picks — Fav songs · Fav albums · Listened · Listen later,
                  one picker ABOVE the pins. No backticks here: template. -->

@@ -26,9 +26,9 @@
 >   `captureLocation` only reads a VISIBLE home shell (the phone build keeps
 >   hidden desktop shells); closing the + flow's rate sheet unposted reopens
 >   that search; Edit profile opened from Settings returns to Settings.
-> - **PROFILE**: the favourite-albums wheel and its share button are off
->   (`profFavsHtml` intact); the picker is Fav songs · Fav albums · Listened ·
->   Listen later.
+> - **PROFILE**: the favourite-albums wheel is BACK (Eric, 2026-10-14 — it was
+>   off for one day in 0.20); the picker below it is still Fav songs · Fav
+>   albums · Listened · Listen later.
 > - **ALBUM-PAGE LISTENED · LISTEN LATER · FAVORITE WORK** (2026-10-13). The
 >   row was dead: `.v3-rate-group`'s negative margin-bottom hung its box over
 >   it and ate the taps — `.v3-rev-opts` now has `position: relative; z-index: 1`
