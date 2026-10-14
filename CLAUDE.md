@@ -72,9 +72,22 @@
 >   fixed wouldn't work inside it). Comments get Post (Enter posts too); a
 >   locked (read-only) review is left alone. ⚠ `post()` drops `src` before
 >   clearing the bar, or `close()`'s mirror blanks the field before submit.
+>   **Review mode is the review box itself, lifted** (`dressAsReview`): the
+>   proxy copies the real box's computed font / padding / border / radius /
+>   colours and its on-screen left + width, with the sheet's solid colour under
+>   the box's see-through tint so the page can't show through; no strip behind
+>   it (`.sd-kb-bar.is-review`), the Done pill on its top-right corner.
 > - **LISTENED IS BLUE when on** (2026-10-13, end of app.css): `#3b82f6`, the
 >   bell's blue, on the review sheet and the album page's row. Listen later
 >   stays gold, Favorite pink.
+> - **THE CAROUSEL, SMOOTHER** (2026-10-13; `fbSwipe` + the 0.20 note above
+>   `FB_TAP_MS`). Side tap: 340ms on cubic-bezier(.2,0,0,1) (was 480ms sine
+>   in-out). Taps CHAIN: a tap mid-glide used to catch the deck and be thrown
+>   away as a swipe; now it adds a cover to the glide's target (up to ±3) and
+>   `fbCardTap` steps rather than opens while the deck is moving. A release's
+>   settle duration is solved from the finger's speed (ease-out cubic starts at
+>   3·dist/dur), a finger that paused >70ms before lifting is 0 velocity, and
+>   `FB_FLICK` is 0.35 px/ms. Still one cover per swipe.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.

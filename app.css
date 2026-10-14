@@ -13496,3 +13496,19 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
 .sd-log-opt[data-k="listened"].on .sd-log-opt-lbl,
 .s-home-v3--light .sd-log-opt[data-k="listened"].on .sd-log-opt-ico,
 .s-home-v3--light .sd-log-opt[data-k="listened"].on .sd-log-opt-lbl { color: #3b82f6; }
+
+/* 0.20 (2026-10-13): the review composer is the review box itself, lifted
+   (dressAsReview copies its look inline). No strip behind it; the Done pill
+   sits on the box's top-right corner, 10px of air above the keyboard. */
+.sd-kb-bar.is-review, .sd-kb-bar.is-review.is-light {
+  background: none; border-top: none; padding: 0 0 10px;
+  flex-direction: column; align-items: flex-end; gap: 8px;
+}
+.sd-kb-bar.is-review .sd-kb-act { order: -1; }
+.sd-kb-bar.is-review .sd-kb-input { flex: none; width: 100%; outline: none; }
+.sd-kb-bar.is-review .sd-kb-input::placeholder { color: var(--kb-ph, rgba(232,226,214,0.4)); }
+.sd-kb-bar.is-review .sd-kb-act {
+  background-color: var(--kb-under, #16161c);
+  background-image: linear-gradient(rgba(232,226,214,0.12), rgba(232,226,214,0.12));
+}
+.sd-kb-bar.is-review.is-light .sd-kb-act { background-image: linear-gradient(rgba(26,18,8,0.08), rgba(26,18,8,0.08)); }

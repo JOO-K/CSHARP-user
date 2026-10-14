@@ -4621,6 +4621,9 @@ window.fbCardTap = function (el, e) {
   const flow = el.closest('.v3-fb-flow');
   if (!scr || (flow && flow._swiped)) return;
   const i = Number(el.dataset.i);
+  // Mid-glide (or a tap that just caught one), the front cover is not where
+  // _fbCur says: a tap steps the deck, it never opens an album.
+  if (flow && ((flow._fbBusy && flow._fbBusy()) || flow._fbChain)) { fbSideStep(scr, flow, e); return; }
   if (i === scr._fbCur) {
     const f = fbListOf(scr)[i];
     // The cover is the ALBUM (Eric, 2026-09-25): its page from the top — the
@@ -5033,7 +5036,7 @@ window.rshRecordTap = function (el) {
    A moving deck can be CAUGHT: a finger down mid-glide takes it from wherever
    it is, and that touch counts as a swipe, not as a tap on the cover under
    it. */
-const FB_DRAG_PX = 150, FB_COMMIT = 0.37, FB_FLICK = 0.5;    // px per card · fraction · px/ms (commit 0.32 → 0.37, Eric: "a little less sensitive")
+const FB_DRAG_PX = 150, FB_COMMIT = 0.37, FB_FLICK = 0.35;   // 0.20: flick 0.5 -> 0.35 px/ms, so a short quick flick counts    // px per card · fraction · px/ms (commit 0.32 → 0.37, Eric: "a little less sensitive")
 /* THE GLIDE'S TIMING. A tap from rest takes FB_GLIDE_REST, on the sine curve
    — long enough not to snap, short enough not to feel slow. A release takes
    FB_GLIDE_SLOW when the finger was barely moving, down to FB_GLIDE_FAST for
@@ -5042,6 +5045,37 @@ const FB_DRAG_PX = 150, FB_COMMIT = 0.37, FB_FLICK = 0.5;    // px per card · f
    left to go, so a 10% spring-back is quick and a whole cover is the full
    time. */
 const FB_GLIDE_REST = 480, FB_GLIDE_SLOW = 420, FB_GLIDE_FAST = 250, FB_FLICK_FULL = 1.6;
+/* 0.20 (2026-10-13) - Eric: "the carousel swipe sucks its too slow when u
+   press it on the sides and the swipe doesnt feel great ... redo it so it feels
+   smooth". Three fixes, all in fbSwipe:
+     - A SIDE TAP is FB_TAP_MS (340) on a quick-out, long-settle curve
+       (cubic-bezier .2,0,0,1): it gets going at once and lands softly. It was
+       480ms of sine in-out, which spends its first third barely moving.
+     - TAPS CHAIN. A tap while the deck is still gliding used to CATCH it (stop
+       it dead) and then be thrown away as a swipe, so tapping twice did
+       nothing. Now a tap mid-glide adds a cover to where the glide is going
+       (up to FB_TAP_CHAIN away), and the glide carries on from where it is.
+     - A RELEASE MATCHES THE FINGER. An ease-out cubic starts at
+       3 x distance / duration, so the settle's duration is solved from the
+       release speed (clamped): no hitch where the finger lets go. A finger
+       that stopped before lifting (no move in FB_STALE_MS) is 0 velocity,
+       not the speed it had earlier.
+   FB_GLIDE_REST is no longer used; FB_GLIDE_SLOW is a still release's settle. */
+const FB_TAP_MS = 340, FB_TAP_CHAIN = 3, FB_STALE_MS = 70;
+// A cubic-bezier (x1,y1,x2,y2) as an easing function: Newton on x, then y.
+function fbBezier(x1, y1, x2, y2) {
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+  const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+  const X = t => ((ax * t + bx) * t + cx) * t, dX = t => (3 * ax * t + 2 * bx) * t + cx;
+  return x => {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    let t = x;
+    for (let i = 0; i < 6; i++) { const d = dX(t); if (Math.abs(d) < 1e-6) break; t -= (X(t) - x) / d; }
+    t = Math.min(1, Math.max(0, t));
+    return ((ay * t + by) * t + cy) * t;
+  };
+}
+const FB_TAP_EASE = fbBezier(0.2, 0, 0, 1);
 /* Where a release lands, in cards from the cover the deck is on — ONE cover
    at most, by Eric's call (see above). `p` is how far the finger took it
    (signed, + = toward the next cover), `vx` the release speed in px/ms
@@ -5095,14 +5129,24 @@ function fbSwipe(screenEl, flow) {
   }
   /* `vx` is the release speed, or 0 for a tap — which is also what picks the
      curve. The distance only ever shortens the time, never lengthens it. */
-  function settle(from, target, vx) {
+  /* `vx` is the release speed in px/ms (0 for a tap). A release solves its
+     duration from that speed so the deck leaves at the finger's pace; see the
+     0.20 note above FB_TAP_MS. `chained` = a tap that continues a moving deck. */
+  function settle(from, target, vx, chained) {
     const cur = screenEl._fbCur || 0;
-    const rest = !vx;
-    const fast = Math.min(1, Math.abs(vx || 0) / FB_FLICK_FULL);
-    const base = rest ? FB_GLIDE_REST : FB_GLIDE_SLOW + (FB_GLIDE_FAST - FB_GLIDE_SLOW) * fast;
+    const dist = Math.abs(target - from);
     gFrom = from; gTo = target; gT0 = performance.now();
-    gEase = rest ? easeTap : easeOut;
-    gDur = Math.max(120, base * Math.min(1, Math.max(0.35, Math.abs(target - from))));
+    if (!vx) {
+      gEase = chained ? easeOut : FB_TAP_EASE;
+      gDur = Math.max(160, FB_TAP_MS * Math.min(1.6, Math.max(0.5, dist)));
+    } else {
+      gEase = easeOut;
+      const vCards = Math.abs(vx) / FB_DRAG_PX;                   // cards per ms
+      const toward = Math.sign(-vx) === Math.sign(target - from);  // finger moving the way the deck goes
+      gDur = toward && vCards > 0 && dist > 0
+        ? Math.min(FB_GLIDE_SLOW, Math.max(180, 3 * dist / vCards))
+        : Math.max(160, FB_GLIDE_SLOW * Math.min(1, Math.max(0.4, dist)));
+    }
     flow.classList.add('is-dragging');
     const tick = () => {
       /* Let go of a deck that moved under us: a re-render (pull-to-refresh, a
@@ -5121,20 +5165,24 @@ function fbSwipe(screenEl, flow) {
       fbPaintDeck(screenEl, cur + glidePos());
       glide = requestAnimationFrame(tick);
     };
+    if (glide) cancelAnimationFrame(glide);
     glide = requestAnimationFrame(tick);
   }
 
+  let caughtTo = null;    // where a glide caught by this touch was headed
+
   flow.addEventListener('pointerdown', e => {
     const caught = !!glide;
+    caughtTo = caught ? gTo : null;
     restP = caught ? catchGlide() : 0;
     x0 = lastX = e.clientX; y0 = e.clientY; lastT = performance.now();
     on = true; p = restP; vx = 0;
-    // A deck caught in flight is already the gesture: no 8px threshold, and
-    // the release must not read as a tap on whichever cover was under the
-    // finger.
-    claimed = caught;
-    flow._swiped = caught;
-    if (caught) { flow.classList.add('is-dragging'); try { flow.setPointerCapture(e.pointerId); } catch (_) {} }
+    /* A deck caught in flight HOLDS STILL under the finger, but the touch is
+       not a swipe until it moves: lifted without moving, it was a tap, and the
+       glide carries on (plus a cover - see `end` and `_fbGlide`). */
+    claimed = false;
+    flow._swiped = false;
+    if (caught) { flow.classList.add('is-dragging'); fbPaintDeck(screenEl, (screenEl._fbCur || 0) + restP); }
   });
   flow.addEventListener('pointermove', e => {
     if (!on) return;
@@ -5146,7 +5194,12 @@ function fbSwipe(screenEl, flow) {
       try { flow.setPointerCapture(e.pointerId); } catch (_) {}
     }
     const now = performance.now(), dt = now - lastT;
-    if (dt > 0) { vx = 0.6 * vx + 0.4 * ((e.clientX - lastX) / dt); lastX = e.clientX; lastT = now; }
+    if (dt > 0) {
+      const v = (e.clientX - lastX) / dt;
+      // A long gap between moves means the finger paused: start fresh.
+      vx = dt > FB_STALE_MS ? v : 0.5 * vx + 0.5 * v;
+      lastX = e.clientX; lastT = now;
+    }
     p = clampP(restP - dx / FB_DRAG_PX);                    // drag left → the next card comes
     pendingP = p;
     if (!raf) raf = requestAnimationFrame(paint);
@@ -5154,8 +5207,19 @@ function fbSwipe(screenEl, flow) {
   const end = e => {
     if (!on) return;
     on = false;
-    if (!claimed) return;
+    if (!claimed) {
+      // A tap on a moving deck: let it carry on to where it was going. The
+      // click that follows (fbSideStep -> _fbGlide) adds its cover on top.
+      if (caughtTo != null) {
+        settle(restP, caughtTo, 0, true);
+        flow._fbChain = true; setTimeout(() => { flow._fbChain = false; }, 350);
+      }
+      caughtTo = null;
+      return;
+    }
+    caughtTo = null;
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    if (performance.now() - lastT > FB_STALE_MS) vx = 0;     // stopped before lifting = no flick
     settle(p, fbTarget(p, vx), vx);                     // the glide takes it from here
     setTimeout(() => { flow._swiped = false; }, 60);   // let the click after a drag see the flag
   };
@@ -5165,7 +5229,14 @@ function fbSwipe(screenEl, flow) {
      (fbSideStep), and anything else that wants the glide rather than the bare
      `fbGo`. `dir` is in covers from where the deck is now; a glide already
      running is caught and continued, so two taps in a row flow together. */
-  flow._fbGlide = dir => settle(glide ? catchGlide() : 0, dir, 0);
+  flow._fbGlide = dir => {
+    if (glide) {
+      const to = Math.max(-FB_TAP_CHAIN, Math.min(FB_TAP_CHAIN, gTo + dir));
+      settle(catchGlide(), to, 0, true);
+    } else settle(0, dir, 0);
+  };
+  // Is the deck between covers right now? (A tap then steps, never opens.)
+  flow._fbBusy = () => !!glide;
 }
 
 /* Each card's discs take the colour of ITS OWN cover (Eric, 2026-09-18), not
@@ -14051,10 +14122,53 @@ window.sdHomeIntro = function (go) {
     }
     if (act && src.classList.contains('v3-cmt-input')) act.disabled = !ta.value.trim();
   }
+  let revMin = 0;   // the review box's own (grown) min-height, when in review mode
   function grow() {
     ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 132) + 'px';
+    ta.style.height = (revMin
+      ? Math.min(Math.max(ta.scrollHeight, revMin), window.innerHeight * 0.42)
+      : Math.min(ta.scrollHeight, 132)) + 'px';
     place();
+  }
+  /* REVIEW MODE IS THE REVIEW BOX, LIFTED (Eric 2026-10-13: "that bubble …
+     the exact same as the write a review box size and text font size
+     everything … come off the review page"). Its look is COPIED from the real
+     box's computed style at the moment it was tapped (so it is the focused,
+     grown box), and it keeps the box's left edge and width on screen. Only
+     the Done pill is the bar's own, on its top-right corner. */
+  const REV_PROPS = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing',
+    'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderTopWidth', 'borderTopStyle',
+    'borderTopColor', 'borderRadius', 'backgroundColor', 'color', 'boxShadow'];
+  function dressAsReview(field) {
+    const cs = getComputedStyle(field);
+    REV_PROPS.forEach(k => { ta.style[k] = cs[k]; });
+    ta.style.border = `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}`;
+    ta.style.maxHeight = 'none';
+    // The box's fill is a see-through tint meant to sit on the sheet; lifted
+    // over the scrim it needs the sheet's own colour under it, or the page
+    // shows through. Same look, now opaque.
+    const sheet = field.closest('.sd-log-sheet');
+    const under = sheet ? getComputedStyle(sheet).backgroundColor : '#16161c';
+    ta.style.backgroundImage = `linear-gradient(${cs.backgroundColor}, ${cs.backgroundColor})`;
+    ta.style.backgroundColor = under;
+    bar.style.setProperty('--kb-under', under);
+    let ph = '';
+    try { ph = getComputedStyle(field, '::placeholder').color; } catch (x) {}
+    bar.style.setProperty('--kb-ph', ph || cs.color);
+    revMin = parseFloat(cs.minHeight) || field.getBoundingClientRect().height || 132;
+    const r = field.getBoundingClientRect();
+    bar.style.left = r.left + 'px';
+    bar.style.width = r.width + 'px';
+    bar.style.right = 'auto';
+  }
+  function undress() {
+    REV_PROPS.forEach(k => { ta.style[k] = ''; });
+    ta.style.border = ''; ta.style.maxHeight = '';
+    ta.style.backgroundImage = '';
+    bar.style.removeProperty('--kb-under');
+    bar.style.removeProperty('--kb-ph');
+    bar.style.left = ''; bar.style.width = ''; bar.style.right = '';
+    revMin = 0;
   }
   // Sit the bar on the keyboard's top edge: the visual viewport's bottom.
   function place() {
@@ -14080,6 +14194,8 @@ window.sdHomeIntro = function (go) {
     act.textContent = isCmt ? ((btn && btn.textContent.trim()) || 'Post') : 'Done';
     act.classList.toggle('is-post', isCmt);
     act.disabled = isCmt && !ta.value.trim();
+    bar.classList.toggle('is-review', !isCmt);
+    if (isCmt) undress(); else dressAsReview(field);
     bar.classList.add('is-open'); scrim.classList.add('is-open');
     ta.focus({ preventScroll: true });
     try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (x) {}
