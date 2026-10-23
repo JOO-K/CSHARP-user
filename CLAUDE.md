@@ -108,6 +108,60 @@
 >   a hidden label around a `<input type=checkbox switch>` — only inside a user
 >   gesture. Ticks on toggles, likes, Post, the song comment icon, the nav,
 >   rating discs, and a carousel side tap / swipe that changes cover.
+> - **TRENDING IS JUST THE CAROUSEL** (Eric, 2026-10-22: "take out the grid").
+>   `wallHtml` no longer renders the `.wall2-bar` (Albums · Artists · Genres ·
+>   Week) or `.wall2-grid`; `wallGridHtml` / `pickWallSort` / the menus stay and
+>   no-op. Pull-to-refresh no longer fires on Trending (`sdPtrTarget` keys on
+>   `.wall2-grid`).
+>   In the grid's place: the FRONT cover's tracklist (`.v3-rev-songs.wall2-songs`
+>   in `wallHtml`, filled by `populateSongList` at the end of `fbGo` on
+>   `.s-wall2`), the album page's rows exactly; light colours share the
+>   `--light.--album` tracklist rules (selectors widened to `--light.s-wall2`).
+>   It shows 5 songs then **Show more songs** (cap in `populateSongList`).
+>   **Tabs over the carousel: Friends · Popular · New · Genre ▾** ("Recent" renamed New, 2026-10-22; data-wt is still `recent`) (`wall2-tabs`
+>   in `wallHtml`; `WALL_TAB` / `wallDeckList` / `paintWallTabs` / `pickWallTab`
+>   above `renderFriendsBento`). Friends = `fbReviews()`; the others wrap
+>   ARCHIVE albums as score-only cards (Popular: most reviewed; Genre: the
+>   menu is the shelf's top 10 genres, best rated; New: newest year). The
+>   list is cached per tab/genre/shelf because a new array rebuilds the covers.
+>   **Friends tab: who of your friends is on this album** (`.wall2-friends` above
+>   the songs; `wallFriendsFor` / `paintWallFriends`, called from `fbGo`): up to
+>   5 stacked faces (+N) centred over "N friends listened · N reviewed · N favorited". Reviewers are real
+>   (FRIEND_ACTIVITY); the extra listeners are SEEDED per album from the same
+>   friends, since the mock has no listening history. Faces open the profile.
+>   **The Genre menu ends in More options…** → `.wg-sheet`, a full-screen picker
+>   over the wall: onboarding's bubble list (`.ob-glist` / `.ob-gbub`, state in
+>   `WG`), **Pick genres** at the bottom once anything is picked. (It had the
+>   mix wheel behind a List | Wheel switch for an hour; Eric: "get rid of the
+>   wheel option ... its kinda crazy".)
+>   Pick genres (`wgCommit`) sets `WALL_TAB_GENRES`, re-deals the deck and
+>   closes; Back drops the picks. Albums match like the bento mix
+>   (`wallPickedPool` = mixShelf's expansion + widening). The tab reads
+>   "Rock +1". The sheet carries its own palette tokens (onboarding's pair).
+> - **COMMENT BOX** (Eric, 2026-10-22): `.v3-cmt-input` rests at TWO lines
+>   (was one) and its corner is 6px (was 12); Post stays inside, top-right.
+> - **REVIEW SHEET, SMALLER RATING** (Eric, 2026-10-22): `.sd-log-num` 44 -> 30px,
+>   `.sd-log-rate` gap 6 / bottom 6, `.sd-log-opts` margin 6/10 (the overrides
+>   near the end of app.css, not the base rules). **Song ratings carry over**:
+>   a song's own sheet opens on `songMyRating` (album-sheet rows count too),
+>   and the album sheet's rows read it back, newer wins; unsaved work leads.
+> - **TAGS = FESTIVALS** (2026-10-23, `fests.js`, copied from csharpuserlive):
+>   your own profile shows only tags you added — festival + year,
+>   `fest:<slug>:<year>`, max 5, years list only editions that ran — via the
+>   "+ Tag" pill, Edit profile's Tags row, or (csharpuser only) **pressing the
+>   tag row itself**. Friends keep seeded tags. In-memory like other profile
+>   edits (no accounts here).
+> - **BOOTS ON THE LOGIN PAGE** (Eric, 2026-10-23). No ?screen → `auth`, not
+>   onboarding. The name popup (recorder.js `ask`) is gone: the login page
+>   carries the recording notice, any button on it is consent
+>   (`sdRecConsent`), sessions file under `guest-xxxx`. **Log in as guest**
+>   (`sdGuestLogin`) opens "Do you want to skip onboarding?" — Skip → home
+>   with the intro, "No, set me up" → `obStart`. The old automatic skip card
+>   over onboarding (`sdAskSkipOnboarding`) is gone.
+> - **LOGIN: GUEST ONLY** (2026-10-23): every other field and button on `auth`
+>   carries `.auth-off` + `disabled` (greyed, inert; handlers kept).
+>   **Onboarding has no picks dock** — `.ob-picks-dock` is `display: none` (end
+>   of app.css); Eric found genres + artists piling up over Continue confusing.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.

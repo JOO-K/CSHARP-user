@@ -180,11 +180,15 @@ function init() {
   if (spBack) { const i = SCREENS.findIndex(s => s.id === 'settings'); if (i !== -1) currentIdx = i; }
   else if (p) { const i = SCREENS.findIndex(s => s.id === p); if (i !== -1) currentIdx = i; }
   /* 0.13 (Eric, 2026-10-03: "in this mockup we start with onboarding every
-     time"): no ?screen and no ?tools → the first screen is onboarding, and
-     sdAskSkipOnboarding offers the way past it (below). */
+     time"): no ?screen and no ?tools → the first screen was onboarding.
+     0.20 (Eric, 2026-10-23): it is the LOGIN page now — "put the skip
+     onboarding / skip account creation on the first login page … a button
+     that says login as guest". Sign In / Google / Sign Up go on into
+     onboarding (obStart); Log in as guest asks "skip onboarding?"
+     (sdGuestLogin, below). The name popup that used to open first is gone. */
   else if (!SD_TOOLS) {
-    const ob = SCREENS.findIndex(s => s.id === 'onboarding');
-    if (ob !== -1) { currentIdx = ob; window.SD_BOOT_ONBOARDING = true; }
+    const au = SCREENS.findIndex(s => s.id === 'auth');
+    if (au !== -1) currentIdx = au;
   }
 
   /* Before the first render: the plan decides what some screens are made of
@@ -2536,7 +2540,8 @@ function populateSongList(scr, all) {
   const a = scr._album || window.featuredAlbum;
   if (!a) { wrap.innerHTML = ''; return; }
   const songs = songsFor(a);
-  const shown = all ? songs : songs.slice(0, SONGS_SHOWN);
+  const cap = scr.classList.contains('s-wall2') ? 5 : SONGS_SHOWN;   // Trending shows 5 (Eric, 2026-10-22)
+  const shown = all ? songs : songs.slice(0, cap);
   const more = songs.length - shown.length;
   // In flow, not a nested scroller — the page is the scroller. The header row
   // reuses the row's own cell classes so the labels can only ever sit over the
@@ -2564,7 +2569,7 @@ function populateSongList(scr, all) {
       ${songRateHtml(a, s)}
     </button>`;
     }).join('') + `</div>` + (more > 0 ? `
-    <button class="v3-songs-more" onclick="event.stopPropagation(); expandSongList(this)">View all ${songs.length} songs</button>` : '');
+    <button class="v3-songs-more" onclick="event.stopPropagation(); expandSongList(this)">${scr.classList.contains('s-wall2') ? 'Show more songs' : `View all ${songs.length} songs`}</button>` : '');
 }
 window.expandSongList = function (el) {
   const scr = el.closest('.s-home-v3');
@@ -3428,7 +3433,8 @@ function revCardInner(o) {
      photo · name · time on the left of the top row, year · album over artist
      right-aligned on the right of it; the review on the left; the record's
      cover big on the right with the score and discs under it; the comment and
-     like counts at the foot on the left. The home feed's review cards only
+     like counts at the foot on the left (LIKE FIRST, then comments — Eric,
+     2026-10-22: "likes should be left most"). The home feed's review cards only
      (`split` + `record`); everything else keeps the card below. Cover and
      titles open the album like the record line did (feedOpenArt). */
   if (o.split && o.record) {
@@ -3446,7 +3452,7 @@ function revCardInner(o) {
         <div class="v3-rsp-art" style="background-image:url('${o.record.image}')" onclick="event.stopPropagation(); ${open}"></div>
         <div class="v3-rsp-score"><span class="v3-rev-big-n">${Number(o.rating || 0).toFixed(1)}</span>${halfStars(o.rating || 0, 12)}</div>
       </div>
-      <div class="v3-rsp-acts">${cmtHtml}${likeHtml}${editHtml}</div>
+      <div class="v3-rsp-acts">${likeHtml}${cmtHtml}${editHtml}</div>
       ${o.share && typeof shareBtnHtml === 'function' ? `<div class="v3-rev-foot v3-rsp-foot">
         <span class="v3-rev-acts">${shareBtnHtml('review', '')}<span class="v3-rev-share-lbl">Share your review</span></span>
       </div>` : ''}`;
@@ -3457,7 +3463,7 @@ function revCardInner(o) {
         <div class="v3-rev-who">
           <span class="v3-rev-name-row"><span class="v3-rev-name" data-user="${o.mine ? 'You' : sdAttr(o.name)}" onclick="sdPerson(this, event)">${o.name}</span>${o.chip ? `<span class="v3-rev-pin-chip">${o.chip}</span>` : ''}</span>
           <span class="v3-rev-sub">@${handle}${o.ago && !timeRight ? ` · ${o.ago}` : ''}</span>
-        </div>${o.actsTop ? `<span class="v3-rev-top-acts">${o.big ? cmtHtml : cmtHtml + likeHtml}</span>` : ''}${timeRight ? `<span class="v3-rev-time">${o.ago}</span>` : ''}
+        </div>${o.actsTop ? `<span class="v3-rev-top-acts">${o.big ? cmtHtml : likeHtml + cmtHtml}</span>` : ''}${timeRight ? `<span class="v3-rev-time">${o.ago}</span>` : ''}
       </div>
       <!-- A grid AREA beside both the top row and the text (see .v3-rev-card in
            app.css), so the like button's height pushes nothing down. -->
@@ -4305,11 +4311,204 @@ function fbAlbumOf(f) {
    writes `_fbList`). Everything that paints or steps the deck reads this. */
 function fbListOf(screenEl) { return (screenEl && screenEl._fbList) || fbReviews(); }
 
+/* TRENDING'S TABS (0.20, Eric 2026-10-22: "tabs at the top similar to the
+   homepage that lets us choose friends popular genre and recent"). Friends is
+   the friends' deck as it was; the other three deal ALBUMS into the same deck,
+   wrapped as score-only cards (the wall hides the face, name and text anyway)
+   so fbGo paints them through the friend path: the album's own score, seeded
+   like and comment counts. Popular = most reviewed; Genre = one genre's best
+   rated (the menu is built from the shelf's own genres); Recent = newest
+   release year first.
+   ⚠ The list is CACHED per tab/genre/shelf: renderFriendsBento rebuilds the
+   covers whenever it gets a different array, and it runs on every render. */
+window.WALL_TAB = 'friends';
+window.WALL_TAB_GENRE = '';
+window.WALL_TAB_GENRES = [];   // the genre picker's picks (wgCommit); beats WALL_TAB_GENRE when set
+const WALL_TAB_N = 16;
+function wallGenreOf(a) { return String((a && a.genre) || '').split('/')[0].trim(); }
+function wallTabGenres() {
+  const n = new Map();
+  (window.ARCHIVE || []).forEach(a => { const g = wallGenreOf(a); if (g) n.set(g, (n.get(g) || 0) + 1); });
+  return [...n.entries()].sort((x, y) => y[1] - x[1]).slice(0, 10).map(x => x[0]);
+}
+function wallDeckList() {
+  const tab = window.WALL_TAB;
+  if (tab === 'friends') return fbReviews();
+  const A = window.ARCHIVE || [];
+  const key = tab + '|' + window.WALL_TAB_GENRE + '|' + window.WALL_TAB_GENRES.join(',');
+  const c = wallDeckList._c;
+  if (c && c.key === key && c.A === A && c.len === A.length) return c.list;
+  let all = A.filter(a => a && a.image);
+  if (tab === 'genre' && window.WALL_TAB_GENRES.length) {
+    all = wallPickedPool(window.WALL_TAB_GENRES).filter(a => a && a.image).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  } else if (tab === 'genre') {
+    const g = window.WALL_TAB_GENRE || wallTabGenres()[0] || '';
+    all = all.filter(a => wallGenreOf(a) === g).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  } else if (tab === 'recent') {
+    all.sort((a, b) => ((+b.year || 0) - (+a.year || 0)) || ((b.reviewCount || 0) - (a.reviewCount || 0)));
+  } else {
+    all.sort((a, b) => ((b.reviewCount || 0) - (a.reviewCount || 0)) || ((b.rating || 0) - (a.rating || 0)));
+  }
+  const list = all.slice(0, WALL_TAB_N).map(a => {
+    const rnd = seedRand('wt::' + a.album + '::' + a.artist);
+    return { album: a.album, artist: a.artist, year: a.year, image: a.image,
+             user: 'Spindeck', init: '', grad: '', face: '', ago: '', quote: '',
+             rating: +a.rating || 0, likes: 20 + Math.floor(rnd() * 480), comments: 4 + Math.floor(rnd() * 90) };
+  });
+  wallDeckList._c = { key, A, len: A.length, list };
+  return list;
+}
+function paintWallTabs(screenEl) {
+  const tab = window.WALL_TAB;
+  screenEl.querySelectorAll('.wall2-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.wt === tab);
+    b.setAttribute('aria-pressed', String(b.dataset.wt === tab));
+  });
+  const genres = wallTabGenres();
+  const picks = window.WALL_TAB_GENRES;
+  const cur = picks.length ? '' : (window.WALL_TAB_GENRE || genres[0] || '');
+  const lbl = screenEl.querySelector('.wall2-tab-genre');
+  if (lbl) lbl.textContent = tab !== 'genre' ? 'Genre'
+    : picks.length ? mixChipLabel(picks[0]) + (picks.length > 1 ? ` +${picks.length - 1}` : '')
+    : cur || 'Genre';
+  const menu = screenEl.querySelector('.wall2-tab-genres');
+  if (menu) menu.innerHTML = genres.map(g =>
+    `<button class="wall2-menu-item${tab === 'genre' && g === cur ? ' active' : ''}" data-g="${_revAttr(g)}" onclick="event.stopPropagation(); pickWallTabGenre(this)">${_sdsEsc(g)}</button>`).join('')
+    // The full picker (Eric, 2026-10-22: "more options at the bottom of the genre popup").
+    + `<button class="wall2-menu-item wall2-menu-more${tab === 'genre' && picks.length ? ' active' : ''}" onclick="event.stopPropagation(); wgOpen(this)">More options…</button>`;
+}
+function wallTabsRepaint() {
+  document.querySelectorAll('.s-wall2').forEach(scr => {
+    scr._fbCur = 0;
+    renderFriendsBento(scr);
+    const body = scr.querySelector('.v3-body'); if (body) body.scrollTop = 0;
+  });
+}
+window.pickWallTab = function (btn) {
+  const tab = btn && btn.dataset.wt;
+  if (!tab || tab === window.WALL_TAB) return;
+  closeWallMenus(btn.closest('.app-screen'));
+  window.WALL_TAB = tab;
+  sdHaptic(6);
+  wallTabsRepaint();
+};
+window.pickWallTabGenre = function (el) {
+  closeWallMenus(el.closest('.app-screen'));
+  if (window.WALL_TAB === 'genre' && !window.WALL_TAB_GENRES.length && window.WALL_TAB_GENRE === el.dataset.g) return;
+  window.WALL_TAB = 'genre';
+  window.WALL_TAB_GENRE = el.dataset.g;
+  window.WALL_TAB_GENRES = [];
+  sdHaptic(6);
+  wallTabsRepaint();
+};
+
+/* FRIENDS ON THIS ALBUM (0.20, Eric 2026-10-22: "on the friends tab it should
+   show how many of your friends have also listened to the album or made
+   reviews … profile bubbles stacked horizontally … above the songs"). The
+   reviewers are real (FRIEND_ACTIVITY); the listeners on top of them are
+   SEEDED per album from the same friends, since the mock has no listening
+   history — swap in real data when accounts have it. Reviewers lead the stack. */
+const WALL_FRIENDS_SHOWN = 5;
+function wallFriendsFor(album) {
+  const src = window.FRIEND_ACTIVITY || [];
+  const roster = [...new Set(src.map(f => f.user))];
+  const reviewed = [...new Set(src.filter(f => f.quote && f.album === album.album && f.artist === album.artist).map(f => f.user))];
+  const rnd = seedRand('wf::' + album.album + '::' + album.artist);
+  const others = roster.filter(u => !reviewed.includes(u)).sort(() => rnd() - 0.5);
+  const listened = reviewed.concat(others.slice(0, 1 + Math.floor(rnd() * Math.min(5, others.length))));
+  // Favourited: seeded too — a reviewer who gave it 5 counts, plus a few listeners.
+  const loved = src.filter(f => f.album === album.album && f.artist === album.artist && +f.rating >= 5).map(f => f.user);
+  const favorited = [...new Set(loved.concat(listened.filter(() => rnd() < 0.3)))].filter(u => listened.includes(u));
+  return { reviewed, listened, favorited };
+}
+function paintWallFriends(screenEl, album) {
+  const box = screenEl.querySelector('.wall2-friends');
+  if (!box) return;
+  const { reviewed, listened, favorited } = album ? wallFriendsFor(album) : { reviewed: [], listened: [], favorited: [] };
+  if (window.WALL_TAB !== 'friends' || !listened.length) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  const faces = listened.slice(0, WALL_FRIENDS_SHOWN).map(u =>
+    `<span class="wall2-friends-av" data-user="${_revAttr(u)}" title="${_revAttr(u)}" style="background-image:url('${feedFace(u)}')" onclick="sdPerson(this, event)"></span>`).join('');
+  const more = listened.length - WALL_FRIENDS_SHOWN;
+  const n = listened.length;
+  box.innerHTML = `<span class="wall2-friends-stack">${faces}${more > 0 ? `<span class="wall2-friends-av wall2-friends-more">+${more}</span>` : ''}</span>`
+    + `<span class="wall2-friends-txt"><b>${n}</b> friend${n === 1 ? '' : 's'} listened`
+    + ` · <b>${reviewed.length}</b> reviewed · <b>${favorited.length}</b> favorited</span>`;
+}
+
+/* THE GENRE PICKER (0.20, Eric 2026-10-22: "more options at the bottom of the
+   genre popup ... a pick genres button appears at the bottom ... the trending
+   page updates and it takes u back"). Onboarding's bubble list (.ob-glist /
+   .ob-gbub) on its own state. It had the mix WHEEL too, behind a List | Wheel
+   switch, for an hour - Eric: "lets just get rid of the wheel option ... its
+   kinda crazy". Picks reach the deck only on Pick genres (wgCommit ->
+   WALL_TAB_GENRES); Back drops them. Albums match like the bento's mix
+   (wallPickedPool). */
+const WG = { genres: new Set(), open: new Set() };
+function wallPickedPool(picks) {
+  const exact = [...new Set(picks.flatMap(g => (g in SD_GENRE_TREE) ? [g, ...SD_GENRE_TREE[g]] : [g]))];
+  const pool = shelfPool({ kind: 'mix', genres: exact });
+  if (pool.length >= MIX_MIN) return pool;
+  // Same widening as mixShelf: a subgenre that can't fill a deck takes its family.
+  const family = [...new Set(picks.filter(g => !(g in SD_GENRE_TREE)).flatMap(mixParentsOf))];
+  return family.length ? shelfPool({ kind: 'mix', genres: [...new Set(exact.concat(family))] }) : pool;
+}
+function wgSync(sheet) {
+  const box = sheet.querySelector('.wg-glist');
+  if (box) box.innerHTML = Object.keys(SD_GENRE_TREE).map(m => {
+    const on = WG.genres.has(m);
+    const lit = !on && [m].concat(SD_GENRE_TREE[m] || []).some(g => WG.genres.has(g));
+    const open = WG.open.has(m);
+    const subs = (SD_GENRE_TREE[m] || []).filter(x => x.toLowerCase() !== m.toLowerCase());
+    const bub = (g, cls, fn) => `<button class="ob-gbub${cls}" type="button" onclick="${fn}('${obOc(g)}')">${obEsc(g)}</button>`;
+    return bub(m, (on ? ' is-on' : lit ? ' is-lit' : '') + (open ? ' is-open' : ''), 'wgListMain') +
+      (open ? `<div class="ob-gsubs">${subs.map(x => bub(x, WG.genres.has(x) ? ' is-on' : '', 'wgToggle')).join('')}</div>` : '');
+  }).join('');
+  const n = WG.genres.size, go = sheet.querySelector('.wg-go');
+  if (go) { go.hidden = !n; go.textContent = n > 1 ? `Pick ${n} genres` : 'Pick genres'; }
+}
+function wgSyncAll() { document.querySelectorAll('.wg-sheet').forEach(wgSync); }
+window.wgOpen = function (el) {
+  const scr = el.closest('.app-screen'); if (!scr) return;
+  closeWallMenus(scr);
+  const sheet = scr.querySelector('.wg-sheet'); if (!sheet) return;
+  WG.genres = new Set(window.WALL_TAB_GENRES);
+  WG.open.clear();
+  sheet.classList.toggle('sd-theme-light', scr.classList.contains('s-home-v3--light'));
+  sheet.hidden = false;
+  wgSyncAll();
+};
+window.wgClose = function (el) {
+  const sheet = el.closest('.wg-sheet'); if (sheet) sheet.hidden = true;
+};
+window.wgListMain = function (m) {
+  if (WG.open.has(m)) { WG.open.delete(m); WG.genres.delete(m); }
+  else                { WG.open.add(m);    WG.genres.add(m);    }
+  wgSyncAll();
+};
+window.wgToggle = function (g) { WG.genres.has(g) ? WG.genres.delete(g) : WG.genres.add(g); wgSyncAll(); };
+window.wgCommit = function () {
+  if (!WG.genres.size) return;
+  window.WALL_TAB = 'genre';
+  window.WALL_TAB_GENRES = [...WG.genres];
+  window.WALL_TAB_GENRE = '';
+  document.querySelectorAll('.wg-sheet').forEach(s => { s.hidden = true; });
+  sdHaptic(6);
+  wallTabsRepaint();
+};
+
 function renderFriendsBento(screenEl) {
   const fb = screenEl.querySelector('.v3-fb');
   if (!fb || fb.classList.contains('v3-fb--dd')) return;   // the wall's deck is renderDiscoveryDeck's
-  const list = fbReviews();
-  if (!list.length) { fb.hidden = true; return; }
+  const onWall = screenEl.classList.contains('s-wall2');
+  if (onWall) paintWallTabs(screenEl);
+  const list = onWall ? wallDeckList() : fbReviews();
+  if (!list.length) {
+    fb.hidden = true;
+    if (onWall) { paintWallFriends(screenEl, null); const sg = screenEl.querySelector('.wall2-songs'); if (sg) sg.innerHTML = ''; }
+    return;
+  }
+  fb.hidden = false;
   const flow = fb.querySelector('.v3-fb-flow');
   /* ⚠️ THE DECK OWNS ITS LIST (2026-09-26). `fbReviews()` is re-dealt by
      every `setFriendActivity` — the rec deal's `dzRefreshHome` a few seconds
@@ -4596,6 +4795,8 @@ function fbGo(screenEl, i) {
   // The shell takes the front review's album.
   setMainAlbum(screenEl, album, false);
   applyAlbumColorsUrl(screenEl, album.image);
+  // Trending (0.20): the front album's friends row and tracklist under the deck.
+  if (screenEl.classList.contains('s-wall2')) { paintWallFriends(screenEl, album); populateSongList(screenEl); }
 }
 
 /* A TAP ON A SIDE (Eric, 2026-09-23: "if I click on the left or right can I
@@ -9091,10 +9292,21 @@ window.openLogSheet = function(triggerEl, subject, opts) {
   // what was last saved.
   const wip = logWips()[logKey(subj)];
   const saved = wip || logDrafts()[logKey(subj)] || {};
+  /* A SONG'S SHEET OPENS ON YOUR RATING WHEREVER YOU GAVE IT (Eric, 2026-10-22:
+     "when rating songs, the song ratings don't carry over into the part where
+     you can comment on songs"). Rating a track in the ALBUM's sheet saves it in
+     the album draft's songs[], not under the song's own key, so the song's
+     sheet opened at 0. songMyRating reads both and the newer wins — the same
+     answer the album page's tracklist already shows. Unsaved work still leads. */
+  let rating = saved.rating || 0;
+  if (subj.isSong && !wip) {
+    const alb = (window.ARCHIVE || []).find(x => x.album === subj.subtitle) || window.activeAlbum;
+    if (alb && alb.album === subj.subtitle) rating = songMyRating(alb, subj.title) || rating;
+  }
   _sdlogRestoring = true;
   SDLOG = {
     subject: subj,
-    rating: saved.rating || 0,
+    rating,
     listened: !!saved.listened, later: !!saved.later, fav: !!saved.fav,
     text: saved.text || '',
     songs: [],
@@ -9177,11 +9389,15 @@ function fillLogSongs(ov, album) {
   // Merge any saved per-song ratings back in, keyed by TITLE rather than index:
   // the draft only stores the tracks that were touched, so its indices are not
   // the tracklist's.
-  const savedSongs = (SDLOG && (logWips()[logKey(SDLOG.subject)] || logDrafts()[logKey(SDLOG.subject)]) || {}).songs || [];
+  const wipSongs = SDLOG && logWips()[logKey(SDLOG.subject)];
+  const savedSongs = (wipSongs || (SDLOG && logDrafts()[logKey(SDLOG.subject)]) || {}).songs || [];
   const byTitle = new Map(savedSongs.map(s => [s.title, s]));
+  // ...and the other way (2026-10-22): a song rated in its OWN sheet shows here
+  // too, through songMyRating (newer of the two wins). Unsaved rows still lead.
   if (SDLOG) SDLOG.songs = songs.map(s => {
     const prev = byTitle.get(s.title);
-    return { title: s.title, rating: (prev && prev.rating) || 0, text: (prev && prev.text) || '' };
+    const r = (wipSongs && prev && prev.rating) || (album && songMyRating(album, s.title)) || (prev && prev.rating) || 0;
+    return { title: s.title, rating: r, text: (prev && prev.text) || '' };
   });
   box.hidden = false;
   const heart = typeof RVP_HEART !== 'undefined' ? RVP_HEART : '♥';
@@ -12691,6 +12907,7 @@ function profFavBoot(rail) {
     if (rail._favInit || !rail.clientWidth) return false;
     rail._favInit = 1;
     profFavSettle(rail);  // arm the loop's wrap-on-idle before anything can scroll
+    profFavDrag(rail);    // a mouse can grab and swing the wheel too
     profFavStart(rail);   // centre disc 2 BEFORE the first paint, not after
     profFavPaint(rail);
     return true;
@@ -12702,6 +12919,67 @@ function profFavBoot(rail) {
     rail._favRO = null;
   });
   rail._favRO.observe(rail);
+}
+
+/* Drag to turn (2026-10-14, Eric: "u cant swipe horizontally to get it to turn
+   the ring u have to press the sides"). A finger already scrolls the rail
+   natively; a MOUSE cannot drag an overflow box at all, so on the desktop the
+   side discs were the only way round. This gives the mouse (and a pen) the
+   same swipe. ⚠ Touch is left alone on purpose — the native momentum and snap
+   are the reason this rail is a scroller and not a gesture engine.
+   ⚠ Snap is OFF while the pointer holds the rail (mandatory snap would yank
+   every scrollLeft write back to a disc), and on release the rail is sent to
+   the nearest disc after a short velocity projection, so a flick carries on.
+   ⚠ A drag swallows the click it ends in, or letting go over a side disc would
+   centre it and letting go over the middle one would open the album. */
+function profFavDrag(rail) {
+  if (rail._favDrag) return;
+  rail._favDrag = 1;
+  let s = null;
+  rail.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch' || e.button !== 0) return;
+    s = { x: e.clientX, sl: rail.scrollLeft, id: e.pointerId, moved: false,
+          k: rail.getBoundingClientRect().width / rail.offsetWidth || 1,
+          lx: e.clientX, lt: performance.now(), v: 0 };
+  });
+  rail.addEventListener('pointermove', e => {
+    if (!s || e.pointerId !== s.id) return;
+    const dx = (e.clientX - s.x) / s.k;
+    if (!s.moved) {
+      if (Math.abs(dx) < 5) return;
+      s.moved = true;
+      try { rail.setPointerCapture(e.pointerId); } catch (_) {}
+      rail.style.scrollSnapType = 'none';
+      rail.classList.add('is-dragging');
+    }
+    const now = performance.now(), dt = now - s.lt;
+    if (dt > 0) s.v = 0.8 * ((e.clientX - s.lx) / s.k / dt) + 0.2 * s.v;   // px/ms, smoothed
+    s.lx = e.clientX; s.lt = now;
+    rail.scrollLeft = s.sl - dx;
+    e.preventDefault();
+  });
+  const end = e => {
+    if (!s || e.pointerId !== s.id) return;
+    const d = s; s = null;
+    if (!d.moved) return;
+    rail.classList.remove('is-dragging');
+    const eat = ev => { ev.stopPropagation(); ev.preventDefault(); };
+    rail.addEventListener('click', eat, { capture: true, once: true });
+    setTimeout(() => rail.removeEventListener('click', eat, true), 400);  // a release with no click
+    // Project the flick ~180ms on, then land on whichever disc is under that.
+    const items = [].slice.call(rail.querySelectorAll('.prof-fav'));
+    const aim = rail.scrollLeft - d.v * 180 + rail.clientWidth / 2;
+    let best = items[0], bd = Infinity;
+    items.forEach(el => {
+      const c = Math.abs(el.offsetLeft + el.offsetWidth / 2 - aim);
+      if (c < bd) { bd = c; best = el; }
+    });
+    rail.style.scrollSnapType = '';
+    if (best) rail.scrollTo({ left: best.offsetLeft - (rail.clientWidth - best.offsetWidth) / 2,
+                              behavior: 'smooth' });
+  };
+  rail.addEventListener('pointerup', end);
+  rail.addEventListener('pointercancel', end);
 }
 
 function profFavStart(rail) {
@@ -13975,37 +14253,43 @@ window.sdSetViewMode = function (mode) {
    "we start with onboarding every time but in the first onboarding screen we
    have a popup that says do u want to skip onboarding, and if they are
    writing their name for the first time then we can ask them there".
-   The app boots on onboarding (init). A tester typing their name for the
-   first time answers on the name card (recorder.js, SD_REC_WILL_ASK); anyone
-   else gets this card over step 1 once per load. Skip → home. */
+   0.20 (2026-10-23): the app boots on the LOGIN page now and this question
+   comes from its Log in as guest button (sdGuestLogin); the name card and the
+   automatic card over onboarding step 1 are gone. Skip → home. */
 window.sdSkipOnboarding = function () {
   document.querySelectorAll('.sd-obskip').forEach(o => o.remove());
   if (typeof navigate === 'function') sdHomeIntro(() => navigate('home'));   // 0.14b: skipping gets the intro too
 };
-function sdAskSkipOnboarding() {
-  if (!window.SD_BOOT_ONBOARDING || window.SD_REC_WILL_ASK) return;
-  const host = [...document.querySelectorAll('.s-onboarding')].find(e => e.offsetParent) || document.querySelector('.s-onboarding');
+/* LOG IN AS GUEST (0.20, Eric 2026-10-23): the login page's guest button,
+   then this card — "just the skip onboarding text and button, just asking do
+   you want to skip onboarding". Skip → home (with the intro); No → onboarding
+   from step 1, the way Sign Up goes. A tap on the dim backdrop just closes it. */
+window.sdGuestLogin = function (btn) {
+  const host = (btn && btn.closest('.app-screen')) || document.querySelector('.s-auth');
   if (!host || host.querySelector('.sd-obskip')) return;
   const ov = document.createElement('div');
   ov.className = 'sd-fb sd-obskip';
   ov.innerHTML = `
     <div class="sd-fb-card" role="dialog" aria-modal="true" aria-label="Skip onboarding?">
-      <div class="sd-fb-hd"><span class="sd-fb-title">Skip onboarding?</span></div>
-      <p class="sd-obskip-note">You can go straight to the app, or set up your profile and taste first.</p>
-      <button class="sd-fb-send" type="button" data-go="skip">Skip to the app</button>
-      <button class="sd-obskip-stay" type="button" data-go="stay">Go through onboarding</button>
+      <div class="sd-fb-hd"><span class="sd-fb-title">Do you want to skip onboarding?</span></div>
+      <button class="sd-fb-send" type="button" data-go="skip">Skip onboarding</button>
+      <button class="sd-obskip-stay" type="button" data-go="stay">No, set me up</button>
     </div>`;
   host.appendChild(ov);
+  const close = () => { ov.classList.remove('open'); setTimeout(() => ov.remove(), 200); };
   ov.addEventListener('click', e => {
     const b = e.target.closest('[data-go]');
-    if (!b) return;
+    if (!b) { if (e.target === ov) close(); return; }
     if (b.dataset.go === 'skip') { sdSkipOnboarding(); return; }
-    ov.classList.remove('open'); setTimeout(() => ov.remove(), 200);
+    close(); obStart();
   });
   requestAnimationFrame(() => ov.classList.add('open'));
-}
-// After the first render has put onboarding on stage.
-document.addEventListener('DOMContentLoaded', () => setTimeout(sdAskSkipOnboarding, 400));
+};
+/* Recording consent moved onto the login page with the name popup gone: any
+   button there counts as continuing (recorder.js sdRecConsent). */
+document.addEventListener('click', e => {
+  if (e.target.closest && e.target.closest('.s-auth button') && window.sdRecConsent) window.sdRecConsent();
+}, true);
 
 /* ── THE HOME INTRO (0.14b, 2026-10-12) ────────────────────────────────────
    Eric: "a little transition animation between going from onboarding to
@@ -14092,7 +14376,7 @@ function sdIntroFly(cover) {
 }
 window.sdHomeIntro = function (go) {
   const reduce = sdReducedMotion();
-  const hosts = [...document.querySelectorAll('.s-onboarding')].filter(e => e.getBoundingClientRect().width);
+  const hosts = [...document.querySelectorAll('.s-onboarding, .s-auth')].filter(e => e.getBoundingClientRect().width);   // .s-auth: the guest skip (2026-10-23)
   if (reduce || typeof anime !== 'function' || !hosts.length || window._sdIntro) { go(); return; }
   window._sdIntro = true;
   const covers = hosts.map(h => {

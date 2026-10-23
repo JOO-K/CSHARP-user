@@ -336,6 +336,7 @@
    AUTH SCREEN
    ============================================================ */
 .s-auth {
+  position: relative;   /* the guest skip card (.sd-fb) is absolute inside it */
   background: var(--bg);
   flex: 1;
   display: flex;
@@ -1453,8 +1454,10 @@
 }
 .hstar.full  { background: var(--vinyl-gold, var(--star)); }
 .hstar.empty { background: var(--vinyl-empty, var(--text3)); }
+/* A half is HALF A DISC — the gold half only, no white half beside it (Eric,
+   2026-10-22: "no white CD shown for half-CD ratings"). Was gold | empty. */
 .hstar.half  {
-  background: linear-gradient(90deg, var(--vinyl-gold, var(--star)) 50%, var(--vinyl-empty, var(--text3)) 50%);
+  background: linear-gradient(90deg, var(--vinyl-gold, var(--star)) 50%, transparent 50%);
 }
 /* Unfilled vinyls read as part of the rating, not as background texture, so they
    get their own token rather than the very faint --text3 (which stays as the
@@ -5816,8 +5819,8 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
    stays there as the box grows down (Eric, 2026-09-24); the textarea keeps
    a right padding so the text never runs under it. */
 .v3-cmt-add-row { position: relative; display: block; }
-.v3-cmt-add-row .v3-cmt-input { width: 100%; padding-right: 58px; }
-.v3-cmt-add-row .v3-cmt-post { position: absolute; top: 4px; right: 4px; padding: 4px 10px; }
+.v3-cmt-add-row .v3-cmt-input { width: 100%; padding-right: 64px; }
+.v3-cmt-add-row .v3-cmt-post { position: absolute; top: 7px; right: 7px; padding: 4px 10px; }   /* 4 → 7px in from the corner (Eric, 2026-10-22: "not touching the edge") */
 /* Says where the next post will land — and is the way back out of reply mode. */
 .v3-cmt-to {
   align-self: flex-start;
@@ -5832,7 +5835,7 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
 .v3-cmt-to:hover { background: rgba(232,168,60,0.24); }
 .v3-cmt-input {
   flex: 1; min-width: 0;
-  padding: 6px 11px; border-radius: 12px;   /* the record box's corner, not a pill (Eric, 2026-09-24) */
+  padding: 6px 11px; border-radius: 6px;   /* 12 -> 6, less round (Eric, 2026-10-22) */
   border: 1px solid rgba(232,226,214,0.13);
   background: rgba(0,0,0,0.2);
   font-family: var(--font-main); font-size: 11px;
@@ -5842,7 +5845,7 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
      three when it has focus, and taller still as you type (cmtGrow sets the
      height to the content, up to eight lines). Same size type as before. */
   display: block; resize: none; line-height: 1.45;
-  height: auto; min-height: calc(1.45em + 14px); max-height: calc(1.45em * 12 + 14px);
+  height: auto; min-height: calc(1.45em * 2 + 14px); max-height: calc(1.45em * 12 + 14px);   /* TWO lines at rest (Eric, 2026-10-22: "2x row height") */
   overflow-y: auto; box-sizing: border-box;
   transition: min-height .18s ease, border-radius .18s ease;
 }
@@ -10046,6 +10049,11 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
   margin-inline: -12px;
 }
 .prof-fav-rail::-webkit-scrollbar { display: none; }
+/* A mouse can drag the wheel round (profFavDrag); say so. */
+@media (hover: hover) and (pointer: fine) {
+  .prof-fav-rail, .prof-fav-rail .prof-fav { cursor: grab; }
+  .prof-fav-rail.is-dragging, .prof-fav-rail.is-dragging .prof-fav { cursor: grabbing; }
+}
 /* ⚠ `.prof-fav-pad` is GONE, along with the ends it padded. The spacers existed
    so the FIRST and LAST disc could reach the centre — a looping rail has
    neither, and a spacer sitting at one of the seams would open a hole in the
@@ -12272,7 +12280,7 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
 /* The three toggles (csharpuser, 2026-09-25): the POPULAR belts round the
    words are gone with the ribbon. Air above and below the row; ON is the
    icon and the word in the toggle's colour, nothing else. */
-.sd-log-opts { margin: 12px 0 18px; justify-content: center; gap: 16px; }
+.sd-log-opts { margin: 6px 0 10px; justify-content: center; gap: 16px; }   /* 12/18 -> 6/10 (Eric, 2026-10-22: tighter above and below) */
 .sd-log-opt { flex: 0 0 auto; padding: 8px 10px; }
 .sd-log-opt, .sd-log-opt.on { background: none; box-shadow: none; transform: none; }
 .sd-log-opt-lbl { position: relative; }
@@ -13284,8 +13292,8 @@ html.sd-wire .wall2-art--artist[style*="url("] {
    big number centred over the five discs, which are a bit larger (46 → 56).
    The song rows' discs are larger too and tighter (20/4 → 24/1). --rec /
    --gap are what recFillWidth measures the fill in, so the fill follows. */
-.sd-log-rate { flex-direction: column; gap: 10px; --rec: 56px; --gap: 4px; }
-.sd-log-num { font-size: 44px; min-width: 0; text-align: center; }
+.sd-log-rate { flex-direction: column; gap: 6px; --rec: 56px; --gap: 4px; padding-bottom: 6px; }   /* gap 10 -> 6, bottom 13 -> 6 (Eric, 2026-10-22) */
+.sd-log-num { font-size: 30px; min-width: 0; text-align: center; }   /* 44 -> 30 (Eric, 2026-10-22: "the large number score are too large") */
 .sd-log-song-rate-track { --rec: 24px; --gap: 1px; }
 
 /* 0.13: the song rows' discs take the album control's gesture (see the
@@ -13608,12 +13616,111 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
 .s-home-v3--light.s-home-v3--album .v3-rev-score-n { color: #1a1208; }
 .s-home-v3--light.s-home-v3--album { --vinyl-empty: rgba(26,18,8,0.25); }
 /* Tracklist */
-.s-home-v3--light.s-home-v3--album .v3-song-row { color: #1a1208; border-top-color: rgba(26,18,8,0.08); }
-.s-home-v3--light.s-home-v3--album .v3-song-row:hover { background: rgba(26,18,8,0.04); }
-.s-home-v3--light.s-home-v3--album .v3-song-num,
-.s-home-v3--light.s-home-v3--album .v3-song-dur,
-.s-home-v3--light.s-home-v3--album .v3-song-cmt-n { color: rgba(26,18,8,0.45); }
-.s-home-v3--light.s-home-v3--album .v3-song-head,
-.s-home-v3--light.s-home-v3--album .v3-song-head * { color: rgba(26,18,8,0.4); }
-.s-home-v3--light.s-home-v3--album .v3-songs-more { border-color: rgba(26,18,8,0.08); color: #b06a2a; }
+/* + Trending's tracklist under the carousel (.s-wall2, 0.20 / 2026-10-22). */
+.s-home-v3--light.s-home-v3--album .v3-song-row, .s-home-v3--light.s-wall2 .v3-song-row { color: #1a1208; border-top-color: rgba(26,18,8,0.08); }
+.s-home-v3--light.s-home-v3--album .v3-song-row:hover, .s-home-v3--light.s-wall2 .v3-song-row:hover { background: rgba(26,18,8,0.04); }
+.s-home-v3--light.s-home-v3--album .v3-song-num, .s-home-v3--light.s-wall2 .v3-song-num,
+.s-home-v3--light.s-home-v3--album .v3-song-dur, .s-home-v3--light.s-wall2 .v3-song-dur,
+.s-home-v3--light.s-home-v3--album .v3-song-cmt-n, .s-home-v3--light.s-wall2 .v3-song-cmt-n { color: rgba(26,18,8,0.45); }
+.s-home-v3--light.s-home-v3--album .v3-song-head, .s-home-v3--light.s-wall2 .v3-song-head,
+.s-home-v3--light.s-home-v3--album .v3-song-head *, .s-home-v3--light.s-wall2 .v3-song-head * { color: rgba(26,18,8,0.4); }
+.s-home-v3--light.s-home-v3--album .v3-songs-more, .s-home-v3--light.s-wall2 .v3-songs-more { border-color: rgba(26,18,8,0.08); color: #b06a2a; }
 .s-home-v3--light.s-home-v3--album .v3-rev-count { color: rgba(26,18,8,0.45); }
+
+/* ── TRENDING: FRIENDS ON THIS ALBUM (0.20, 2026-10-22; paintWallFriends) ──
+   Faces stacked left to right, centred, the counts under them. The
+   ring is the page's own colour so each face cuts the one under it. */
+.wall2-friends {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;   /* faces centred over the counts (Eric, 2026-10-22) */
+  padding: 4px 12px 2px; margin-top: 6px; text-align: center;
+  font-family: var(--font-main); font-size: 12px; color: rgba(232,226,214,0.6);
+}
+.wall2-friends[hidden] { display: none; }
+.wall2-friends-stack { display: flex; flex-shrink: 0; }
+.wall2-friends-av {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: #2a2a2e center / cover no-repeat;
+  box-shadow: 0 0 0 2px #141416;
+  cursor: pointer;
+}
+.wall2-friends-av + .wall2-friends-av { margin-left: -8px; }
+.wall2-friends-more {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #e8e2d6; cursor: default;
+}
+.wall2-friends-txt b { font-weight: 700; color: #e8e2d6; }
+.s-home-v3--light.s-wall2 .wall2-friends { color: rgba(26,18,8,0.55); }
+.s-home-v3--light.s-wall2 .wall2-friends-txt b { color: #1a1208; }
+.s-home-v3--light.s-wall2 .wall2-friends-av { box-shadow: 0 0 0 2px #f1ece3; background-color: #ddd5c8; }
+.s-home-v3--light.s-wall2 .wall2-friends-more { color: #1a1208; }
+
+/* -- TRENDING: THE GENRE PICKER (0.20, 2026-10-22; wgOpen / wgSync) ----------
+   Full-screen over the wall, onboarding's bubble list (the wheel came out the
+   same day - Eric: "kinda crazy"), the
+   Pick genres button docked at the bottom once something is picked. The ob-*
+   pieces read the palette tokens, so the sheet carries the onboarding pair. */
+.wg-sheet {
+  --bg: #111116; --bg2: #16161c; --surface: #1c1c23; --surface2: #24242d;
+  --border: rgba(232,226,214,0.12); --text: #e8e2d6;
+  --text2: rgba(232,226,214,0.52); --text3: rgba(232,226,214,0.22);
+  --accent: #e6b866; --accent2: #cfa24f;
+  position: absolute; inset: 0; z-index: 50;
+  display: flex; flex-direction: column;
+  background: var(--bg); color: var(--text); font-family: var(--font-main);
+  animation: wgIn .28s cubic-bezier(.2, 0, 0, 1);
+}
+.wg-sheet.sd-theme-light {
+  --bg: #f0ece3; --bg2: #ece7dc; --surface: #ffffff; --surface2: #e7e0d3;
+  --border: rgba(26,18,8,0.14); --text: #1a1208;
+  --text2: rgba(26,18,8,0.55); --text3: rgba(26,18,8,0.32);
+  --accent: #a8742a; --accent2: #8a5f1f;
+}
+.wg-sheet[hidden] { display: none; }
+@keyframes wgIn { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.wg-top {
+  display: flex; align-items: center; gap: 8px;
+  padding: 18px 16px 10px; flex-shrink: 0;   /* the row lands where the app header sits */
+}
+.wg-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border: 0; border-radius: 50%;
+  background: var(--surface2); color: var(--text); cursor: pointer;
+}
+.wg-close svg { width: 16px; height: 16px; }
+.wg-title { flex: 1; font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
+.wg-stage {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 6px 24px 16px;
+  scrollbar-width: none;
+}
+.wg-stage::-webkit-scrollbar { display: none; }
+.wg-foot { flex-shrink: 0; padding: 10px 24px 34px; }
+.wg-go {
+  width: 100%; border: 0; border-radius: 999px; padding: 14px 18px;
+  background: var(--text); color: var(--bg);
+  font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  animation: obFade .24s ease;
+}
+.wg-go[hidden] { display: none; }
+.wall2-menu-more { border-top: 1px solid rgba(232,226,214,0.1); margin-top: 4px; padding-top: 9px; opacity: .85; }
+/* Trending's Genre chip is the LAST on the row (0.20, after New moved left of
+   it), so its menu anchors RIGHT or it hangs off the phone's edge. */
+.wall2-tabs .wall2-tab-genres { left: auto; right: 0; }
+/* Trending's tabs sit inside .wall2-scroll, whose 4px 12px padding made the bar
+   12px narrower each side and 4px lower than home's (Eric, 2026-10-23: "a bit
+   squished and lowered"). Bleed back out so the two bars measure the same. */
+.s-wall2 .wall2-bar.wall2-tabs { margin: -4px -12px 0; }
+
+/* Login page: the recording notice under the buttons (0.20, 2026-10-23 — it
+   used to be on the name popup, which is gone). */
+.auth-rec-note { margin: 18px 4px 0; font-size: 11px; line-height: 1.5; color: var(--text3); text-align: center; }
+
+/* Login page: only Log in as guest is live (0.20, 2026-10-23). */
+.s-auth .auth-off { opacity: .32; pointer-events: none; filter: grayscale(1); }
+.s-auth .auth-off input { cursor: default; }
+
+/* ONBOARDING: no picks dock (Eric, 2026-10-23: "the genres shouldnt stack up
+   at the bottom along with artists its super confusing"). The genre / artist /
+   album / people chips no longer pile up over Continue; what you picked shows
+   as pressed in the step itself. obSyncDock still runs — the dock is just never
+   shown, so the footer measures without it. */
+.s-onboarding .ob-picks-dock { display: none !important; }

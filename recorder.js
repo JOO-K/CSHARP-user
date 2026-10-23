@@ -34,10 +34,6 @@ const REC_CFG = {
   if (!REC_CFG.url || !REC_CFG.anonKey) { console.info('[rec] not configured — no recording'); return; }
 
   const NAME_KEY = 'spindeck-tester';
-  /* 0.13: the first-time name card also asks "skip onboarding?", so the app's
-     own skip popup stays out of the way when this card is coming. Set while
-     this file parses, before app.js's init runs on DOMContentLoaded. */
-  try { window.SD_REC_WILL_ASK = !localStorage.getItem(NAME_KEY); } catch (e) { window.SD_REC_WILL_ASK = false; }
   const FLUSH_MS = 8000, FLUSH_RAW = 150000, KEEPALIVE_MAX = 60000;
   const LIBS = [
     'https://cdn.jsdelivr.net/npm/rrweb@1.1.3/dist/rrweb.min.js',
@@ -213,10 +209,21 @@ const REC_CFG = {
     });
   }
 
+  /* 0.20 (Eric, 2026-10-23): NO NAME POPUP. The login page opens first and
+     carries the recording notice; the first tap on any of its buttons is the
+     consent (app.js calls sdRecConsent), and the session files under a
+     generated guest-xxxx name. A name saved before this keeps being used.
+     ask() is kept, unused. */
   function init() {
     let name = '';
     try { name = localStorage.getItem(NAME_KEY) || ''; } catch (e) {}
-    if (name) begin(name); else ask();
+    if (name) begin(name);
+    else window.sdRecConsent = function () {
+      window.sdRecConsent = null;
+      const n = 'guest-' + Math.random().toString(36).slice(2, 6);
+      try { localStorage.setItem(NAME_KEY, n); } catch (err) {}
+      begin(n);
+    };
     holdToAskAgain();
   }
   /* Hold the corner "sessions" link for three seconds (Eric, 2026-09-26) and

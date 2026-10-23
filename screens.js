@@ -978,18 +978,26 @@ function authHtml(light) {
           <img class="auth-logo-mark" src="images/spindeck-icon${light ? '' : '-white'}.png" alt="">
           <div class="auth-appname" role="img" aria-label="Spindeck"></div>
         </div>
+        <!-- 0.20 (Eric, 2026-10-23): everything but Log in as guest is GREYED
+             OUT and disabled — "thats the only one we want them to be using".
+             The handlers stay, so taking .auth-off / disabled back off is the
+             whole undo. -->
         <div class="auth-body">
-          <div class="field-group">
-            <div class="field"><label>Email</label><input type="email" placeholder="you@example.com"></div>
-            <div class="field"><label>Password</label><input type="password" placeholder="••••••••"></div>
+          <div class="field-group auth-off">
+            <div class="field"><label>Email</label><input type="email" placeholder="you@example.com" disabled></div>
+            <div class="field"><label>Password</label><input type="password" placeholder="••••••••" disabled></div>
           </div>
-          <button class="btn-primary" style="margin-top:8px" onclick="obStart()">Sign In</button>
+          <button class="btn-primary auth-off" style="margin-top:8px" onclick="obStart()" disabled>Sign In</button>
           <div class="divider" style="margin:16px 0">or</div>
-          <button class="btn-outline" onclick="obStart()">
+          <button class="btn-outline auth-off" onclick="obStart()" disabled>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
             Continue with Google
           </button>
-          <button class="link-btn" style="margin-top:20px" onclick="obStart()">Don't have an account? <span style="color:var(--accent)">Sign Up</span></button>
+          <!-- 0.20 (Eric, 2026-10-23): skip account creation from here. -->
+          <button class="btn-outline auth-guest" style="margin-top:10px" onclick="sdGuestLogin(this)">Log in as guest</button>
+          <button class="link-btn auth-off" style="margin-top:20px" onclick="obStart()" disabled>Don't have an account? <span style="color:var(--accent)">Sign Up</span></button>
+          <!-- The recording notice the name popup used to carry. -->
+          <p class="auth-rec-note">Your taps and the screens you visit are recorded (no camera, no mic) so we can see how the app gets used and improve it. By continuing you approve of this recording.</p>
         </div>
       </div>`;
 }
@@ -2681,43 +2689,53 @@ function wallHtml(light) {
                  ⚠ Like home's, the deck tints the shell it sits in to the front
                  cover's palette (fbGo ends in setMainAlbum + applyAlbumColorsUrl)
                  — which is what the wall did when the discovery deck was here. -->
-            ${friendsBentoHtml()}
-            <!-- 0.12 (Eric, 2026-10-02): no discovery deck on the wall, just the wall of albums.
-                 discoveryDeckHtml + renderDiscoveryDeck are kept; the render is a no-op without it. -->
-            <div class="wall2-bar">
-              <button class="wall2-cat wall2-sort${WALL_SORT === 'popular' ? ' active' : ''}" data-sort="popular"
-                      onclick="event.stopPropagation(); pickWallSort(this)">Albums</button>
-              <!-- 0.13 (Eric, 2026-10-03): Popular → Albums, Controversial → Artists.
-                   'popular' is still the albums sort's value; wallItems' controversial
-                   ranking stays for a bring-back. -->
-              <button class="wall2-cat wall2-sort${WALL_SORT === 'artists' ? ' active' : ''}" data-sort="artists"
-                      onclick="event.stopPropagation(); pickWallSort(this)">Artists</button>
+            <!-- 0.20 (Eric, 2026-10-22): TABS OVER THE CAROUSEL, like home's —
+                 Friends / Popular / New / Genre pick which albums the deck
+                 deals (wallDeckList, app.js). Home's bar classes, so the same
+                 chips and spacing. Active state and the genre list are painted
+                 by paintWallTabs, never interpolated (evaluated once at load).
+                 No backticks in here: template literal. -->
+            <div class="wall2-bar v3-feed-tabs wall2-tabs">
+              <button class="wall2-cat wall2-tab" data-wt="friends" onclick="event.stopPropagation(); pickWallTab(this)">Friends</button>
+              <button class="wall2-cat wall2-tab" data-wt="popular" onclick="event.stopPropagation(); pickWallTab(this)">Popular</button>
+              <button class="wall2-cat wall2-tab" data-wt="recent" onclick="event.stopPropagation(); pickWallTab(this)">New</button>
               <div class="wall2-menuwrap">
-                <button class="wall2-cat wall2-drop-btn" onclick="event.stopPropagation(); toggleWallPanel(this)">Genres <span class="wall2-chev">▾</span></button>
-                <div class="wall2-menu wall2-menu--genres" hidden>
-                  <button class="wall2-menu-item active" onclick="event.stopPropagation(); pickWallGenre(this)">Electronic</button>
-                  <button class="wall2-menu-item" onclick="event.stopPropagation(); pickWallGenre(this)">Hip-Hop</button>
-                  <button class="wall2-menu-item" onclick="event.stopPropagation(); pickWallGenre(this)">Indie</button>
-                  <button class="wall2-menu-item" onclick="event.stopPropagation(); pickWallGenre(this)">Jazz</button>
-                  <button class="wall2-menu-item" onclick="event.stopPropagation(); pickWallGenre(this)">Pop</button>
-                  <button class="wall2-menu-item" onclick="event.stopPropagation(); pickWallGenre(this)">R&amp;B / Soul</button>
-                  <button class="wall2-menu-item" onclick="event.stopPropagation(); pickWallGenre(this)">Rock</button>
-                </div>
-              </div>
-              <div class="wall2-menuwrap">
-                <button class="wall2-cat wall2-drop-btn" onclick="event.stopPropagation(); toggleWallPanel(this)"><span class="wall2-time-label">Week</span> <span class="wall2-chev">▾</span></button>
-                <div class="wall2-menu wall2-menu--time" hidden>
-                  <button class="wall2-menu-item wall2-time-opt active" onclick="event.stopPropagation(); pickWallTime(this)">This Week</button>
-                  <button class="wall2-menu-item wall2-time-opt" onclick="event.stopPropagation(); pickWallTime(this)">This Month</button>
-                  <button class="wall2-menu-item wall2-time-opt" onclick="event.stopPropagation(); pickWallTime(this)">Past 3 Months</button>
-                </div>
+                <button class="wall2-cat wall2-tab wall2-drop-btn" data-wt="genre" onclick="event.stopPropagation(); toggleWallPanel(this)"><span class="wall2-tab-genre">Genre</span> <span class="wall2-chev">▾</span></button>
+                <div class="wall2-menu wall2-menu--genres wall2-tab-genres" hidden></div>
               </div>
             </div>
-            <div class="wall2-grid">${wallGridHtml()}</div>
+            ${friendsBentoHtml()}
+            <!-- 0.20 (Eric, 2026-10-22): "take out the grid" on Trending. The
+                 Albums / Artists / Genres / Week bar and the album grid are gone;
+                 the page is just the friends carousel. wallGridHtml, pickWallSort
+                 and the menus are kept, and no-op without the grid. -->
+            <!-- 0.20 (Eric, 2026-10-22): in the grid's place, the FRONT cover's
+                 songs with their comment counts and ratings, the album page's
+                 tracklist exactly (populateSongList fills it from fbGo). -->
+            <!-- Friends tab only: which of your friends listened to / reviewed
+                 the front album, faces stacked (wallFriendsHtml, app.js). -->
+            <div class="wall2-friends" hidden></div>
+            <div class="v3-rev-songs wall2-songs"></div>
           </div>
         </div>
         ${nowBar()}
         ${bottomNav('wall')}
+        <!-- 0.20 (Eric, 2026-10-22): THE GENRE PICKER - onboarding's bubble list
+             (the wheel came out the same day), opened from More options in
+             the Genre menu. Pick genres (bottom) re-deals the deck and closes
+             it. app.js: WG_MIX / wgOpen / wgSync / wgCommit. No backticks here. -->
+        <div class="wg-sheet" hidden onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+          <div class="wg-top">
+            <button class="wg-close" type="button" aria-label="Back" onclick="wgClose(this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span class="wg-title">Genres</span>
+          </div>
+          <div class="wg-stage">
+            <div class="ob-glist wg-glist"></div>
+          </div>
+          <div class="wg-foot"><button class="wg-go" type="button" hidden onclick="wgCommit(this)">Pick genres</button></div>
+        </div>
       </div>`;
 }
 
