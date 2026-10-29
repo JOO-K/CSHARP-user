@@ -162,6 +162,12 @@
 >   carries `.auth-off` + `disabled` (greyed, inert; handlers kept).
 >   **Onboarding has no picks dock** — `.ob-picks-dock` is `display: none` (end
 >   of app.css); Eric found genres + artists piling up over Continue confusing.
+> - **REFERENCE LYRICS** (2026-10-28, ported from csharpuserlive e296cdb +
+>   4440c56, minus their logo-intro boot change). The keyboard composer gets a
+>   "Reference lyrics" pill (left of Done for a review, above the bar for a
+>   comment): the album's real tracklist (iTunes Search) and a song's lyrics
+>   (LRCLIB); a tapped line goes in wrapped in U+2063 and `sdLyricHl` paints it
+>   amber in comments and reviews. Touch phones only, like the composer.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.

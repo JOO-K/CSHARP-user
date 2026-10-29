@@ -653,7 +653,7 @@ function homeShellHtml(light, coversUp, cls) {
               <button class="v3-rev-filter active" data-f="popular" onclick="setReviewFilter(this)">Popular</button>
               <button class="v3-rev-filter" data-f="friends" onclick="setReviewFilter(this)">Friends</button>
               <button class="v3-rev-filter" data-f="new" onclick="setReviewFilter(this)">New</button>
-              <span class="v3-rev-count"></span>
+              <button class="v3-rev-filter" data-f="controversial" onclick="setReviewFilter(this)">Controversial</button>
             </div>
 
             <div class="v3-rev-list"></div>

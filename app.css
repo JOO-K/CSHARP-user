@@ -6753,7 +6753,7 @@ body.sd-return .s-home-v3--review .v3-body { animation: rvpIn .34s ease-out back
    the phone frame is a small box inside it, so the sheet would be sized off
    something the user never sees. Every other height in this block is a % for
    the same reason (the base sheet is `95% - 10px`). */
-.sd-log-sheet.sd-log-sheet--song { height: auto; max-height: 60%; }
+.sd-log-sheet.sd-log-sheet--song { height: 80%; max-height: 80%; }   /* was 60% (Eric, 2026-10-28) */
 /* A SONG's sheet is compact (Eric, 2026-09-18): the song's name alone up top
    — no cover, no album, no year — then the discs and Favourite. You tapped
    it from the album's own tracklist; the record is behind the sheet. */
@@ -13562,7 +13562,7 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
 /* 0.20 (2026-10-13): THE REVIEW SHEET IS ONE HEIGHT — Eric: "that popup to
    always be the same height like 70% of the screen height from the bottom".
    Was content-sized up to 90%; now 70% whatever the review, the body scrolls. */
-.v3-rsh { height: 70%; max-height: 70%; }
+.v3-rsh { height: 80%; max-height: 80%; }   /* 80% (Eric, 2026-10-28) */
 
 /* 0.20 (2026-10-13): THE "READY" POP — the moment a pull arms, the record
    bumps up and throws a ring. Stands in for a haptic: iOS gives a page no
@@ -13631,8 +13631,10 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
    Faces stacked left to right, centred, the counts under them. The
    ring is the page's own colour so each face cuts the one under it. */
 .wall2-friends {
-  display: flex; flex-direction: column; align-items: center; gap: 6px;   /* faces centred over the counts (Eric, 2026-10-22) */
-  padding: 4px 12px 2px; margin-top: 6px; text-align: center;
+  /* Faces centred over the counts (Eric, 2026-10-22). More air between the
+     faces and the line, and above/below the pair (Eric, 2026-10-28). */
+  display: flex; flex-direction: column; align-items: center; gap: 17px;
+  padding: 4px 12px 2px; margin: 25px 0 23px; text-align: center;
   font-family: var(--font-main); font-size: 12px; color: rgba(232,226,214,0.6);
 }
 .wall2-friends[hidden] { display: none; }
@@ -13724,3 +13726,94 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
    as pressed in the step itself. obSyncDock still runs — the dock is just never
    shown, so the footer measures without it. */
 .s-onboarding .ob-picks-dock { display: none !important; }
+
+/* 0.20 (Eric, 2026-10-28): THE ALBUM PAGE'S REVIEW TABS SPREAD like the other
+   tab rows — Popular · Friends · New · Controversial on space-between. The
+   review count that sat at the right end is gone (Controversial took its
+   place); `.v3-rev-count` is no longer in the markup. 4px sides, as the wall's
+   bar, so the words land on its lines. */
+.v3-rev-filters { justify-content: space-between; gap: 0; padding-left: 4px; padding-right: 4px; }
+
+/* 0.20 (Eric, 2026-10-28): THE REVIEW POPUP OPENS ON THE ALBUM — the record
+   line (cover · album / artist · CD) moved above the review in rshBodyHtml,
+   so its 14px moves from above it to below it. And 7px more air above and
+   below the review's text (8 -> 22 over it, 0 -> 14 under it; +7 twice). */
+.v3-rsh-record { margin: 4px 0 14px; }
+.v3-rsh-body .v3-fbr--sheet .v3-fbr-text { margin-top: 22px; margin-bottom: 14px; }
+
+
+/* Reference lyrics, ported from csharpuserlive (Eric, 2026-10-28). */
+/* csharpuserlive (2026-10-20): REFERENCE LYRICS (sdKbComposer, end of app.js).
+   The pill + panel ride above the keyboard bar; a tapped line lands in the
+   text as a `.sd-lyric`, in amber. In the bar the textarea goes see-through
+   (`.is-hl`) over `.sd-kb-hl`, which paints the same text with the colour. */
+.sd-lyric { color: #e8a83c; background: rgba(232,168,60,0.12); border-radius: 4px; }
+.s-home-v3--light .sd-lyric, .sd-theme-light .sd-lyric, .sd-kb-bar.is-light .sd-lyric { color: #b0700c; background: rgba(176,112,12,0.1); }
+.sd-kb-hl {
+  position: absolute; z-index: 0; margin: 0; overflow: hidden; pointer-events: none;
+  white-space: pre-wrap; overflow-wrap: break-word; word-break: normal;
+}
+.sd-kb-input { position: relative; z-index: 1; }
+.sd-kb-input.is-hl { background: transparent !important; color: transparent !important; }
+.sd-kb-lyr {
+  position: fixed; z-index: 10002; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 8px; padding: 0 10px 8px;
+  font-family: var(--font-main, 'DM Sans', sans-serif);
+}
+.sd-kb-lyr[hidden], .sd-kb-lyr-panel[hidden] { display: none; }
+.sd-kb-lyr-btn {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 13px; border-radius: 16px; border: none; cursor: pointer;
+  background: #24242c; color: #e8e2d6; font: 600 13px var(--font-main, 'DM Sans', sans-serif);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+}
+.sd-kb-lyr-btn span { color: #e8a83c; font-size: 14px; }
+.sd-kb-lyr-btn.is-on { background: #e8a83c; color: #1a1208; }
+.sd-kb-lyr-btn.is-on span { color: #1a1208; }
+.sd-kb-lyr-panel {
+  order: -1; border-radius: 16px; background: #18181e; overflow: hidden;
+  border: 1px solid rgba(232,226,214,0.1); box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+}
+.sd-kb-lyr-songs {
+  display: flex; gap: 6px; overflow-x: auto; padding: 10px 10px 8px; scrollbar-width: none;
+  border-bottom: 1px solid rgba(232,226,214,0.08);
+}
+.sd-kb-lyr-songs::-webkit-scrollbar { display: none; }
+.sd-kb-lyr-songs:empty { display: none; }
+.sd-kb-lyr-song {
+  flex-shrink: 0; height: 28px; padding: 0 11px; border-radius: 14px; border: none; cursor: pointer;
+  background: rgba(232,226,214,0.08); color: rgba(232,226,214,0.75);
+  font: 500 12.5px var(--font-main, 'DM Sans', sans-serif); white-space: nowrap;
+}
+.sd-kb-lyr-song.is-on { background: #e8e2d6; color: #18181e; }
+.sd-kb-lyr-lines { overflow-y: auto; overscroll-behavior: contain; padding: 4px 0; max-height: 220px; }
+.sd-kb-lyr-line {
+  display: block; width: 100%; text-align: left; border: none; background: none; cursor: pointer;
+  padding: 7px 14px; color: #e8e2d6; font: 400 14.5px/1.35 var(--font-main, 'DM Sans', sans-serif);
+}
+.sd-kb-lyr-line:active { background: rgba(232,168,60,0.14); }
+.sd-kb-lyr-line.is-used { color: #e8a83c; }
+.sd-kb-lyr-msg { padding: 14px; color: rgba(232,226,214,0.5); font-size: 13.5px; }
+.sd-kb-lyr-src { padding: 6px 14px 8px; color: rgba(232,226,214,0.35); font-size: 11px; }
+.sd-kb-lyr.is-light .sd-kb-lyr-btn { background: #fff; color: #1a1208; }
+.sd-kb-lyr.is-light .sd-kb-lyr-btn.is-on { background: #e8a83c; }
+.sd-kb-lyr.is-light .sd-kb-lyr-panel { background: #f7f4ee; border-color: rgba(26,18,8,0.1); }
+.sd-kb-lyr.is-light .sd-kb-lyr-songs { border-bottom-color: rgba(26,18,8,0.08); }
+.sd-kb-lyr.is-light .sd-kb-lyr-song { background: rgba(26,18,8,0.06); color: rgba(26,18,8,0.7); }
+.sd-kb-lyr.is-light .sd-kb-lyr-song.is-on { background: #1a1208; color: #f7f4ee; }
+.sd-kb-lyr.is-light .sd-kb-lyr-line { color: #1a1208; }
+.sd-kb-lyr.is-light .sd-kb-lyr-line.is-used { color: #b0700c; }
+.sd-kb-lyr.is-light .sd-kb-lyr-msg, .sd-kb-lyr.is-light .sd-kb-lyr-src { color: rgba(26,18,8,0.45); }
+/* Review mode: Reference lyrics shares the top row with Done (pill left, Done
+   right), the box wraps under them. Done keeps the right edge on its own. */
+.sd-kb-bar.is-review, .sd-kb-bar.is-review.is-light { flex-direction: row; flex-wrap: wrap; align-items: center; }
+.sd-kb-bar.is-review .sd-kb-act { margin-left: auto; }
+.sd-kb-bar .sd-kb-lyr-btn { order: -2; box-shadow: none; }
+.sd-kb-lyr-btn[hidden] { display: none; }
+.sd-kb-bar.is-light .sd-kb-lyr-btn { background: rgba(26,18,8,0.08); color: #1a1208; }
+.sd-kb-bar.is-light .sd-kb-lyr-btn.is-on { background: #e8a83c; color: #1a1208; }
+/* (Eric, 2026-10-28) The stack is the text box's width (place() sets it from
+   the box), so no side padding; the bottom 8px only spaces the comment pill
+   off the bar. */
+.sd-kb-lyr { padding: 0 0 8px; }
+
