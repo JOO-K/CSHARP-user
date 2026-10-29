@@ -4423,6 +4423,38 @@ function wallFriendsFor(album) {
   const favorited = [...new Set(loved.concat(listened.filter(() => rnd() < 0.3)))].filter(u => listened.includes(u));
   return { reviewed, listened, favorited };
 }
+/* TRENDING: THE FRONT ALBUM'S REVIEWS (0.20, Eric 2026-10-28: "replace the
+   songs with reviews and also have a quick review circle right above the other
+   reviews, just so this page looks different from the album page"). The album
+   page's own list (populateReviewList, Popular order, same keys so likes and
+   threads are shared) cut to WALL_REVS_SHOWN, then "See all reviews" — the
+   album page glided down to its list. The circle is syncQuickLog's, painted
+   from the front album's draft. */
+const WALL_REVS_SHOWN = 5;
+function wallPaintReviews(scr, album) {
+  const list = scr.querySelector('.wall2-revs');
+  if (!list || !album) return;
+  populateReviewList(scr, 'popular');
+  [...list.querySelectorAll(':scope > .v3-rev-card')].slice(WALL_REVS_SHOWN).forEach(c => c.remove());
+  if (revsFor(album).length > WALL_REVS_SHOWN) list.insertAdjacentHTML('beforeend',
+    `<button class="v3-songs-more wall2-revs-more" onclick="event.stopPropagation(); wallAllReviews(this)">See all reviews</button>`);
+  syncQuickLog(scr, album);
+}
+window.wallAllReviews = function (el) {
+  const scr = el.closest('.s-home-v3');
+  if (!scr || !scr._album) return;
+  openAlbumPage(scr._album);
+  setTimeout(fbGlideToReviews, 400);   // as the deck's comment pill does
+};
+// The circle: the log sheet on the FRONT album (openLogSheet alone reads the
+// first visible shell's album, which need not be this one).
+window.wallRateTap = function (el) {
+  const scr = el.closest('.s-home-v3');
+  const a = scr && scr._album;
+  if (!a) return;
+  openLogSheet(el, { image: a.image, title: a.album, subtitle: a.artist, year: a.year || '' });
+};
+
 function paintWallFriends(screenEl, album) {
   const box = screenEl.querySelector('.wall2-friends');
   if (!box) return;
@@ -4507,7 +4539,7 @@ function renderFriendsBento(screenEl) {
   const list = onWall ? wallDeckList() : fbReviews();
   if (!list.length) {
     fb.hidden = true;
-    if (onWall) { paintWallFriends(screenEl, null); const sg = screenEl.querySelector('.wall2-songs'); if (sg) sg.innerHTML = ''; }
+    if (onWall) { paintWallFriends(screenEl, null); const rv = screenEl.querySelector('.wall2-revs'); if (rv) rv.innerHTML = ''; }
     return;
   }
   fb.hidden = false;
@@ -4798,7 +4830,7 @@ function fbGo(screenEl, i) {
   setMainAlbum(screenEl, album, false);
   applyAlbumColorsUrl(screenEl, album.image);
   // Trending (0.20): the front album's friends row and tracklist under the deck.
-  if (screenEl.classList.contains('s-wall2')) { paintWallFriends(screenEl, album); populateSongList(screenEl); }
+  if (screenEl.classList.contains('s-wall2')) { paintWallFriends(screenEl, album); wallPaintReviews(screenEl, album); }
 }
 
 /* A TAP ON A SIDE (Eric, 2026-09-23: "if I click on the left or right can I
@@ -9468,6 +9500,8 @@ window.closeLogSheet = function() {
   // (Not `forEach(syncQuickLog)` — that hands the array INDEX in as the album,
   // so the second shell read albumDraft(1) → {} and was wiped on every close.)
   homeShells().forEach(s => syncQuickLog(s));
+  // Trending's circle and list too (no .v3-album there, so homeShells skips it).
+  document.querySelectorAll('.s-wall2').forEach(s => { if (s._album) wallPaintReviews(s, s._album); });
   // Opened from the +'s list and closed without posting → back to that list.
   const fromQuick = window._sdlogFromQuick;
   window._sdlogFromQuick = null;
