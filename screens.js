@@ -2715,11 +2715,10 @@ function wallHtml(light) {
             <!-- Friends tab only: which of your friends listened to / reviewed
                  the front album, faces stacked (wallFriendsHtml, app.js). -->
             <div class="wall2-friends" hidden></div>
-            <!-- 0.20 (Eric, 2026-10-28): the songs gave way to REVIEWS, with the
-                 album page's round rate button over them, so Trending stops
-                 looking like the album page. wallPaintReviews (app.js) fills
-                 both from fbGo; the circle opens the sheet on the FRONT album. -->
-            <div class="v3-rev-mine wall2-rate">${rateGroupHtml().replace('openLogSheet(this);', 'wallRateTap(this);')}</div>
+            <!-- 0.20 (Eric, 2026-10-28): the songs gave way to REVIEWS, so Trending
+                 stops looking like the album page. wallPaintReviews (app.js) fills
+                 them from fbGo. (A half-size rate circle sat over them for an
+                 hour; Eric took it out.) -->
             <div class="v3-rev-list wall2-revs"></div>
           </div>
         </div>

@@ -13817,13 +13817,12 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
    off the bar. */
 .sd-kb-lyr { padding: 0 0 8px; }
 
-/* 0.20 (Eric, 2026-10-28): TRENDING'S REVIEWS + RATE CIRCLE (wallPaintReviews).
-   The album page's review cards and round rate button, under the friends row.
+/* 0.20 (Eric, 2026-10-28): TRENDING'S REVIEWS (wallPaintReviews). The album
+   page's review cards, under the friends row (no rate circle: it came out).
    Their album-page rules are copied below with `.s-wall2` in place of
    `.s-home-v3--album` (the cards drop their record art there too: the cover
    is the carousel right above). `.wall2-scroll` already pads 12px a side, so
-   the list and the circle's column lose their own side margins. */
-.s-wall2 .v3-rev-mine.wall2-rate { flex: none; margin-top: 14px; padding: 0; }
+   the list loses its own side margins. */
 .s-wall2 .v3-rev-list.wall2-revs { margin: 0; }
 .s-wall2 .wall2-revs-more { margin-top: 6px; }
 .s-home-v3--light.s-wall2 .v3-rev-card { border-bottom-color: rgba(26,18,8,0.1); }
@@ -13844,20 +13843,3 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
 .s-home-v3--light.s-wall2 .v3-rev-card--page.v3-rev-card--split .v3-rev-big-n { color: #1a1208; }
 .s-home-v3--light.s-wall2 .v3-rev-card--page.v3-rev-card--split .v3-rev-record-artist { color: rgba(26,18,8,0.6); }
 .s-home-v3--light.s-wall2 .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up--heart.is-on { color: #e0396e; }
-.s-home-v3--light.s-wall2 .v3-rate-group { color: rgba(26,18,8,0.75); }
-.s-home-v3--light.s-wall2 .v3-rg-wing,
-.s-home-v3--light.s-wall2 .v3-rg-disc { fill: rgba(26,18,8,0.04); stroke: rgba(26,18,8,0.16); }
-.s-home-v3--light.s-wall2 .v3-rate-group:has(.v3-rg-rate.is-rated) .v3-rg-disc { fill: rgba(26,18,8,0.04); stroke: var(--star, #e8a83c); }
-.s-home-v3--light.s-wall2 .v3-rg-word,
-.s-home-v3--light.s-wall2 .v3-rg-word--sm { color: #1a1208; }
-.s-home-v3--light.s-wall2 .v3-rg-blank { fill: rgba(26,18,8,0.22); }
-.s-home-v3--light.s-wall2 .v3-rg-rate.is-rated { color: #1a1208; --vinyl-empty: rgba(26,18,8,0.25); }
-.s-home-v3--light.s-wall2 .v3-rg-rate .v3-rg-did,
-.s-home-v3--light.s-wall2 .v3-rg-rate .v3-rg-wrote { color: rgba(26,18,8,0.7); }
-/* Half size on Trending (Eric, 2026-10-28: "make this rate button smaller like
-   half the size"). Half the width (83% -> 41.5%) and half the album page's
-   negative bottom margin, which is a % of the column too; the words inside are
-   set in px, so the button's CONTENT is zoomed to half (its box is a % of the
-   group and already shrank with it). */
-.s-wall2 .wall2-rate .v3-rate-group { width: 41.5%; margin-bottom: calc(10px - 8.87%); }
-.s-wall2 .wall2-rate .v3-rg-rate > * { zoom: 0.5; }

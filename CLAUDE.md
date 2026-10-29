@@ -163,12 +163,10 @@
 >   **Onboarding has no picks dock** — `.ob-picks-dock` is `display: none` (end
 >   of app.css); Eric found genres + artists piling up over Continue confusing.
 > - **TRENDING: REVIEWS, NOT SONGS** (Eric, 2026-10-28). Under the friends row
->   the tracklist gave way to a half-size rate circle (`rateGroupHtml`, its
->   tap swapped for `wallRateTap` so the sheet opens on the FRONT album) and
->   the front album's reviews (`wallPaintReviews`: populateReviewList cut to
+>   the tracklist gave way to the front album's reviews (`wallPaintReviews`: populateReviewList cut to
 >   5, then "See all reviews" -> the album page glided to its list), from fbGo.
->   The album page's card/circle rules are copied with `.s-wall2` at the end
->   of app.css. `closeLogSheet` repaints the wall too (homeShells skips it).
+>   (A half-size rate circle sat over them for an hour; Eric took it out.)
+>   The album page's card rules are copied with `.s-wall2` at the end of app.css. `closeLogSheet` repaints the wall too (homeShells skips it).
 > - **REFERENCE LYRICS** (2026-10-28, ported from csharpuserlive e296cdb +
 >   4440c56, minus their logo-intro boot change). The keyboard composer gets a
 >   "Reference lyrics" pill (left of Done for a review, above the bar for a

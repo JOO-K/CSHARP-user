@@ -4425,11 +4425,10 @@ function wallFriendsFor(album) {
 }
 /* TRENDING: THE FRONT ALBUM'S REVIEWS (0.20, Eric 2026-10-28: "replace the
    songs with reviews and also have a quick review circle right above the other
-   reviews, just so this page looks different from the album page"). The album
-   page's own list (populateReviewList, Popular order, same keys so likes and
-   threads are shared) cut to WALL_REVS_SHOWN, then "See all reviews" — the
-   album page glided down to its list. The circle is syncQuickLog's, painted
-   from the front album's draft. */
+   reviews, just so this page looks different from the album page"; the circle
+   came out the same day). The album page's own list (populateReviewList,
+   Popular order, same keys so likes and threads are shared) cut to
+   WALL_REVS_SHOWN, then "See all reviews" — the album page glided down to its list. */
 const WALL_REVS_SHOWN = 5;
 function wallPaintReviews(scr, album) {
   const list = scr.querySelector('.wall2-revs');
@@ -4438,21 +4437,12 @@ function wallPaintReviews(scr, album) {
   [...list.querySelectorAll(':scope > .v3-rev-card')].slice(WALL_REVS_SHOWN).forEach(c => c.remove());
   if (revsFor(album).length > WALL_REVS_SHOWN) list.insertAdjacentHTML('beforeend',
     `<button class="v3-songs-more wall2-revs-more" onclick="event.stopPropagation(); wallAllReviews(this)">See all reviews</button>`);
-  syncQuickLog(scr, album);
 }
 window.wallAllReviews = function (el) {
   const scr = el.closest('.s-home-v3');
   if (!scr || !scr._album) return;
   openAlbumPage(scr._album);
   setTimeout(fbGlideToReviews, 400);   // as the deck's comment pill does
-};
-// The circle: the log sheet on the FRONT album (openLogSheet alone reads the
-// first visible shell's album, which need not be this one).
-window.wallRateTap = function (el) {
-  const scr = el.closest('.s-home-v3');
-  const a = scr && scr._album;
-  if (!a) return;
-  openLogSheet(el, { image: a.image, title: a.album, subtitle: a.artist, year: a.year || '' });
 };
 
 function paintWallFriends(screenEl, album) {
