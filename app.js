@@ -14303,13 +14303,34 @@ window.sdGuestLogin = function (btn) {
       <button class="sd-fb-send" type="button" data-go="skip">Skip onboarding</button>
       <button class="sd-obskip-stay" type="button" data-go="stay">No, set me up</button>
     </div>`;
+  /* TWO QUESTIONS, SKIP FIRST (Eric, 2026-11-03: "ask if they want to skip
+     onboarding then full or wireframe"; on 11-02 the version came first).
+     The skip answer is held, the card turns into the version question, and
+     the version answer sets the same Wireframe | Images mode as the switch in
+     Notifications (sdSetViewMode) — then the held answer runs: home with the
+     intro, or onboarding from step 1. */
+  let skip = null;
+  const askVersion = () => {
+    ov.querySelector('.sd-fb-card').outerHTML = `
+    <div class="sd-fb-card" role="dialog" aria-modal="true" aria-label="Which version?">
+      <div class="sd-fb-hd"><span class="sd-fb-title">Which version do you want?</span></div>
+      <p class="sd-obskip-note">The full version has real albums, artists and photos. The wireframe shows placeholders in their place.</p>
+      <button class="sd-fb-send" type="button" data-go="full">Full version</button>
+      <button class="sd-obskip-stay" type="button" data-go="wire">Wireframe</button>
+    </div>`;
+  };
   host.appendChild(ov);
   const close = () => { ov.classList.remove('open'); setTimeout(() => ov.remove(), 200); };
   ov.addEventListener('click', e => {
     const b = e.target.closest('[data-go]');
     if (!b) { if (e.target === ov) close(); return; }
-    if (b.dataset.go === 'skip') { sdSkipOnboarding(); return; }
-    close(); obStart();
+    const go = b.dataset.go;
+    if (go === 'skip' || go === 'stay') { skip = go === 'skip'; askVersion(); return; }
+    if (go === 'full' || go === 'wire') {
+      sdSetViewMode(go === 'full' ? 'images' : 'wire');
+      if (skip) { sdSkipOnboarding(); return; }
+      close(); obStart();
+    }
   });
   requestAnimationFrame(() => ov.classList.add('open'));
 };
