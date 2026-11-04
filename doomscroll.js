@@ -8,6 +8,13 @@
    colours (the same computeAlbumColors the bento uses). When a preview ends the
    feed moves on to the next album.
 
+   Round 23: albums with no preview are taken out of the feed (prune);
+   Deezer's tile is the real 2023 mark (SD_SERVICES, screens.js).
+
+   Round 22: a cover spins in only once loaded (it used to leave the disc
+   see-through); Reviews opens a sheet inside the feed so you read while
+   the preview plays.
+
    Round 20: the CD stays put while the pages swipe under it; changing
    album spins the old disc out and the new one in (placeFixCd / swapFixCd).
 
@@ -121,7 +128,7 @@
     genres: [],                             // the sheet's committed picks (mode 'genres')
     gpick: new Set(), gopen: new Set(),     // the sheet's working picks / expanded mains
     resume: null,                           // where to land when Back returns from the album page
-    gfTok: 0,                               // the latest genre pick (a slow fetch for an older one is dropped)
+    gfTok: 0, fxTok: 0,                               // the latest genre pick (a slow fetch for an older one is dropped)
   };
 
   const esc = s => String(s == null ? '' : s)
@@ -372,6 +379,17 @@
         </div>
       </div>
       <div class="ds-scroll"></div>
+      <div class="ds-rsheet" hidden>
+        <div class="ds-rscrim" onclick="event.stopPropagation(); sdDoomReviewsClose()"></div>
+        <div class="ds-rpanel">
+          <div class="ds-gnub" onclick="sdDoomReviewsClose()"></div>
+          <div class="ds-rhd">
+            <div class="ds-rhd-t"><b>Reviews</b><span class="v3-rev-count"></span></div>
+            <button class="ds-rpage" onclick="event.stopPropagation(); sdDoomReviewsPage()">Album page ›</button>
+          </div>
+          <div class="ds-rbody"><div class="v3-rev-list"></div></div>
+        </div>
+      </div>
       <div class="ds-fixcd" aria-hidden="true">
         <div class="ds-fx cur"><div class="ds-disc"><span class="ds-hole"></span></div></div>
         <div class="ds-fx"><div class="ds-disc"><span class="ds-hole"></span></div></div>
@@ -429,7 +447,7 @@
         <div class="ds-rail-svcs"><span class="ds-rail-sep"></span>${svc}</div>
       </div>
       <div class="ds-lrail">
-        <button class="ds-rbtn ds-cmt" aria-label="Reviews and comments" onclick="event.stopPropagation(); sdDoomOpenAlbum(${i})">${ICO.cmt}<span>Reviews</span></button>
+        <button class="ds-rbtn ds-cmt" aria-label="Reviews and comments" onclick="event.stopPropagation(); sdDoomReviews(${i})">${ICO.cmt}<span>Reviews</span></button>
         <button class="ds-rbtn ds-add${d.rating > 0 || (d.text || '').trim() ? ' on' : ''}" aria-label="Write a review" onclick="event.stopPropagation(); sdDoomReview(this, ${i})">${ICO.plus}<span>Review</span></button>
       </div>`;
   }
@@ -529,6 +547,26 @@
     });
   }
 
+  const hasPreview = l => !!(l && l.some(t => t.preview));
+  // Take album j's card out of the feed. One you've already scrolled past stays
+  // (removing it would shift the page under you); the one on screen goes and
+  // the next slides into its place.
+  function prune(j) {
+    if (!DS.root || j < DS.active) return;
+    const c = cardAt(j);
+    if (!c) return;
+    if (DS.obs) DS.obs.unobserve(c);
+    const wasActive = j === DS.active;
+    c.remove();
+    if (wasActive) {
+      DS.active = -2;                                   // not -1: the next disc should still spin in
+      const nextCard = [...DS.scroller.querySelectorAll('.ds-card')].find(x => +x.dataset.i > j);
+      if (nextCard) setActive(+nextCard.dataset.i);
+    }
+    const ahead = [...DS.scroller.querySelectorAll('.ds-card')].filter(x => +x.dataset.i > DS.active).length;
+    if (ahead < 3) appendBatch();
+  }
+
   function appendBatch() {
     const from = DS.shown, to = Math.min(DS.list.length, from + BATCH);
     if (from >= to) return;
@@ -543,7 +581,13 @@
     });
     DS.shown = to;
     // warm the next couple of tracklists so the songs are there on arrival
-    DS.list.slice(from, Math.min(to, from + 3)).forEach(a => tracksFor(a));
+    /* NO PREVIEW, NO CARD (round 23: "its weird to get recommended something
+       and it says preview not available"). Every new card's songs are asked
+       for now, and a card whose album turns out to have no preview at all is
+       taken out before you reach it (prune). Deezer calls are paced by dz(). */
+    const tok = DS.buildTok;
+    DS.list.slice(from, to).forEach((a, k) => tracksFor(a).then(l => { if (tok === DS.buildTok && !hasPreview(l)) prune(from + k); }));
+    DS.list.slice(from, to).forEach(a => { const im = new Image(); im.src = a.image; });   // covers warm before they spin in
   }
 
   /* ── playback + volume ────────────────────────────────────────────────── */
@@ -748,7 +792,21 @@
     // cover glide would land on a dot): apply, flush, then turn the glide on.
     if (!fx.classList.contains('placed')) { void fx.offsetWidth; fx.classList.add('placed'); }
   }
+  /* ⚠ A cover that had not LOADED yet left the disc see-through — just the
+     hole and the sheen over the page, i.e. "the album doesn't cover the whole
+     CD" (round 22). Now the new disc waits for its image to decode (600ms at
+     most) before it spins in, the discs have a dark vinyl base under the
+     art, and covers a few cards ahead are warmed in appendBatch. */
   function swapFixCd(a, first) {
+    if (!a) return;
+    const tok = ++DS.fxTok;
+    const im = new Image();
+    im.src = a.image;
+    const ready = im.decode ? im.decode().catch(() => {}) : Promise.resolve();
+    if (first) { swapFixCdNow(a, true); return; }
+    Promise.race([ready, new Promise(r => setTimeout(r, 600))]).then(() => { if (tok === DS.fxTok) swapFixCdNow(a, false); });
+  }
+  function swapFixCdNow(a, first) {
     const fx = DS.root && DS.root.querySelector('.ds-fixcd');
     if (!fx || !a) return;
     const img = `url("${String(a.image).replace(/"/g, '%22')}")`;
@@ -779,6 +837,7 @@
     el.pause();
     tracksFor(a).then(list => {
       if (gen !== DS.gen || !DS.root) return;
+      if (!hasPreview(list)) { prune(i); return; }   // nothing to play: the next album takes its place
       if (n == null) { const first = list && ordered(list).find(t => t.preview); DS.track = first ? first.n : -1; }
       else DS.track = n;
       paintTracks(card, list);
@@ -795,7 +854,7 @@
 
   function setActive(i) {
     if (i === DS.active) return;
-    const first = DS.active < 0;
+    const first = DS.active === -1;                // a fresh deal (-2 = a pruned card handing over)
     DS.active = i;
     swapFixCd(DS.list[i], first);
     placeFixCd();
@@ -902,6 +961,7 @@
   function build(resume) {
     if (DS.obs) DS.obs.disconnect();
     DS.list = listFor();
+    DS.buildTok = (DS.buildTok || 0) + 1;
     DS.landing = null;
     DS.shown = 0; DS.active = -1; DS.gen++;
     DS.scroller.innerHTML = DS.list.length ? '' :
@@ -1185,6 +1245,47 @@
   const _navTab = window.sdNavTab;
   if (typeof _navTab === 'function') {
     window.sdNavTab = function () { DS.resume = null; return _navTab.apply(this, arguments); };
+  }
+
+  /* REVIEWS WHILE YOU LISTEN (round 22). The left rail's Reviews opens a sheet
+     over the lower part of the feed — the CD keeps spinning above it and the
+     preview keeps playing. The cards are the album page's own
+     (populateReviewList, given the panel as its "screen": it only needs
+     _album and a .v3-rev-list inside), so likes, threads and the review popup
+     (z 220, above this overlay) all work. "Album page ›" is the old route. */
+  window.sdDoomReviews = function (i) {
+    const a = DS.list[i], sh = DS.root && DS.root.querySelector('.ds-rsheet');
+    if (!a || !sh || typeof populateReviewList !== 'function') return;
+    const panel = sh.querySelector('.ds-rpanel');
+    panel._album = a;
+    DS.rsheetI = i;
+    populateReviewList(panel, 'popular');
+    sh.querySelector('.ds-rbody').scrollTop = 0;
+    sh.hidden = false;
+    requestAnimationFrame(() => sh.classList.add('open'));
+    haptic();
+  };
+  window.sdDoomReviewsClose = function () {
+    const sh = DS.root && DS.root.querySelector('.ds-rsheet');
+    if (!sh || sh.hidden) return;
+    sh.classList.remove('open');
+    setTimeout(() => { if (!sh.classList.contains('open')) sh.hidden = true; }, 280);
+  };
+  window.sdDoomReviewsPage = function () {
+    const i = DS.rsheetI;
+    window.sdDoomReviewsClose();
+    if (i != null) window.sdDoomOpenAlbum(i);
+  };
+
+  /* Anything that navigates away while the feed is up (a face in a review →
+     that profile) takes the feed down first, or the preview would keep
+     playing over the next screen. */
+  const _navigate = window.navigate;
+  if (typeof _navigate === 'function') {
+    window.navigate = function () {
+      if (DS.root) window.sdDoomClose();
+      return _navigate.apply(this, arguments);
+    };
   }
 
   window.sdDoomService = function (btn, i, svc) {
