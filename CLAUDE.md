@@ -173,6 +173,25 @@
 >   comment): the album's real tracklist (iTunes Search) and a song's lyrics
 >   (LRCLIB); a tapped line goes in wrapped in U+2063 and `sdLyricHl` paints it
 >   amber in comments and reviews. Touch phones only, like the composer.
+> - **SWIPE MODE (beta)** (Eric, 2026-11-03; `doomscroll.js` + `doomscroll.css`,
+>   self-contained, header comment has every round). Trending's tab row ends in
+>   **Swipe** (beta tag) where the Genre tab was; it opens a full-screen
+>   TikTok-style feed inside the phone screen: one album per screen as a CD that
+>   spins while a 30s **Deezer** preview plays, big score + discs above (the discs
+>   are the quick-rate), songs below (scrollable, 5 shown, Chrono · Popular by
+>   Deezer `rank`, per-song heart = `song::` fav), a preview end plays the NEXT
+>   SONG (only a swipe changes album). Right rail Like · Listened · Later +
+>   Deezer · Apple · Spotify · YT; left rail Reviews · Review. Top: **For You**
+>   (onboarding's `OB.genres`, kept in `sd-doom-taste`) and a genre sheet
+>   (`SD_GENRE_TREE`). A thin genre is topped up from Deezer (chart/<id>/albums
+>   or a playlist search) and cached per genre for 3 days (`sd-genre-cache-v1`).
+>   Audio runs through a Web Audio GainNode (iOS ignores `audio.volume`; Deezer's
+>   preview CDN allows CORS) at 25% desktop / full on touch; the bottom line is a
+>   canvas ribbon of the song's loudness. Album/artist names and Reviews open
+>   those pages; Back re-opens the feed where you were (goBack wrapper), the
+>   cover gliding into the CD (sdFindCoverHome hooked lazily — morph.js loads
+>   after) or a circle reveal when the cover is out of sight. `fetchPreviewUrl`
+>   (app.js) now uses Deezer too.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.

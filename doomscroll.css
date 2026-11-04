@@ -1,0 +1,295 @@
+/* ══ SCROLL MODE — the Trending page's full-screen feed (doomscroll.js) ══════
+   Mounted inside the phone's .app-screen (absolute, inset 0), the same way the
+   log sheet is, so it stays in the phone frame on desktop. z-index sits UNDER
+   the log sheet's overlay (200) so the + button's sheet comes up over it. */
+
+.ds-host { position: relative; }
+
+.ds-entry {
+  display: flex; align-items: center; gap: 10px;
+  width: calc(100% - 20px); margin: 10px 10px 4px; padding: 11px 14px;
+  border: 1px solid rgba(255,255,255,.12); border-radius: 14px;
+  background: linear-gradient(120deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+  color: inherit; font: 600 14px/1.2 var(--font-main); text-align: left; cursor: pointer;
+}
+.ds-entry-ico {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--star, #e8a83c); color: #111;
+}
+.ds-entry-ico svg { width: 13px; height: 13px; margin-left: 2px; fill: currentColor; }
+.ds-entry-sub { display: block; font-weight: 400; font-size: 12px; opacity: .6; margin-top: 2px; }
+.ds-entry-go { margin-left: auto; opacity: .5; font-size: 18px; }
+.s-home-v3--light .ds-entry { border-color: rgba(26,18,8,.14); background: rgba(26,18,8,.04); }
+/* the Trending tab row's swipe-mode button (round 16) */
+.ds-swipe { position: relative; margin-right: 14px; }      /* a tab like the others; room for the tag */
+.ds-beta {
+  position: absolute; left: 100%; bottom: -3px; margin-left: 1px;
+  font: 800 7px/1 var(--font-main); letter-spacing: .05em; text-transform: uppercase;
+  padding: 2px 3px; border-radius: 999px; background: var(--star, #e8a83c); color: #111;
+}
+/* coming back from the album page: no fade, the cover glides into the CD */
+.ds-root.ds-instant { transition: none; }
+
+.ds-root {
+  position: absolute; inset: 0; z-index: 190;
+  background: #0d0d12; color: #f3eee6; font-family: var(--font-main);
+  opacity: 0; transform: translateY(16px);
+  transition: opacity .22s ease, transform .22s ease;
+  overflow: hidden;
+  --vinyl-empty: rgba(255,255,255,.28);
+}
+.ds-root.open { opacity: 1; transform: none; }
+
+/* ── top bar: close · volume ── */
+.ds-top {
+  position: absolute; z-index: 3; top: 0; left: 0; right: 0;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 12px 12px 22px;
+  background: linear-gradient(rgba(0,0,0,.4), transparent);
+  pointer-events: none;
+}
+.ds-top > * { pointer-events: auto; }
+.ds-ibtn {
+  width: 38px; height: 38px; border-radius: 50%; border: 0; padding: 9px; flex: 0 0 auto;
+  background: rgba(0,0,0,.28); color: #fff; cursor: pointer;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.ds-ibtn svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ds-mute .ds-spk { fill: currentColor; }
+.ds-mute .ds-x { display: none; }
+.ds-mute.is-muted .ds-x { display: inline; }
+.ds-mute.is-muted .ds-wave { display: none; }
+.ds-topr { position: relative; display: flex; align-items: center; gap: 8px; }
+.ds-volwrap { display: flex; align-items: center; gap: 8px; }
+/* Genres: a pill left of the volume; the full list in a bottom sheet */
+.ds-fybtn {
+  height: 32px; padding: 0 13px; border: 0; border-radius: 999px; cursor: pointer; color: #fff;
+  background: rgba(0,0,0,.28); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  font: 700 12.5px/1 var(--font-main);
+}
+.ds-fybtn.on { background: rgba(255,255,255,.92); color: #111; }
+.ds-genbtn {
+  display: grid; place-items: center; width: 32px; height: 32px; padding: 0;
+  border: 0; border-radius: 999px; cursor: pointer; color: #fff;
+  background: rgba(0,0,0,.28); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  font: 600 11.5px/1 var(--font-main);
+}
+.ds-genbtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-genbtn svg { width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.ds-genbtn.on { background: rgba(255,255,255,.92); color: #111; }
+.ds-gsheet { position: absolute; inset: 0; z-index: 5; }
+.ds-gsheet[hidden] { display: none; }
+.ds-gscrim { position: absolute; inset: 0; background: rgba(0,0,0,0); transition: background .25s ease; }
+.ds-gsheet.open .ds-gscrim { background: rgba(0,0,0,.5); }
+.ds-gpanel {
+  position: absolute; left: 0; right: 0; bottom: 0; max-height: 78%;
+  display: flex; flex-direction: column;
+  padding: 8px 16px 16px; border-radius: 22px 22px 0 0;
+  background: #17171d; box-shadow: 0 -10px 40px rgba(0,0,0,.45);
+  transform: translateY(105%); transition: transform .26s cubic-bezier(.2,0,0,1);
+}
+.ds-gsheet.open .ds-gpanel { transform: none; }
+.ds-gnub { width: 38px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.22); margin: 0 auto 10px; flex: 0 0 auto; }
+.ds-ghd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex: 0 0 auto; }
+.ds-ghd b { font-size: 17px; }
+.ds-gclear { border: 0; background: none; color: rgba(255,255,255,.65); font: 600 13px/1 var(--font-main); cursor: pointer; padding: 4px 0; }
+.ds-glist { display: flex; flex-wrap: wrap; gap: 8px; overflow-y: auto; min-height: 0; padding-bottom: 6px; scrollbar-width: none; }
+.ds-glist::-webkit-scrollbar { display: none; }
+.ds-gb {
+  border: 1px solid rgba(255,255,255,.16); border-radius: 999px; background: rgba(255,255,255,.05);
+  color: #fff; padding: 8px 14px; cursor: pointer; font: 600 13.5px/1 var(--font-main);
+}
+.ds-gb.lit { border-color: rgba(255,255,255,.45); }
+.ds-gb.on { background: rgba(255,255,255,.92); color: #111; border-color: transparent; }
+.ds-gsubs { flex: 0 0 100%; display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0 8px 10px; }
+.ds-gsubs .ds-gb { padding: 6px 11px; font-size: 12.5px; font-weight: 500; }
+.ds-gsubs .ds-gb.on { font-weight: 700; }
+.ds-ggo {
+  flex: 0 0 auto; margin-top: 12px; height: 46px; border: 0; border-radius: 14px; cursor: pointer;
+  background: #fff; color: #111; font: 700 15px/1 var(--font-main);
+}
+.ds-ggo[hidden] { display: none; }
+.ds-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; opacity: .8; font-size: 14px; }
+.ds-empty button { border: 0; border-radius: 999px; padding: 9px 16px; background: rgba(255,255,255,.92); color: #111; font: 600 13px/1 var(--font-main); cursor: pointer; }
+.ds-volpop {
+  display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px;
+  border-radius: 999px; background: rgba(0,0,0,.4);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.ds-volpop[hidden] { display: none; }
+.ds-vol { width: 120px; accent-color: #fff; margin: 0; }
+.ds-vol-n { font-size: 12px; font-weight: 600; width: 34px; text-align: right; font-variant-numeric: tabular-nums; opacity: .85; }
+
+/* ── the feed ── */
+.ds-scroll {
+  position: absolute; inset: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+  scroll-snap-type: y mandatory; scrollbar-width: none;
+}
+.ds-scroll::-webkit-scrollbar { display: none; }
+
+.ds-card {
+  position: relative; height: 100%; overflow: hidden;
+  scroll-snap-align: start; scroll-snap-stop: always;
+  --ds-accent: #6b6b78; --ds-base: #16161c; --ds-star: #e8a83c;
+  background:
+    radial-gradient(120% 65% at 50% 30%, color-mix(in srgb, var(--ds-accent) 55%, transparent), transparent 72%),
+    linear-gradient(180deg, var(--ds-base), color-mix(in srgb, var(--ds-base) 55%, #000));
+  transition: background .4s ease;
+}
+.ds-bg {
+  position: absolute; inset: -60px; z-index: 0;
+  background-size: cover; background-position: center;
+  filter: blur(46px) saturate(1.4); opacity: .32;
+}
+.ds-main {
+  position: absolute; z-index: 1; top: 56px; bottom: 40px; left: 16px; right: 16px;   /* centred on the screen (round 8) */
+  display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0;
+}
+
+/* the score: big number, discs under it (they rate), one caption */
+.ds-score {
+  display: flex; flex-direction: column; align-items: center; margin-bottom: 12px;
+  --vinyl-gold: var(--ds-star);
+}
+.ds-score.is-mine { --vinyl-gold: #4fd18b; }
+.ds-score { position: relative; top: -8px; }      /* 8px higher, nothing else moves (round 18) */
+.ds-score-row { display: flex; gap: 10px; align-items: flex-end; align-items: last baseline; }   /* "ratings" sits on the number's baseline */
+.ds-big { font-size: 58px; font-weight: 800; line-height: .9; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.ds-side { display: flex; flex-direction: column; line-height: 1.15; text-align: left; white-space: nowrap; }
+.ds-side b { font-size: 15px; font-weight: 700; }
+.ds-side span { font-size: 12px; opacity: .65; }
+.ds-score.is-mine .ds-big { color: #4fd18b; }
+.ds-discs { display: flex; gap: 0; margin-top: 6px; }
+.ds-star { border: 0; background: none; padding: 2px 1px; cursor: pointer; line-height: 0; }
+.ds-star .hstar { width: 24px; height: 24px; }
+
+/* the CD */
+.ds-cd { position: relative; width: min(84%, 262px); aspect-ratio: 1; flex: 0 0 auto; cursor: pointer; }
+.ds-disc {
+  position: absolute; inset: 0; border-radius: 50%;
+  background-size: cover; background-position: center;
+  box-shadow: 0 18px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.1);
+  animation: ds-spin 7s linear infinite; animation-play-state: paused;
+}
+.ds-disc::after {   /* the CD's sheen */
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 30deg, transparent 0 8%, rgba(255,255,255,.22) 13%, transparent 20% 50%, rgba(255,255,255,.16) 58%, transparent 66%);
+  mix-blend-mode: screen;
+}
+.ds-hole {
+  position: absolute; z-index: 1; left: 50%; top: 50%; width: 22%; height: 22%;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle, var(--ds-base) 0 34%, rgba(255,255,255,.55) 36% 40%, rgba(220,220,230,.35) 42% 100%);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+}
+.ds-card.is-playing .ds-disc { animation-play-state: running; }
+@keyframes ds-spin { to { transform: rotate(360deg); } }
+.ds-pause {
+  position: absolute; z-index: 2; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px;
+  border-radius: 50%; background: rgba(0,0,0,.45); opacity: 0; transition: opacity .2s;
+  pointer-events: none;
+}
+.ds-pause::before {
+  content: ''; position: absolute; left: 18px; top: 14px;
+  border-style: solid; border-width: 9px 0 9px 14px; border-color: transparent transparent transparent #fff;
+}
+.ds-card:not(.is-playing) .ds-pause { opacity: 1; }
+
+/* title */
+.ds-title { text-align: center; margin: 14px 0 8px; max-width: 100%; }
+.ds-album { font-size: 20px; font-weight: 700; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-year { font-weight: 400; opacity: .55; font-size: 13px; margin-left: 7px; }
+.ds-artist { font-size: 15px; opacity: .8; margin-top: 3px; }
+
+/* songs: the sort toggle, then the list — flush left */
+.ds-songs-hd, .ds-tracks { position: relative; top: 25px; }   /* 25px lower, layout untouched (rounds 5-6) */
+.ds-songs-hd, .ds-tracks { margin-right: 54px; }   /* the song list keeps clear of the rail */
+.ds-songs-hd { align-self: stretch; display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ds-songs-lbl { font-size: 13px; font-weight: 700; }
+.ds-ssw { display: inline-flex; gap: 2px; padding: 2px; border-radius: 999px; background: rgba(0,0,0,.25); }
+.ds-ss {
+  border: 0; border-radius: 999px; background: none; padding: 4px 9px; cursor: pointer;
+  color: rgba(255,255,255,.6); font: 600 11px/1 var(--font-main);
+}
+.ds-ss.on { background: rgba(255,255,255,.92); color: #111; }
+.ds-tracks {
+  list-style: none; margin-top: 0; margin-bottom: 0; margin-left: 0; padding: 0; align-self: stretch;
+  flex: 0 0 auto; max-height: 160px;          /* five 32px rows (round 4) */
+  /* Its own scroller (round 3). contain = reaching the end does not hand the
+     swipe to the feed; swipe on the CD / title to change album. */
+  overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+  scrollbar-width: none;
+}
+.ds-tracks.has-more { -webkit-mask: linear-gradient(#000 62%, transparent); mask: linear-gradient(#000 62%, transparent); }
+.ds-tracks::-webkit-scrollbar { display: none; }
+.ds-tr, .ds-tr-msg { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0; font-size: 13.5px; }
+.ds-tr-msg { justify-content: center; opacity: .55; }
+.ds-tr { cursor: pointer; }
+.ds-tr.none { opacity: .35; cursor: default; }
+.ds-tr-n { width: 16px; flex: 0 0 auto; text-align: left; opacity: .5; font-variant-numeric: tabular-nums; }
+.ds-tr-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-tr-d { opacity: .5; font-variant-numeric: tabular-nums; font-size: 12px; }
+.ds-tr.on .ds-tr-t { font-weight: 700; color: var(--ds-star); }
+.ds-tr.on .ds-tr-n { opacity: 1; color: var(--ds-star); }
+/* the song's heart + likes, left of its length */
+.ds-tr-like {
+  display: flex; align-items: center; gap: 4px; flex: 0 0 auto; width: 58px; justify-content: flex-start;
+  border: 0; background: none; padding: 2px 0; cursor: pointer;
+  color: rgba(255,255,255,.55); font: 500 12px/1 var(--font-main); font-variant-numeric: tabular-nums;
+}
+.ds-tr-like svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; }
+.ds-tr-like.on { color: #ff4f7b; }
+.ds-tr-like.on svg { fill: currentColor; }
+.ds-tr-d { width: 32px; text-align: right; }
+
+/* right rail: heart · reviews · + · services — raised (Eric, round 2) */
+.ds-rail {
+  position: absolute; z-index: 2; right: 10px; bottom: 33%;
+  transform: translateY(50%);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.ds-rbtn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  border: 0; background: none; color: #fff; cursor: pointer; padding: 0;
+  font: 600 9px/1 var(--font-main);
+}
+.ds-rbtn svg {
+  width: 34px; height: 34px; padding: 3px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.45));   /* no circle (round 4); the shadow keeps it legible */
+  fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  transition: transform .15s;
+}
+.ds-rbtn:active svg { transform: scale(.9); }
+.ds-fav.on svg { fill: #ff4f7b; stroke: #ff4f7b; }
+.ds-listened.on svg { stroke: #3b82f6; }            /* the app's Listened blue */
+.ds-later.on svg { stroke: #e8a83c; }               /* …and Listen later gold */
+/* left rail (round 17): Reviews · Review, rows lined up with Listened · Later (alignRail) */
+.ds-lrail { position: absolute; z-index: 2; left: 10px; top: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.ds-fav.pop svg { animation: ds-pop .35s ease; }
+@keyframes ds-pop { 50% { transform: scale(1.22); } }
+.ds-add.on svg { stroke: #4fd18b; }
+.ds-rail-svcs { position: relative; top: 25px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.ds-rail-sep { width: 22px; height: 1px; background: rgba(255,255,255,.25); margin: 2px 0; }
+.ds-svc { border: 0; background: none; padding: 0; cursor: pointer; line-height: 0; }
+.ds-svc-ico {
+  position: relative; display: grid; place-items: center; overflow: hidden;
+  width: 32px; height: 32px; border-radius: 9px; box-shadow: 0 3px 10px rgba(0,0,0,.35);
+}
+.ds-svc-ico svg { width: 60%; height: 60%; }
+.ds-svc-ico .sd-svc-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ds-svc.is-wait { opacity: .5; }
+.ds-svc.none { opacity: .25; }
+
+/* the level line: progress + the music's levels (drawViz) */
+.ds-viz { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; width: 100%; height: 72px; pointer-events: none; }   /* taller than the line: room for the sparks */
+
+/* Reduce motion: no spinning, no bars. */
+html.sd-reduce-motion .ds-disc { animation: none !important; }
+
+/* loader while a genre is fetched */
+.ds-spin { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.2); border-top-color: #fff; animation: ds-spin .8s linear infinite; }
+
+/* album / artist names open their pages */
+.ds-link { cursor: pointer; }
+.ds-link:active { opacity: .6; }

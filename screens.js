@@ -2699,10 +2699,9 @@ function wallHtml(light) {
               <button class="wall2-cat wall2-tab" data-wt="friends" onclick="event.stopPropagation(); pickWallTab(this)">Friends</button>
               <button class="wall2-cat wall2-tab" data-wt="popular" onclick="event.stopPropagation(); pickWallTab(this)">Popular</button>
               <button class="wall2-cat wall2-tab" data-wt="recent" onclick="event.stopPropagation(); pickWallTab(this)">New</button>
-              <div class="wall2-menuwrap">
-                <button class="wall2-cat wall2-tab wall2-drop-btn" data-wt="genre" onclick="event.stopPropagation(); toggleWallPanel(this)"><span class="wall2-tab-genre">Genre</span> <span class="wall2-chev">▾</span></button>
-                <div class="wall2-menu wall2-menu--genres wall2-tab-genres" hidden></div>
-              </div>
+              <!-- 2026-11-03: SWIPE MODE (doomscroll.js) in the Genre tab's place, with a Beta tag.
+                   The Genre menu is out of the markup; paintWallTabs is null-safe without it. -->
+              <button class="wall2-cat ds-swipe" aria-label="Swipe mode (beta)" onclick="event.stopPropagation(); sdDoomOpen(this)">Swipe<span class="ds-beta">beta</span></button>
             </div>
             ${friendsBentoHtml()}
             <!-- 0.20 (Eric, 2026-10-22): "take out the grid" on Trending. The

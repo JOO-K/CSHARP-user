@@ -7122,12 +7122,14 @@ function fetchPreviewUrl(album) {
   if (PREVIEW_PENDING.has(key)) return PREVIEW_PENDING.get(key);
   const p = (async () => {
     let url = null;
+    // 2026-11-03: previews come from DEEZER (30s MP3 on every track), not iTunes.
+    // sdDzFindAlbum is doomscroll.js's album matcher.
     try {
-      const pick = await fetchItunesAlbum(album);
-      if (pick && pick.collectionId) {
-        const sd = await jsonp(`https://itunes.apple.com/lookup?id=${pick.collectionId}&entity=song&limit=4`);
-        const track = ((sd && sd.results) || []).find(s => s.wrapperType === 'track' && s.previewUrl);
-        if (track) url = track.previewUrl;
+      const id = window.sdDzFindAlbum ? await window.sdDzFindAlbum(album) : album.deezerId;
+      if (id) {
+        const t = await dz('album/' + id + '/tracks?limit=10');
+        const track = ((t && t.data) || []).find(x => x.preview);
+        if (track) url = track.preview;
       }
     } catch (e) { /* leave url null */ }
     PREVIEW_CACHE.set(key, url);
