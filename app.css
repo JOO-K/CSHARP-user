@@ -1454,10 +1454,11 @@
 }
 .hstar.full  { background: var(--vinyl-gold, var(--star)); }
 .hstar.empty { background: var(--vinyl-empty, var(--text3)); }
-/* A half is HALF A DISC — the gold half only, no white half beside it (Eric,
-   2026-10-22: "no white CD shown for half-CD ratings"). Was gold | empty. */
+/* A half is gold | GREY (Eric, 2026-11-02: "half should have the grey as well
+   on the not filled side"). It was gold only from 2026-10-22, when the empty
+   side was white ("no white CD shown for half-CD ratings"). */
 .hstar.half  {
-  background: linear-gradient(90deg, var(--vinyl-gold, var(--star)) 50%, transparent 50%);
+  background: linear-gradient(90deg, var(--vinyl-gold, var(--star)) 50%, var(--vinyl-empty, var(--text3)) 50%);
 }
 /* Unfilled vinyls read as part of the rating, not as background texture, so they
    get their own token rather than the very faint --text3 (which stays as the
@@ -1468,11 +1469,12 @@
    themes (see applyColorVars). Theming those by variant put dark ink on a dark
    album and made the empty vinyls disappear, which looked like "the light theme
    didn't change". */
-.s-home-v3        { --vinyl-empty: rgba(255,255,255,0.85); }
+/* GREY, not white (Eric, 2026-11-02: "the fully empty ones are white it should be grey"). Was rgba(255,255,255,0.85). */
+.s-home-v3        { --vinyl-empty: rgba(232,226,214,0.28); }
 .s-home-v3--light { --vinyl-empty: rgba(26,18,8,0.62); }
 .s-home-v3--light .v3-blue-stars-row,
 .s-home-v3--light .v3-rev-card,
-.s-home-v3--light .v3-rev-hist { --vinyl-empty: rgba(255,255,255,0.85); }
+.s-home-v3--light .v3-rev-hist { --vinyl-empty: rgba(232,226,214,0.28); }
 
 /* ── The rating gold follows the album ────────────────────────────────────
    `--v3-accent` is extracted from the current cover by applyColorVars (set
@@ -12147,6 +12149,8 @@ body.sd-pro .shop-tile--event.is-pro .shop-ev-art { filter: none; opacity: 1; }
   font-size: 11.5px; letter-spacing: 0; font-weight: 600;
   color: var(--sd-ink2, rgba(232,226,214,0.55));
 }
+/* Home's and Trending's tabs, 11.5 → 13.5 (Eric, 2026-11-02): both bars carry .v3-feed-tabs. */
+.s-home-v3 .wall2-bar.v3-feed-tabs .wall2-cat { font-size: 13.5px; }
 .s-home-v3 .wall2-cat:hover, .s-home-v3--light .wall2-cat:hover { background: none; color: var(--sd-ink, #e8e2d6); }
 .s-home-v3 .wall2-cat.active, .s-home-v3--light .wall2-cat.active,
 .s-home-v3 .wall2-drop-btn.open, .s-home-v3--light .wall2-drop-btn.open {
@@ -12733,6 +12737,9 @@ body.sd-return .s-home-v3--review .v3-body,
 .s-home-v3 .v3-rev-card--split .v3-rev-card-top { grid-area: top; min-width: 0; max-width: 52%; align-self: start; }
 .s-home-v3 .v3-rev-card--split .v3-rev-name-row { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
 .s-home-v3 .v3-rev-card--split .v3-rev-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The time sits UNDER the name (Eric, 2026-11-02), so the two lines on the left
+   match the album and artist lines on the right. */
+.s-home-v3 .v3-rev-card--split .v3-rev-who { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; }
 .s-home-v3 .v3-rev-card--split .v3-rsp-time {
   flex-shrink: 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; color: var(--sd-ink3);
 }
@@ -12742,7 +12749,7 @@ body.sd-return .s-home-v3--review .v3-body,
   display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: 2px; cursor: pointer;
 }
 .s-home-v3 .v3-rev-card--split .v3-rsp-rec .v3-rev-record-line { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; max-width: 100%; min-width: 0; position: static; }
-.s-home-v3 .v3-rev-card--split .v3-rsp-rec .v3-rev-record-album { font-size: 12.5px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.s-home-v3 .v3-rev-card--split .v3-rsp-rec .v3-rev-record-album { font-size: 12.5px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: clip; }   /* no dots: .is-long fades it (Eric, 2026-11-02) */
 .s-home-v3 .v3-rev-card--split .v3-rsp-rec .v3-rev-record-year { font-size: 10px; flex-shrink: 0; }
 .s-home-v3 .v3-rev-card--split .v3-rsp-rec .v3-rev-record-artist { font-size: 11px; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; position: static; }
 /* The review, left. Keeps the feed's clamp + fade (.v3-rev-text / .is-long). */
@@ -12763,7 +12770,7 @@ body.sd-return .s-home-v3--review .v3-body,
 .s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-up {
   padding: 3px 0; gap: 4px; background: transparent; color: var(--sd-ink3); font-size: 12px; border-radius: 0;
 }
-.s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-up svg { width: 16px; height: 16px; }
+.s-home-v3 .v3-rev-card--split .v3-rsp-acts .v3-up svg { width: 25px; height: 25px; }   /* 16 → 25 (Eric, 2026-11-02): home, profile, album and artist reviews */
 /* 0.13 (2026-10-08): the PENCIL, LAST in the acts row so it reads to the right
    of the likes. It inherits the row's .v3-up sizing and ink; only the hover
    colour is its own, so it never looks like a like. */

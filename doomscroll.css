@@ -21,9 +21,9 @@
 .ds-entry-go { margin-left: auto; opacity: .5; font-size: 18px; }
 .s-home-v3--light .ds-entry { border-color: rgba(26,18,8,.14); background: rgba(26,18,8,.04); }
 /* the Trending tab row's swipe-mode button (round 16) */
-.ds-swipe { position: relative; margin-right: 14px; }      /* a tab like the others; room for the tag */
-.ds-beta {
-  position: absolute; left: 100%; bottom: -3px; margin-left: 1px;
+.ds-swipe { position: relative; }                          /* a tab like the others */
+.ds-beta {                                                    /* centred UNDER the word (round 21) */
+  position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: -1px;
   font: 800 7px/1 var(--font-main); letter-spacing: .05em; text-transform: uppercase;
   padding: 2px 3px; border-radius: 999px; background: var(--star, #e8a83c); color: #111;
 }

@@ -3443,7 +3443,8 @@ function revCardInner(o) {
       <div class="v3-rev-card-top">
         <div class="v3-rev-av" style="background-image:url('${o.face}')" data-user="${o.mine ? 'You' : sdAttr(o.name)}" onclick="sdPerson(this, event)"></div>
         <div class="v3-rev-who">
-          <span class="v3-rev-name-row"><span class="v3-rev-name" data-user="${o.mine ? 'You' : sdAttr(o.name)}" onclick="sdPerson(this, event)">${o.name}</span>${o.ago ? `<span class="v3-rsp-time">${o.ago}</span>` : ''}${o.chip ? `<span class="v3-rev-pin-chip">${o.chip}</span>` : ''}</span>
+          <span class="v3-rev-name-row"><span class="v3-rev-name" data-user="${o.mine ? 'You' : sdAttr(o.name)}" onclick="sdPerson(this, event)">${o.name}</span>${o.chip ? `<span class="v3-rev-pin-chip">${o.chip}</span>` : ''}</span>
+          ${o.ago ? `<span class="v3-rsp-time">${o.ago}</span>` : ''}
         </div>
       </div>
       <div class="v3-rsp-rec" onclick="event.stopPropagation(); ${open}">${splitRecordHtml(o.record)}</div>
@@ -3511,15 +3512,14 @@ function recordWhoHtml(r) {
   const lead = r.tag || (r.year ? String(r.year) : '');
   const cls = r.tag ? 'v3-rev-record-year' : 'v3-rev-record-year v3-rev-record-year--auto';
   return `<span class="v3-rev-record-line">${lead ? `<span class="${cls}">${lead}</span>` : ''}<span class="v3-rev-record-album">${r.album}</span></span>` +
-    (r.artist && r.artist !== r.album ? `<span class="v3-rev-record-artist">${r.artist}</span>` : '');
+    (r.artist ? `<span class="v3-rev-record-artist">${r.artist}</span>` : '');
 }
 /* The split card's titles (0.12, 2026-10-02): the album with the YEAR to its
    RIGHT (Eric), the artist under them — not leading the album name as
    recordWhoHtml has it. */
 function splitRecordHtml(r) {
-  const artist = r.artist && r.artist !== r.album ? r.artist : '';
   return `<span class="v3-rev-record-line"><span class="v3-rev-record-album">${r.album}</span>${r.year ? `<span class="v3-rev-record-year">${r.year}</span>` : ''}</span>` +
-    (artist ? `<span class="v3-rev-record-artist">${artist}</span>` : '');
+    (r.artist ? `<span class="v3-rev-record-artist">${r.artist}</span>` : '');
 }
 function revCardHtml(o) {
   return `
