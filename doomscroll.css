@@ -183,7 +183,8 @@
   background: radial-gradient(circle, var(--ds-base) 0 34%, rgba(255,255,255,.55) 36% 40%, rgba(220,220,230,.35) 42% 100%);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
 }
-.ds-card.is-playing .ds-disc { animation-play-state: running; }
+.ds-card .ds-disc { visibility: hidden; }          /* round 20: the fixed CD (.ds-fixcd) draws it */
+.ds-card .ds-pause { display: none; }
 @keyframes ds-spin { to { transform: rotate(360deg); } }
 .ds-pause {
   position: absolute; z-index: 2; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px;
@@ -194,13 +195,34 @@
   content: ''; position: absolute; left: 18px; top: 14px;
   border-style: solid; border-width: 9px 0 9px 14px; border-color: transparent transparent transparent #fff;
 }
-.ds-card:not(.is-playing) .ds-pause { opacity: 1; }
+/* THE FIXED CD — one disc over the feed; the cards scroll beneath it */
+.ds-fixcd {
+  position: absolute; z-index: 2; left: 50%; top: 30%; width: 0; height: 0; pointer-events: none;
+  --ds-base: #16161c; --ds-star: #e8a83c;
+}
+.ds-fixcd.placed { transition: top .35s cubic-bezier(.2,.7,.2,1), left .35s cubic-bezier(.2,.7,.2,1), width .35s, height .35s; }
+.ds-fx { position: absolute; inset: 0; opacity: 0; }
+.ds-fx.cur { opacity: 1; }
+.ds-fx.in  { animation: ds-fx-in .52s cubic-bezier(.2,.7,.2,1) both; }
+.ds-fx.out { animation: ds-fx-out .42s cubic-bezier(.4,0,.6,1) both; }
+@keyframes ds-fx-in  { from { opacity: 0; transform: rotate(-160deg) scale(.86); } to { opacity: 1; transform: none; } }
+@keyframes ds-fx-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: rotate(160deg) scale(1.06); } }
+.ds-fixcd .ds-disc { visibility: visible; }
+.ds-root.is-playing .ds-fixcd .ds-fx.cur .ds-disc { animation-play-state: running; }
+.ds-fixcd .ds-pause { display: block; }
+.ds-root:not(.is-playing) .ds-fixcd .ds-pause { opacity: 1; }
 
 /* title */
-.ds-title { text-align: center; margin: 14px 0 8px; max-width: 100%; }
-.ds-album { font-size: 20px; font-weight: 700; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Kept clear of BOTH rails, always (round 19): the column between them. A long
+   name shrinks (fitTitle, 20 → 13px) to fit in two lines; past that it is
+   clamped at two lines with an ellipsis — never three, never under an icon. */
+.ds-title { text-align: center; margin: 14px 0 8px; width: calc(100% - 96px); max-width: calc(100% - 96px); }
+.ds-album {
+  font-size: 20px; font-weight: 700; line-height: 1.2; overflow: hidden; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+}
 .ds-year { font-weight: 400; opacity: .55; font-size: 13px; margin-left: 7px; }
-.ds-artist { font-size: 15px; opacity: .8; margin-top: 3px; }
+.ds-artist { font-size: 15px; opacity: .8; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* songs: the sort toggle, then the list — flush left */
 .ds-songs-hd, .ds-tracks { position: relative; top: 25px; }   /* 25px lower, layout untouched (rounds 5-6) */
@@ -215,7 +237,7 @@
 .ds-ss.on { background: rgba(255,255,255,.92); color: #111; }
 .ds-tracks {
   list-style: none; margin-top: 0; margin-bottom: 0; margin-left: 0; padding: 0; align-self: stretch;
-  flex: 0 0 auto; max-height: 160px;          /* five 32px rows (round 4) */
+  flex: 0 0 auto; height: 160px;              /* five 32px rows (round 4); fixed, so the CD never jumps as songs load (round 20) */
   /* Its own scroller (round 3). contain = reaching the end does not hand the
      swipe to the feed; swipe on the CD / title to change album. */
   overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
@@ -285,7 +307,7 @@
 .ds-viz { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; width: 100%; height: 72px; pointer-events: none; }   /* taller than the line: room for the sparks */
 
 /* Reduce motion: no spinning, no bars. */
-html.sd-reduce-motion .ds-disc { animation: none !important; }
+html.sd-reduce-motion .ds-disc, html.sd-reduce-motion .ds-fx { animation: none !important; }
 
 /* loader while a genre is fetched */
 .ds-spin { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.2); border-top-color: #fff; animation: ds-spin .8s linear infinite; }

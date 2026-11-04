@@ -8,6 +8,12 @@
    colours (the same computeAlbumColors the bento uses). When a preview ends the
    feed moves on to the next album.
 
+   Round 20: the CD stays put while the pages swipe under it; changing
+   album spins the old disc out and the new one in (placeFixCd / swapFixCd).
+
+   Round 19: the album name stays between the rails — it shrinks to fit two
+   lines (fitTitle), and is clamped at two.
+
    Round 18: back from a page whose cover is out of sight (the Reviews
    button's scrolled album page, the artist page) opens the feed with a
    circle reveal out of the CD; the score block sits 8px higher.
@@ -366,6 +372,11 @@
         </div>
       </div>
       <div class="ds-scroll"></div>
+      <div class="ds-fixcd" aria-hidden="true">
+        <div class="ds-fx cur"><div class="ds-disc"><span class="ds-hole"></span></div></div>
+        <div class="ds-fx"><div class="ds-disc"><span class="ds-hole"></span></div></div>
+        <span class="ds-pause"></span>
+      </div>
       <div class="ds-gsheet" hidden>
         <div class="ds-gscrim" onclick="event.stopPropagation(); sdDoomGenreClose()"></div>
         <div class="ds-gpanel" onclick="event.stopPropagation()">
@@ -468,6 +479,7 @@
      songs land depends on the screen. Rects are divided by the frame's scale
      (the desktop viewer shrinks the phone) before becoming a CSS offset. */
   function alignRail(card) {
+    if (+card.dataset.i === DS.active) requestAnimationFrame(placeFixCd);
     const scale0 = card.getBoundingClientRect().height / (card.offsetHeight || 1) || 1;
     const lr = card.querySelector('.ds-lrail'), lis = card.querySelector('.ds-listened');
     if (lr && lis) {                                // Reviews sits on Listened's row, Review on Later's
@@ -484,8 +496,20 @@
     box.style.top = (cur + (want - icon.getBoundingClientRect().top) / scale).toFixed(1) + 'px';
   }
   window.addEventListener('resize', () => {
-    if (DS.scroller) DS.scroller.querySelectorAll('.ds-card').forEach(alignRail);
+    if (DS.scroller) DS.scroller.querySelectorAll('.ds-card').forEach(c => { fitTitle(c); alignRail(c); });
   });
+
+  /* A long album name steps its font down until it fits in two lines of the
+     column between the rails (round 19); .ds-album's 2-line clamp catches
+     anything still too long at the floor size. */
+  const TITLE_MAX = 20, TITLE_MIN = 13;
+  function fitTitle(card) {
+    const el = card.querySelector('.ds-album');
+    if (!el) return;
+    let fs = TITLE_MAX;
+    el.style.fontSize = fs + 'px';
+    while (fs > TITLE_MIN && el.scrollHeight > fs * 1.2 * 2 + 2) { fs -= 1; el.style.fontSize = fs + 'px'; }
+  }
 
   // Five rows show; the list fades out at the bottom while there is more below it.
   function fadeTracks(ol) {
@@ -501,6 +525,7 @@
       card.style.setProperty('--ds-base', c.box1color);
       card.style.setProperty('--ds-star', c.star || c.accent);
       card.classList.add('tinted');
+      if (+card.dataset.i === DS.active) placeFixCd();
     });
   }
 
@@ -513,6 +538,7 @@
       DS.scroller.appendChild(card);
       tint(card, DS.list[+card.dataset.i]);
       DS.obs.observe(card);
+      fitTitle(card);
       alignRail(card);
     });
     DS.shown = to;
@@ -696,6 +722,48 @@
     DS.scroller && DS.scroller.querySelectorAll('.ds-card.is-playing').forEach(c => c.classList.remove('is-playing'));
     const c = cardAt(DS.active);
     if (c && on) c.classList.add('is-playing');
+    if (DS.root) DS.root.classList.toggle('is-playing', !!(c && on));   // the fixed CD spins
+  }
+
+  /* THE CD STAYS (round 20). Eric: swiping sent everything up at once and it
+     was a lot. So there is ONE CD, .ds-fixcd, laid over the feed at the CD's
+     place; the pages (background, score, title, songs) still swipe underneath,
+     and each card's own disc is only an invisible spacer + tap target. When
+     the album changes the old disc spins out and fades while the new one
+     spins and fades in (.ds-fx.in / .out). Its box is read off the ACTIVE
+     card's spacer (relative to the card, which fills the feed when snapped),
+     so a two-line title nudging the CD a few px is followed with a glide. */
+  function placeFixCd() {
+    const fx = DS.root && DS.root.querySelector('.ds-fixcd'), c = cardAt(DS.active);
+    const cd = c && c.querySelector('.ds-cd');
+    if (!fx || !cd) return;
+    const scale = c.getBoundingClientRect().height / (c.offsetHeight || 1) || 1;
+    const cr = c.getBoundingClientRect(), r = cd.getBoundingClientRect();
+    if (!r.width) return;
+    fx.style.left = ((r.left - cr.left) / scale).toFixed(1) + 'px';
+    fx.style.top = ((r.top - cr.top) / scale).toFixed(1) + 'px';
+    fx.style.width = fx.style.height = (r.width / scale).toFixed(1) + 'px';
+    ['--ds-base', '--ds-star', '--ds-accent'].forEach(v => { const x = c.style.getPropertyValue(v); if (x) fx.style.setProperty(v, x); });
+    // ⚠ The FIRST placement must not animate (it would grow from 0 and Back's
+    // cover glide would land on a dot): apply, flush, then turn the glide on.
+    if (!fx.classList.contains('placed')) { void fx.offsetWidth; fx.classList.add('placed'); }
+  }
+  function swapFixCd(a, first) {
+    const fx = DS.root && DS.root.querySelector('.ds-fixcd');
+    if (!fx || !a) return;
+    const img = `url("${String(a.image).replace(/"/g, '%22')}")`;
+    const cur = fx.querySelector('.ds-fx.cur'), nxt = [...fx.querySelectorAll('.ds-fx')].find(e => e !== cur);
+    const calm = document.documentElement.classList.contains('sd-reduce-motion');
+    if (first || calm) {
+      cur.querySelector('.ds-disc').style.backgroundImage = img;
+      fx.querySelectorAll('.ds-fx').forEach(e => e.classList.remove('in', 'out'));
+      return;
+    }
+    nxt.querySelector('.ds-disc').style.backgroundImage = img;
+    cur.classList.remove('cur', 'in'); cur.classList.add('out');
+    nxt.classList.remove('out'); nxt.classList.add('cur', 'in');
+    clearTimeout(DS.fxT);
+    DS.fxT = setTimeout(() => fx.querySelectorAll('.ds-fx').forEach(e => e.classList.remove('in', 'out')), 560);
   }
   function paintTrack(card, n) {
     card.querySelectorAll('.ds-tr.on').forEach(li => li.classList.remove('on'));
@@ -727,7 +795,10 @@
 
   function setActive(i) {
     if (i === DS.active) return;
+    const first = DS.active < 0;
     DS.active = i;
+    swapFixCd(DS.list[i], first);
+    placeFixCd();
     DS.track = -1;
     const r = DS.landing;
     if (r && r.i === i) { DS.landing = null; playTrack(i, r.n, r.t); }
@@ -1103,7 +1174,7 @@
       if (DS.resume) return null;                   // leaving for a review-scrolled page: no glide target yet
       if (DS.landingMorph) {
         const c = DS.root && cardAt(DS.active);
-        return c && DS.list[DS.active] === album ? c.querySelector('.ds-disc') : null;
+        return c && DS.list[DS.active] === album ? DS.root.querySelector('.ds-fixcd .ds-fx.cur .ds-disc') : null;
       }
       return f.apply(this, arguments);
     };

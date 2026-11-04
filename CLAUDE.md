@@ -191,7 +191,9 @@
 >   those pages; Back re-opens the feed where you were (goBack wrapper), the
 >   cover gliding into the CD (sdFindCoverHome hooked lazily — morph.js loads
 >   after) or a circle reveal when the cover is out of sight. `fetchPreviewUrl`
->   (app.js) now uses Deezer too.
+>   (app.js) now uses Deezer too. The CD is ONE fixed disc over the feed
+>   (`.ds-fixcd`, placeFixCd / swapFixCd): pages swipe under it and a new album
+>   spins in; long album names shrink to fit two lines between the rails.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.
