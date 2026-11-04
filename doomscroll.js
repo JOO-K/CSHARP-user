@@ -8,6 +8,15 @@
    colours (the same computeAlbumColors the bento uses). When a preview ends the
    feed moves on to the next album.
 
+   Round 26: Share above Reviews (share.js's sheet); 3px more between the
+   action icons.
+
+   Round 25: the action icons are centred on the CD; For You moved into
+   the genre sheet (first, default, never mixed); "Previews by Deezer" at the top.
+
+   Round 24: the five action icons are smaller; liking shows the album's
+   like count over the heart.
+
    Round 23: albums with no preview are taken out of the feed (prune);
    Deezer's tile is the real 2023 mark (SD_SERVICES, screens.js).
 
@@ -366,6 +375,7 @@
     // the app's own Listened / Listen later glyphs (SD_LINE_ICONS ear / clock, screens.js)
     ear: '<svg viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>',
     clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    share: '<svg viewBox="0 0 24 24"><path d="M12 3.5v11"/><path d="m7.5 8 4.5-4.5L16.5 8"/><path d="M5 13.5v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>',   // share.js's SHARE_ICON
     sound: '<svg viewBox="0 0 24 24"><path class="ds-spk" d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="ds-wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="ds-x" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>',
   };
 
@@ -373,8 +383,8 @@
     return `
       <div class="ds-top">
         <button class="ds-ibtn ds-close" aria-label="Close scroll mode" onclick="event.stopPropagation(); sdDoomClose()">${ICO.close}</button>
+        <span class="ds-credit">Previews by Deezer</span>
         <div class="ds-topr">
-        <button class="ds-fybtn${DS.mode === 'foryou' ? ' on' : ''}" onclick="event.stopPropagation(); sdDoomForYou()">For You</button>
         <button class="ds-genbtn${DS.mode === 'genres' ? ' on' : ''}" aria-label="Genres" onclick="event.stopPropagation(); sdDoomGenreSheet()">${ICO.genre}</button>
         </div>
       </div>
@@ -441,12 +451,13 @@
         typeof svcMarkHtml === 'function' ? svcMarkHtml(sv, 'ds-svc-ico') : ''}</button>`).join('');
     return `
       <div class="ds-rail">
-        <button class="ds-rbtn ds-fav${d.fav ? ' on' : ''}" aria-label="Favorite" onclick="event.stopPropagation(); sdDoomFav(this, ${i})">${ICO.heart}<span>Like</span></button>
+        <button class="ds-rbtn ds-fav${d.fav ? ' on' : ''}" aria-label="Favorite" onclick="event.stopPropagation(); sdDoomFav(this, ${i})"><b class="ds-likes">${albumLikes(i)}</b>${ICO.heart}<span>Like</span></button>
         <button class="ds-rbtn ds-listened${d.listened ? ' on' : ''}" aria-label="Listened" onclick="event.stopPropagation(); sdDoomFlag(this, ${i}, 'listened')">${ICO.ear}<span>Listened</span></button>
         <button class="ds-rbtn ds-later${d.later ? ' on' : ''}" aria-label="Listen later" onclick="event.stopPropagation(); sdDoomFlag(this, ${i}, 'later')">${ICO.clock}<span>Later</span></button>
         <div class="ds-rail-svcs"><span class="ds-rail-sep"></span>${svc}</div>
       </div>
       <div class="ds-lrail">
+        <button class="ds-rbtn ds-share" aria-label="Share" onclick="event.stopPropagation(); sdDoomShare(this, ${i})">${ICO.share}<span>Share</span></button>
         <button class="ds-rbtn ds-cmt" aria-label="Reviews and comments" onclick="event.stopPropagation(); sdDoomReviews(${i})">${ICO.cmt}<span>Reviews</span></button>
         <button class="ds-rbtn ds-add${d.rating > 0 || (d.text || '').trim() ? ' on' : ''}" aria-label="Write a review" onclick="event.stopPropagation(); sdDoomReview(this, ${i})">${ICO.plus}<span>Review</span></button>
       </div>`;
@@ -499,10 +510,24 @@
   function alignRail(card) {
     if (+card.dataset.i === DS.active) requestAnimationFrame(placeFixCd);
     const scale0 = card.getBoundingClientRect().height / (card.offsetHeight || 1) || 1;
-    const lr = card.querySelector('.ds-lrail'), lis = card.querySelector('.ds-listened');
-    if (lr && lis) {                                // Reviews sits on Listened's row, Review on Later's
+    /* Like · Listened · Later are centred on the CD (round 25), so both rails
+       sit beside the disc; the streaming icons and the left rail are then
+       lined up from there, as before. */
+    const rail = card.querySelector('.ds-rail'), cdEl = card.querySelector('.ds-cd');
+    const fav = card.querySelector('.ds-fav svg'), later = card.querySelector('.ds-later');
+    if (rail && cdEl && fav && later) {
+      const c = cdEl.getBoundingClientRect(), k = card.getBoundingClientRect();
+      if (c.height) {
+        const mid = (fav.getBoundingClientRect().top + later.getBoundingClientRect().bottom) / 2;
+        const top = (rail.getBoundingClientRect().top - k.top) / scale0;
+        rail.style.bottom = 'auto'; rail.style.transform = 'none';
+        rail.style.top = (top + ((c.top + c.height / 2) - mid) / scale0).toFixed(1) + 'px';
+      }
+    }
+    const lr = card.querySelector('.ds-lrail'), lis = card.querySelector('.ds-listened'), rv = lr && lr.querySelector('.ds-cmt');
+    if (lr && lis && rv) {                          // Share on Like's row, Reviews on Listened's, Review on Later's
       const cur = parseFloat(lr.style.top) || 0;
-      lr.style.top = (cur + (lis.getBoundingClientRect().top - lr.firstElementChild.getBoundingClientRect().top) / scale0).toFixed(1) + 'px';
+      lr.style.top = (cur + (lis.getBoundingClientRect().top - rv.getBoundingClientRect().top) / scale0).toFixed(1) + 'px';
     }
     const box = card.querySelector('.ds-rail-svcs'), ol = card.querySelector('.ds-tracks');
     const icon = box && box.querySelector('.ds-svc'), li = ol && ol.querySelector('li');
@@ -1015,7 +1040,11 @@
     if (!box) return;
     const T = GENRE_TREE();
     const bub = (g, cls, fn) => `<button class="ds-gb${cls}" data-g="${esc(g)}" onclick="${fn}(this.dataset.g)">${esc(g)}</button>`;
-    box.innerHTML = Object.keys(T).map(m => {
+    /* FOR YOU lives here now (round 25): the first bubble, on by default.
+       It never mixes — picking it clears the genres and deals at once;
+       picking a genre turns it off. */
+    const fy = `<button class="ds-gb ds-gb-fy${DS.gfy ? ' on' : ''}" onclick="sdDoomGenreFY()">For You</button><span class="ds-gbreak"></span>`;
+    box.innerHTML = fy + Object.keys(T).map(m => {
       const on = DS.gpick.has(m), open = DS.gopen.has(m);
       const lit = !on && (T[m] || []).some(g => DS.gpick.has(g));
       const subs = (T[m] || []).filter(x => x.toLowerCase() !== m.toLowerCase());
@@ -1028,6 +1057,7 @@
   window.sdDoomGenreSheet = function () {
     if (!DS.root) return;
     DS.gpick = new Set(DS.mode === 'genres' ? DS.genres : []); DS.gopen = new Set();
+    DS.gfy = DS.mode === 'foryou';
     paintGenres();
     const sh = DS.root.querySelector('.ds-gsheet');
     sh.hidden = false;
@@ -1040,18 +1070,25 @@
     sh.classList.remove('open');
     setTimeout(() => { if (!sh.classList.contains('open')) sh.hidden = true; }, 260);
   };
+  window.sdDoomGenreFY = function () {
+    DS.gfy = true; DS.gpick.clear(); DS.gopen.clear();
+    paintGenres();
+    window.sdDoomForYou();                          // applies at once (it closes the sheet)
+  };
   window.sdDoomGenreMain = function (m) {
+    DS.gfy = false;
     if (DS.gopen.has(m)) { DS.gopen.delete(m); DS.gpick.delete(m); }
     else { DS.gopen.add(m); DS.gpick.add(m); }
     paintGenres(); haptic();
   };
   window.sdDoomGenreSub = function (g) {
+    DS.gfy = false;
     DS.gpick.has(g) ? DS.gpick.delete(g) : DS.gpick.add(g);
     paintGenres(); haptic();
   };
   function paintModeBtns() {
     if (!DS.root) return;
-    DS.root.querySelector('.ds-fybtn').classList.toggle('on', DS.mode === 'foryou');
+    const fy = DS.root.querySelector('.ds-fybtn'); if (fy) fy.classList.toggle('on', DS.mode === 'foryou');
     DS.root.querySelector('.ds-genbtn').classList.toggle('on', DS.mode === 'genres');
   }
   // Deal the feed for the current mode. A thin shelf asks Deezer (or the cache)
@@ -1106,6 +1143,7 @@
     if (!a || !card) return;
     const d = draftOf(a);
     card.querySelector('.ds-fav').classList.toggle('on', !!d.fav);
+    card.querySelector('.ds-likes').textContent = albumLikes(i);
     card.querySelector('.ds-listened').classList.toggle('on', !!d.listened);
     card.querySelector('.ds-later').classList.toggle('on', !!d.later);
     card.querySelector('.ds-add').classList.toggle('on', d.rating > 0 || !!(d.text || '').trim());
@@ -1114,12 +1152,21 @@
     sc.innerHTML = scoreInner(a, d);
   }
 
+  /* The album's like count (round 24), shown over the heart once YOU like it.
+     Mock like every count in the app: seeded off its review count, plus you. */
+  function albumLikes(i) {
+    const a = DS.list[i];
+    if (!a) return '';
+    const n = Math.round((a.reviewCount || 4000) * 0.62) + (draftOf(a).fav ? 1 : 0);
+    return n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'k' : String(n);
+  }
   window.sdDoomFav = function (btn, i) {
     const a = DS.list[i];
     if (!a || typeof writeDraftFlag !== 'function') return;
     const on = !draftOf(a).fav;
     writeDraftFlag(subjOf(a), 'fav', on);
     btn.classList.toggle('on', on);
+    btn.querySelector('.ds-likes').textContent = albumLikes(i);
     if (on) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
     haptic();
   };
@@ -1287,6 +1334,19 @@
       return _navigate.apply(this, arguments);
     };
   }
+
+  /* SHARE (round 26): the app's own share sheet (share.js) with this album's
+     card — your rating and words on it if you have them, else just the
+     record. The sheet mounts in the phone screen at z 200, over the feed. */
+  window.sdDoomShare = function (btn, i) {
+    const a = DS.list[i];
+    if (!a || typeof openShareSheet !== 'function' || typeof shareJobReview !== 'function') return;
+    const d = draftOf(a);
+    const job = shareJobReview(a, { rating: d.rating || 0, text: d.text || '', songs: [] });
+    if (!(d.rating > 0 || (d.text || '').trim())) job.title = 'Share this album';
+    haptic();
+    openShareSheet(btn, job);
+  };
 
   window.sdDoomService = function (btn, i, svc) {
     const a = DS.list[i];

@@ -49,6 +49,11 @@
   pointer-events: none;
 }
 .ds-top > * { pointer-events: auto; }
+.ds-credit {                                          /* round 25: the source, quietly */
+  position: absolute; left: 50%; top: 24px; transform: translateX(-50%);
+  font: 500 10.5px/1 var(--font-main); color: rgba(255,255,255,.5); letter-spacing: .02em;
+  white-space: nowrap; pointer-events: none !important;
+}
 .ds-ibtn {
   width: 38px; height: 38px; border-radius: 50%; border: 0; padding: 9px; flex: 0 0 auto;
   background: rgba(0,0,0,.28); color: #fff; cursor: pointer;
@@ -101,6 +106,8 @@
 }
 .ds-gb.lit { border-color: rgba(255,255,255,.45); }
 .ds-gb.on { background: rgba(255,255,255,.92); color: #111; border-color: transparent; }
+.ds-gb-fy { font-weight: 800; }
+.ds-gbreak { flex: 0 0 100%; height: 1px; background: rgba(255,255,255,.1); margin: 4px 0; }
 .ds-gsubs { flex: 0 0 100%; display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0 8px 10px; }
 .ds-gsubs .ds-gb { padding: 6px 11px; font-size: 12.5px; font-weight: 500; }
 .ds-gsubs .ds-gb.on { font-weight: 700; }
@@ -273,7 +280,7 @@
 .ds-rail {
   position: absolute; z-index: 2; right: 10px; bottom: 33%;
   transform: translateY(50%);
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 13px;   /* 10 → 13 (round 26) */
 }
 .ds-rbtn {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
@@ -281,17 +288,25 @@
   font: 600 9px/1 var(--font-main);
 }
 .ds-rbtn svg {
-  width: 34px; height: 34px; padding: 3px;
+  width: 28px; height: 28px; padding: 2px;          /* 34 → 28 (round 24) */
   filter: drop-shadow(0 1px 3px rgba(0,0,0,.45));   /* no circle (round 4); the shadow keeps it legible */
   fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
   transition: transform .15s;
 }
 .ds-rbtn:active svg { transform: scale(.9); }
 .ds-fav.on svg { fill: #ff4f7b; stroke: #ff4f7b; }
+/* the album's like count, over the heart once you've liked it (out of the flow, so rows don't move) */
+.ds-fav { position: relative; }
+.ds-likes {
+  position: absolute; left: 50%; bottom: 100%; margin-bottom: 2px; transform: translate(-50%, 4px);
+  font: 700 11px/1 var(--font-main); color: #fff; white-space: nowrap; font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0,0,0,.5); opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none;
+}
+.ds-fav.on .ds-likes { opacity: 1; transform: translate(-50%, 0); }
 .ds-listened.on svg { stroke: #3b82f6; }            /* the app's Listened blue */
 .ds-later.on svg { stroke: #e8a83c; }               /* …and Listen later gold */
 /* left rail (round 17): Reviews · Review, rows lined up with Listened · Later (alignRail) */
-.ds-lrail { position: absolute; z-index: 2; left: 10px; top: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.ds-lrail { position: absolute; z-index: 2; left: 10px; top: 0; display: flex; flex-direction: column; align-items: center; gap: 13px; }
 .ds-fav.pop svg { animation: ds-pop .35s ease; }
 @keyframes ds-pop { 50% { transform: scale(1.22); } }
 .ds-add.on svg { stroke: #4fd18b; }

@@ -198,6 +198,10 @@
 >   the panel) so the preview keeps playing; albums with no Deezer preview are
 >   pruned from the feed; a cover spins in only once loaded. Deezer's service
 >   tile (SD_SERVICES) is the real 2023 mark from Wikimedia Commons.
+>   Rails (11-03 later): left Share (share.js sheet) · Reviews · Review, right
+>   Like (shows the album's like count once liked) · Listened · Later, the
+>   three rows centred on the CD (alignRail). For You is the first option in
+>   the genre sheet (default, never mixed with genres); "Previews by Deezer" up top.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.
