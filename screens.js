@@ -2698,13 +2698,21 @@ function wallHtml(light) {
                  by paintWallTabs, never interpolated (evaluated once at load).
                  No backticks in here: template literal. -->
             <div class="wall2-bar v3-feed-tabs wall2-tabs">
-              <button class="wall2-cat wall2-tab" data-wt="friends" onclick="event.stopPropagation(); pickWallTab(this)">Friends</button>
-              <button class="wall2-cat wall2-tab" data-wt="popular" onclick="event.stopPropagation(); pickWallTab(this)">Popular</button>
-              <button class="wall2-cat wall2-tab" data-wt="recent" onclick="event.stopPropagation(); pickWallTab(this)">New</button>
-              <!-- 2026-11-03: SWIPE MODE (doomscroll.js) in the Genre tab's place, with a Beta tag.
-                   The Genre menu is out of the markup; paintWallTabs is null-safe without it. -->
+              <!-- 2026-11-04 (Eric): the Friends / Popular / New tabs are gone. The
+                   page is now the BROWSE list (wall2-browse, below), and the row
+                   holds the ALTERNATIVE views: Swipe (doomscroll.js) and the old
+                   Carousel, both beta, then two greyed slots not built yet.
+                   Carousel toggles WALL_VIEW (pickWallView, app.js); the deck
+                   deals WALL_TAB = friends as it did by default. -->
               <button class="wall2-cat ds-swipe" aria-label="Swipe mode (beta)" onclick="event.stopPropagation(); sdDoomOpen(this)">Swipe<span class="ds-beta">beta</span></button>
+              <button class="wall2-cat ds-swipe wall2-view" data-view="carousel" aria-label="Carousel (beta)" onclick="event.stopPropagation(); pickWallView(this)">Carousel<span class="ds-beta">beta</span></button>
+              <button class="wall2-cat wall2-off" type="button" disabled aria-disabled="true">Charts</button>
+              <button class="wall2-cat wall2-off" type="button" disabled aria-disabled="true">Radio</button>
             </div>
+            <!-- 2026-11-04 (Eric): BROWSE, like Apple Music's New page: a heading
+                 per category and a sideways rail of covers, about 2.5 showing,
+                 fading out to the right. Filled by wallPaintBrowse (app.js). -->
+            <div class="wall2-browse"></div>
             ${friendsBentoHtml()}
             <!-- 0.20 (Eric, 2026-10-22): "take out the grid" on Trending. The
                  Albums / Artists / Genres / Week bar and the album grid are gone;

@@ -202,6 +202,21 @@
 >   Like (shows the album's like count once liked) · Listened · Later, the
 >   three rows centred on the CD (alignRail). For You is the first option in
 >   the genre sheet (default, never mixed with genres); "Previews by Deezer" up top.
+> - **TRENDING = BROWSE** (Eric, 2026-11-04: "looks like the apple music
+>   discovery"). Default view is `.wall2-browse` (`wallPaintBrowse` /
+>   `wallBrowseSections`, app.js, called from populateHomeData): Apple Music
+>   New-page category headings over sideways rails, ~2.5 covers visible, masked
+>   to fade right (`.wb-*`, end of app.css). Rows (round 2, same day): New
+>   Releases ("Popular releases" sub-line) · Start Listening ("Curated for you" sub-line, `.wb-sub`) · Popular
+>   Albums · Genres · Decades · Curated Albums. Genres / Decades are TILES (name
+>   on a seeded gradient square, `.wb-tile`, kind 'tile'; no tap action yet);
+>   decades ranked by summed reviewCount. Start Listening / Curated are seeded
+>   shuffles (MOCK). Built once per shelf so rails keep their scroll. The tab row is now **Swipe (beta) · Carousel (beta) · Charts ·
+>   Radio** — the last two greyed `.wall2-off` placeholders. Carousel toggles
+>   `WALL_VIEW` (`pickWallView`; tap again = back to Browse) → `.wall2--carousel`
+>   on the shell shows the header back caret (sdHeaderBack → Browse) and the old deck + friends row + reviews (deck deals
+>   `WALL_TAB` = friends) and hides the browse list. Friends/Popular/New tabs are
+>   out of the markup; their code stays.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.

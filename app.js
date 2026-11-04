@@ -2128,6 +2128,8 @@ window.sdHeaderBack = function (btn) {
   if (!scr) return;
   if (scr.classList.contains('s-home-v3--rvp') && typeof rvpBack === 'function') return rvpBack();
   if (scr.classList.contains('s-home-v3--review')) { const lp = scr.querySelector('.v3-live-pill'); if (lp) return onLivePill(lp); }
+  // Trending's Carousel (beta) view: back out to Browse (Eric, 2026-11-04).
+  if (scr.classList.contains('wall2--carousel')) { const v = scr.querySelector('.wall2-view[data-view="carousel"]'); if (v) return pickWallView(v); }
   const pill = scr.querySelector('.plp-back-pill');
   if (pill) pill.click();
 };
@@ -4443,6 +4445,102 @@ window.wallAllReviews = function (el) {
   if (!scr || !scr._album) return;
   openAlbumPage(scr._album);
   setTimeout(fbGlideToReviews, 400);   // as the deck's comment pill does
+};
+
+/* TRENDING: BROWSE (Eric, 2026-11-04: "looks like the apple music discovery
+   with new releases then album horizontal list that fades to the right, showing
+   like 2.5 albums"). The page's default view: a heading per category over a
+   sideways rail. Round 2 (same day) set the rows:
+     New Releases ("Popular releases" under it) · Start Listening ("Curated for you") ·
+     Popular Albums · Genres · Decades · Curated Albums
+   Album rails are sorts of the shelf (ARCHIVE). GENRES and DECADES are TILES
+   in the cover's place: the name on a seeded colour square (kind 'tile').
+   Genres = the shelf's top genres by count (wallTabGenres); Decades are ranked
+   by popularity = the decade's summed reviewCount.
+   ⚠ MOCK: Start Listening and Curated Albums are seeded shuffles (Curated from
+   the best rated half). Tiles don't open anything yet.
+   ⚠ Cached per shelf (array + length): populateHomeData runs on every render
+   and a rebuild would snap every rail back to its start.
+   The old carousel is the Carousel (beta) tab: WALL_VIEW, stamped on the shell
+   as .wall2--carousel, which CSS uses to show one view and hide the other. */
+window.WALL_VIEW = 'browse';
+const WALL_BROWSE_N = 12;
+function wallDecadeLabel(d) { return d < 2000 ? String(d).slice(2) + 's' : d + 's'; }
+function wallBrowseSections() {
+  const A = (window.ARCHIVE || []).filter(a => a && a.image);
+  const yr = a => +a.year || 0, rc = a => a.reviewCount || 0, rt = a => +a.rating || 0;
+  const top = list => list.slice(0, WALL_BROWSE_N);
+  const shuffled = (list, seed) => { const r = seedRand(seed); return top(list.slice().sort(() => r() - 0.5)); };
+  const byRating = A.slice().sort((a, b) => rt(b) - rt(a));
+  const dec = new Map();
+  A.forEach(a => { if (yr(a)) { const d = Math.floor(yr(a) / 10) * 10; dec.set(d, (dec.get(d) || 0) + rc(a)); } });
+  const decades = [...dec.entries()].sort((x, y) => y[1] - x[1]).map(([d]) => ({ label: wallDecadeLabel(d), decade: d }));
+  const genres = wallTabGenres().map(g => ({ label: g, genre: g }));
+  return [
+    { title: 'New Releases',   sub: 'Popular releases', kind: 'album', items: top(A.slice().sort((a, b) => (yr(b) - yr(a)) || (rc(b) - rc(a)))) },
+    { title: 'Start Listening', sub: 'Curated for you', kind: 'album', items: shuffled(A, 'wb::start') },
+    { title: 'Popular Albums', kind: 'album', items: top(A.slice().sort((a, b) => (rc(b) - rc(a)) || (rt(b) - rt(a)))) },
+    { title: 'Genres',         kind: 'tile',  items: genres },
+    { title: 'Decades',        kind: 'tile',  items: decades },
+    { title: 'Curated Albums', kind: 'album', items: shuffled(byRating.slice(0, Math.max(WALL_BROWSE_N, Math.ceil(byRating.length / 2))), 'wb::curated') },
+  ].filter(s => s.items.length);
+}
+// A tile's colour: a hue seeded off its name, so it's the same every render.
+function wallTileBg(label) {
+  const h = Math.floor(seedRand('wbt::' + label)() * 360);
+  return `linear-gradient(140deg, hsl(${h} 42% 38%), hsl(${(h + 38) % 360} 48% 20%))`;
+}
+function wallPaintBrowse(scr) {
+  if (!scr || !scr.classList.contains('s-wall2')) return;
+  scr.classList.toggle('wall2--carousel', window.WALL_VIEW === 'carousel');
+  scr.querySelectorAll('.wall2-view').forEach(b => {
+    const on = b.dataset.view === window.WALL_VIEW;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+  const box = scr.querySelector('.wall2-browse');
+  if (!box) return;
+  const A = window.ARCHIVE || [];
+  if (box._A === A && box._len === A.length) return;
+  box._A = A; box._len = A.length;
+  const secs = wallBrowseSections();
+  box._secs = secs;
+  const chev = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+  const card = (sec, a, s, i) => sec.kind === 'tile' ? `
+                  <div class="wb-card wb-card--tile" data-s="${s}" data-i="${i}">
+                    <div class="wb-art wb-tile" style="background-image:${wallTileBg(a.label)}"><span class="wb-tile-name">${_sdsEsc(a.label)}</span></div>
+                  </div>` : `
+                  <div class="wb-card" data-s="${s}" data-i="${i}" onclick="event.stopPropagation(); wallBrowseOpen(this)">
+                    <div class="wb-art" style="background-image:url('${a.image}')"></div>
+                    <div class="wb-album">${_sdsEsc(a.album)}</div>
+                    <div class="wb-artist">${_sdsEsc(a.artist)}</div>
+                  </div>`;
+  box.innerHTML = secs.map((sec, s) => `
+              <section class="wb-sec">
+                <div class="wb-hd">${_sdsEsc(sec.title)}${chev}</div>
+                ${sec.sub ? `<div class="wb-sub">${_sdsEsc(sec.sub)}</div>` : ''}
+                <div class="wb-rail" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">${sec.items.map((a, i) => card(sec, a, s, i)).join('')}
+                </div>
+              </section>`).join('');
+}
+window.wallBrowseOpen = function (el) {
+  const box = el.closest('.wall2-browse');
+  const sec = box && box._secs && box._secs[+el.dataset.s];
+  const a = sec && sec.kind === 'album' && sec.items[+el.dataset.i];
+  if (!a) return;
+  sdHaptic(6);
+  openAlbumPage(a);
+};
+window.pickWallView = function (btn) {
+  const v = btn && btn.dataset.view;
+  if (!v) return;
+  window.WALL_VIEW = window.WALL_VIEW === v ? 'browse' : v;   // tap again → back to Browse
+  sdHaptic(6);
+  document.querySelectorAll('.s-wall2').forEach(scr => {
+    wallPaintBrowse(scr);
+    const body = scr.querySelector('.v3-body'); if (body) body.scrollTop = 0;
+    if (window.WALL_VIEW === 'carousel') { scr._fbCur = 0; renderFriendsBento(scr); }
+  });
 };
 
 function paintWallFriends(screenEl, album) {
@@ -6789,6 +6887,7 @@ function populateHomeData(screenEl) {
   renderNowBar(screenEl);
   renderFriendsBento(screenEl);   // csharpuser: the friends bento, painted AFTER the hero so its album wins
   renderDiscoveryDeck(screenEl);  // the Trending wall's deck (a no-op elsewhere)
+  wallPaintBrowse(screenEl);      // the Trending wall's browse rails (a no-op elsewhere)
 
   const forSingle = screenEl.querySelector('.v3-for-single');
   if (forSingle) {

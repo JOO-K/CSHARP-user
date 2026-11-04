@@ -13095,9 +13095,11 @@ body.sd-return .s-home-v3--review .v3-body,
 .s-home-v3--light .v3-hdr-back { color: rgba(26,18,8,0.75); }
 .s-home-v3--review .v3-hdr-back,
 .s-home-v3--rvp .v3-hdr-back,
+.s-wall2.wall2--carousel .v3-hdr-back,
 .app-screen:has(.plp-back-pill) .v3-hdr-back { display: inline-flex; }
 .s-home-v3--review .v3-bubble--notif,
 .s-home-v3--rvp .v3-bubble--notif,
+.s-wall2.wall2--carousel .v3-bubble--notif,
 .app-screen:has(.plp-back-pill) .v3-bubble--notif { display: none; }
 /* The old backs, off: the pills, and the album page's corner Back. */
 .app-screen .plp-back-pill { display: none !important; }
@@ -13850,3 +13852,59 @@ html.sd-reduce-motion *, html.sd-reduce-motion *::before, html.sd-reduce-motion 
 .s-home-v3--light.s-wall2 .v3-rev-card--page.v3-rev-card--split .v3-rev-big-n { color: #1a1208; }
 .s-home-v3--light.s-wall2 .v3-rev-card--page.v3-rev-card--split .v3-rev-record-artist { color: rgba(26,18,8,0.6); }
 .s-home-v3--light.s-wall2 .v3-rev-card--page.v3-rev-card--split .v3-rsp-acts .v3-up--heart.is-on { color: #e0396e; }
+
+/* TRENDING: BROWSE (Eric, 2026-11-04) — Apple Music's New page: a heading per
+   category over a sideways rail of covers, ~2.5 showing, fading out right
+   (wallPaintBrowse, app.js). The old carousel (deck + friends row + reviews)
+   only shows on the Carousel (beta) tab, .wall2--carousel on the shell. */
+.s-wall2:not(.wall2--carousel) .wall2-scroll > .v3-fb,
+.s-wall2:not(.wall2--carousel) .wall2-friends,
+.s-wall2:not(.wall2--carousel) .wall2-revs { display: none !important; }
+.s-wall2.wall2--carousel .wall2-browse { display: none; }
+.wall2-browse { margin: 14px -12px 0; padding-bottom: 28px; }
+.wb-sec + .wb-sec { margin-top: 22px; }
+.wb-hd {
+  display: flex; align-items: center; gap: 3px;
+  padding: 0 16px 10px;
+  font: 700 19px/1.2 var(--font-main); letter-spacing: -.3px; color: #e8e2d6;
+}
+.wb-hd svg { width: 15px; height: 15px; opacity: .45; flex-shrink: 0; }
+.wb-rail {
+  display: flex; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain;
+  padding: 0 16px; scroll-snap-type: x mandatory; scroll-padding-left: 16px;
+  scrollbar-width: none; touch-action: pan-x pan-y;
+  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 68%, transparent 100%);
+          mask-image: linear-gradient(90deg, #000 0, #000 68%, transparent 100%);
+}
+.wb-rail::-webkit-scrollbar { display: none; }
+/* 2.5 covers in view: 2 + the gap pair + half of the third. */
+.wb-card { flex: 0 0 calc((100% - 24px) / 2.5); min-width: 0; scroll-snap-align: start; cursor: pointer; }
+.wb-art {
+  width: 100%; aspect-ratio: 1; border-radius: 6px;
+  background: #222 center / cover no-repeat;
+  box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 4px 14px rgba(0,0,0,.35);
+}
+.wb-album, .wb-artist {
+  font-family: var(--font-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wb-album { margin-top: 7px; font-size: 13px; font-weight: 500; color: #e8e2d6; }
+.wb-artist { margin-top: 1px; font-size: 12px; color: rgba(232,226,214,.55); }
+.s-home-v3--light .wb-hd, .s-home-v3--light .wb-album { color: #1a1208; }
+.s-home-v3--light .wb-artist { color: rgba(26,18,8,.55); }
+.s-home-v3--light .wb-art { background-color: #ddd6c8; box-shadow: 0 4px 14px rgba(30,20,10,.18); }
+/* the two tabs not built yet */
+.wall2-cat.wall2-off { opacity: .3; pointer-events: none; cursor: default; }
+/* Browse round 2 (2026-11-04): Start Listening's "Curated for you" line, and the
+   Genres / Decades TILES — the name on a seeded colour square in the cover's place. */
+.wall2-browse .wb-hd:has(+ .wb-sub) { padding-bottom: 1px; }
+.wb-sub { padding: 0 16px 10px; font: 400 12.5px/1.3 var(--font-main); color: rgba(232,226,214,.55); }
+.s-home-v3--light .wb-sub { color: rgba(26,18,8,.55); }
+.wb-tile {
+  position: relative; display: flex; align-items: flex-end; padding: 10px 11px;
+  box-sizing: border-box; overflow: hidden;
+}
+.wb-tile-name {
+  font: 700 16px/1.15 var(--font-main); letter-spacing: -.2px; color: #fff;
+  text-shadow: 0 1px 6px rgba(0,0,0,.3); overflow-wrap: anywhere;
+}
+.s-home-v3--light .wb-tile { background-color: transparent; }
