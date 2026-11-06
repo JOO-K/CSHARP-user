@@ -4459,6 +4459,12 @@ window.wallAllReviews = function (el) {
    by popularity = the decade's summed reviewCount.
    ⚠ MOCK: Start Listening and Curated Albums are seeded shuffles (Curated from
    the best rated half). Tiles don't open anything yet.
+   Round 3 (Eric, 2026-11-06): rows are New Releases · Start Listening · Genres ·
+   Decades, then EVENTS — full-width promo banners (a sideways snap rail) over
+   an "Upcoming events" list (WALL_EVENTS). Popular / Curated Albums are out.
+   Genre / decade tiles and the promos are PLACEHOLDER PHOTOS (picsum.photos,
+   seeded by name so each keeps its picture) under a dark fade for the name.
+   ⚠ MOCK: the event months are typical-season guesses, not announced dates.
    ⚠ Cached per shelf (array + length): populateHomeData runs on every render
    and a rebuild would snap every rail back to its start.
    The old carousel is the Carousel (beta) tab: WALL_VIEW, stamped on the shell
@@ -4471,7 +4477,6 @@ function wallBrowseSections() {
   const yr = a => +a.year || 0, rc = a => a.reviewCount || 0, rt = a => +a.rating || 0;
   const top = list => list.slice(0, WALL_BROWSE_N);
   const shuffled = (list, seed) => { const r = seedRand(seed); return top(list.slice().sort(() => r() - 0.5)); };
-  const byRating = A.slice().sort((a, b) => rt(b) - rt(a));
   const dec = new Map();
   A.forEach(a => { if (yr(a)) { const d = Math.floor(yr(a) / 10) * 10; dec.set(d, (dec.get(d) || 0) + rc(a)); } });
   const decades = [...dec.entries()].sort((x, y) => y[1] - x[1]).map(([d]) => ({ label: wallDecadeLabel(d), decade: d }));
@@ -4479,12 +4484,26 @@ function wallBrowseSections() {
   return [
     { title: 'New Releases',   sub: 'Popular releases', kind: 'album', items: top(A.slice().sort((a, b) => (yr(b) - yr(a)) || (rc(b) - rc(a)))) },
     { title: 'Start Listening', sub: 'Curated for you', kind: 'album', items: shuffled(A, 'wb::start') },
-    { title: 'Popular Albums', kind: 'album', items: top(A.slice().sort((a, b) => (rc(b) - rc(a)) || (rt(b) - rt(a)))) },
     { title: 'Genres',         kind: 'tile',  items: genres },
     { title: 'Decades',        kind: 'tile',  items: decades },
-    { title: 'Curated Albums', kind: 'album', items: shuffled(byRating.slice(0, Math.max(WALL_BROWSE_N, Math.ceil(byRating.length / 2))), 'wb::curated') },
+    { title: 'Events', kind: 'promo', items: WALL_EVENTS.slice(0, 4) },
+    { title: 'Upcoming events', kind: 'event', items: WALL_EVENTS },
   ].filter(s => s.items.length);
 }
+// MOCK events (Eric 11-06): festival names from fests.js, months are each one's
+// usual season, not announced 2027 dates.
+const WALL_EVENTS = [
+  { name: 'Coachella',          slug: 'coachella',    when: 'Apr 2027', mon: 'APR', where: 'Indio, CA',         tag: 'Two weekends in the desert' },
+  { name: 'Primavera Sound',    slug: 'primavera',    when: 'Jun 2027', mon: 'JUN', where: 'Barcelona, Spain',  tag: 'By the sea, till sunrise' },
+  { name: 'Governors Ball',     slug: 'govball',      when: 'Jun 2027', mon: 'JUN', where: 'New York, NY',      tag: 'Three days in Queens' },
+  { name: 'Roskilde',           slug: 'roskilde',     when: 'Jul 2027', mon: 'JUL', where: 'Roskilde, Denmark', tag: 'Eight days, one orange tent' },
+  { name: 'Fuji Rock',          slug: 'fujirock',     when: 'Jul 2027', mon: 'JUL', where: 'Naeba, Japan',      tag: 'Up in the mountains' },
+  { name: 'Lollapalooza',       slug: 'lollapalooza', when: 'Aug 2027', mon: 'AUG', where: 'Chicago, IL',       tag: 'Grant Park, four days' },
+  { name: 'Outside Lands',      slug: 'outsidelands', when: 'Aug 2027', mon: 'AUG', where: 'San Francisco, CA', tag: 'Golden Gate Park in the fog' },
+  { name: 'Austin City Limits', slug: 'acl',          when: 'Oct 2027', mon: 'OCT', where: 'Austin, TX',        tag: 'Zilker Park, two weekends' },
+];
+// A placeholder photo, seeded so the same tile always gets the same picture.
+const wallPh = (seed, w, h) => `https://picsum.photos/seed/${encodeURIComponent('sd-' + seed)}/${w}/${h}`;
 // A tile's colour: a hue seeded off its name, so it's the same every render.
 function wallTileBg(label) {
   const h = Math.floor(seedRand('wbt::' + label)() * 360);
@@ -4506,9 +4525,21 @@ function wallPaintBrowse(scr) {
   const secs = wallBrowseSections();
   box._secs = secs;
   const chev = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
-  const card = (sec, a, s, i) => sec.kind === 'tile' ? `
+  const card = (sec, a, s, i) => sec.kind === 'promo' ? `
+                  <div class="wb-card wb-card--promo" data-s="${s}" data-i="${i}">
+                    <div class="wb-promo" style="background-image:linear-gradient(180deg, transparent 35%, rgba(0,0,0,.72)), url('${wallPh('ev-' + a.slug, 800, 450)}'), ${wallTileBg(a.name)}">
+                      <span class="wb-promo-when">${_sdsEsc(a.when)}</span>
+                      <span class="wb-promo-name">${_sdsEsc(a.name)}</span>
+                      <span class="wb-promo-tag">${_sdsEsc(a.tag)} · ${_sdsEsc(a.where)}</span>
+                    </div>
+                  </div>` : sec.kind === 'event' ? `
+                  <div class="wb-ev" data-s="${s}" data-i="${i}">
+                    <div class="wb-ev-date"><b>${_sdsEsc(a.mon)}</b><span>2027</span></div>
+                    <div class="wb-ev-txt"><div class="wb-ev-name">${_sdsEsc(a.name)}</div><div class="wb-ev-where">${_sdsEsc(a.where)}</div></div>
+                    ${chev}
+                  </div>` : sec.kind === 'tile' ? `
                   <div class="wb-card wb-card--tile" data-s="${s}" data-i="${i}">
-                    <div class="wb-art wb-tile" style="background-image:${wallTileBg(a.label)}"><span class="wb-tile-name">${_sdsEsc(a.label)}</span></div>
+                    <div class="wb-art wb-tile" style="background-image:linear-gradient(180deg, transparent 40%, rgba(0,0,0,.6)), url('${wallPh((a.decade ? 'dec-' : 'gen-') + a.label, 400, 400)}'), ${wallTileBg(a.label)}"><span class="wb-tile-name">${_sdsEsc(a.label)}</span></div>
                   </div>` : `
                   <div class="wb-card" data-s="${s}" data-i="${i}" onclick="event.stopPropagation(); wallBrowseOpen(this)">
                     <div class="wb-art" style="background-image:url('${a.image}')"></div>
@@ -4519,8 +4550,9 @@ function wallPaintBrowse(scr) {
               <section class="wb-sec">
                 <div class="wb-hd">${_sdsEsc(sec.title)}${chev}</div>
                 ${sec.sub ? `<div class="wb-sub">${_sdsEsc(sec.sub)}</div>` : ''}
-                <div class="wb-rail" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">${sec.items.map((a, i) => card(sec, a, s, i)).join('')}
-                </div>
+                ${sec.kind === 'event' ? `<div class="wb-evlist">${sec.items.map((a, i) => card(sec, a, s, i)).join('')}</div>` : `
+                <div class="wb-rail${sec.kind === 'promo' ? ' wb-rail--promo' : ''}" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">${sec.items.map((a, i) => card(sec, a, s, i)).join('')}
+                </div>`}
               </section>`).join('');
 }
 window.wallBrowseOpen = function (el) {

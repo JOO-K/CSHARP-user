@@ -271,3 +271,6 @@ html.sd-reduce-motion .qs-ln { transition: opacity .2s; transform: none; }
 .sd-live-bar i { display: block; height: 3px; border-radius: 2px; background: rgba(255,255,255,.2); overflow: hidden; }
 .sd-live-bar b { display: block; height: 100%; width: 0; background: #fff; transition: width .3s ease; }
 .sd-live-bar.done { opacity: 0; }
+
+/* phones: no blended grain over the scrolling feed (GPU memory, 11-06 crash) */
+@media (pointer: coarse) { .qs-root::after { display: none; } }

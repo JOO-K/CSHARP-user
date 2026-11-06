@@ -51,7 +51,7 @@
   const RING_R = 184, CD = 60;                           // the ring and its CDs
   const STEP = 22 * Math.PI / 180;                       // angle between slots
   const A0 = -40 * Math.PI / 180;                        // slot `pos` sits here (upper right)
-  const PANEL_TOP = Math.round(C.y + RING_R + CD / 2 + 16);
+  const PANEL_TOP = Math.round(C.y + RING_R + CD / 2 + 48);   // +32 = one song row lower, one row fewer (Eric 11-06)
 
   const P = {
     root: null, list: [], pos: 0, vel: 0, raf: 0, els: new Map(),

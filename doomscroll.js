@@ -510,11 +510,27 @@
       </div>`;
   }
 
+
+  /* BLUR CULL (Eric 11-06: still crashing after ~10s of scrolling on his iPhone).
+     Every card carried its own full-size cover under a 40px+ blur, and cards are
+     never removed, so iOS piled up GPU layers until it killed the tab. Now only
+     the card on screen and its two neighbours draw that layer, from a 250px copy
+     of the cover (Deezer serves any size; a blur that strong can't tell). */
+  const smallCover = u => String(u || '').replace(/\/(\d+)x-/, '/250x250-');
+  function cullBgs(root, sel, i) {
+    if (!root) return;
+    root.querySelectorAll(sel).forEach(bg => {
+      const k = +bg.parentElement.dataset.i, near = Math.abs(k - i) <= 1;
+      if (near && !bg._on) { bg.style.backgroundImage = `url("${smallCover(bg.dataset.bg).replace(/"/g, '%22')}")`; bg._on = true; }
+      else if (!near && bg._on) { bg.style.backgroundImage = ''; bg._on = false; }
+    });
+  }
+
   function cardHtml(a, i) {
     const d = draftOf(a);
     return `
       <section class="ds-card" data-i="${i}">
-        <div class="ds-bg" style="background-image:url('${esc(a.image)}')"></div>
+        <div class="ds-bg" data-bg="${esc(a.image)}"></div>
         <div class="ds-main">
           <div class="ds-score${d.rating > 0 ? ' is-mine' : ''}" onclick="event.stopPropagation(); sdDoomRate(event, ${i})">${scoreInner(a, d)}</div>
           <div class="ds-cd" onclick="event.stopPropagation(); sdDoomToggle(${i})">
@@ -652,6 +668,7 @@
       alignRail(card);
     });
     DS.shown = to;
+    if (DS.active >= 0) cullBgs(DS.scroller, '.ds-bg', DS.active);
     // warm the next couple of tracklists so the songs are there on arrival
     /* NO PREVIEW, NO CARD (round 23: "its weird to get recommended something
        and it says preview not available"). Every new card's songs are asked
@@ -928,6 +945,7 @@
     if (i === DS.active) return;
     const first = DS.active === -1;                // a fresh deal (-2 = a pruned card handing over)
     DS.active = i;
+    cullBgs(DS.scroller, '.ds-bg', i);
     window.sdFresh.seen(DS.list[i]);
     swapFixCd(DS.list[i], first);
     placeFixCd();

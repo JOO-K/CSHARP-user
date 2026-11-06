@@ -312,6 +312,18 @@
 >   leans early) and pushes back albums seen in ANY mode in the last 72h
 >   (`sd-seen-albums`). Scores hold per mode until the next non-resume open,
 >   so Back-resume and re-deals keep their order.
+> - **BLUR CULL** (11-06, iPhone still crashed ~10s into scrolling): `.qs-bg` /
+>   `.ds-bg` carry `data-bg`, and `cullBgs` (quotes.js / doomscroll.js) paints
+>   the blurred cover only on the active card ±1, from a 250px Deezer copy
+>   (`smallCover`). Cards are never removed, so every card blurring a 1000px
+>   cover piled up GPU layers. The Comments grain (`.qs-root::after`, a
+>   mix-blend overlay) is off under `(pointer: coarse)`.
+> - **TRENDING BROWSE round 3** (Eric, 2026-11-06): rows are New Releases ·
+>   Start Listening · Genres · Decades · Events (full-width promo banners, snap
+>   rail) · Upcoming events (list) — Popular / Curated Albums are out. Genre,
+>   decade and event pictures are PLACEHOLDER photos (`wallPh`, picsum.photos
+>   seeded by name). `WALL_EVENTS` is MOCK (usual-season months, not announced
+>   dates). Player: the song panel starts 32px lower (`PANEL_TOP`), one row fewer.
 > - **CD PLAYER (beta)** (Eric, 2026-11-06; `player.js` + `player.css`, header
 >   comment explains it). Trending's fourth tab (was the greyed Radio, now
 >   **Player**). The deck in the upper left IS the belt-drive logo (SD_INTRO_BELT,

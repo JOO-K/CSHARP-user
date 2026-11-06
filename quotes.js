@@ -270,13 +270,29 @@
     try { return cmtCount(cmtKey(it), cmtTotal(it)); } catch (e) { return cmtTotal(it); }
   };
 
+
+  /* BLUR CULL (Eric 11-06: still crashing after ~10s of scrolling on his iPhone).
+     Every card carried its own full-size cover under a 40px+ blur, and cards are
+     never removed, so iOS piled up GPU layers until it killed the tab. Now only
+     the card on screen and its two neighbours draw that layer, from a 250px copy
+     of the cover (Deezer serves any size; a blur that strong can't tell). */
+  const smallCover = u => String(u || '').replace(/\/(\d+)x-/, '/250x250-');
+  function cullBgs(root, sel, i) {
+    if (!root) return;
+    root.querySelectorAll(sel).forEach(bg => {
+      const k = +bg.parentElement.dataset.i, near = Math.abs(k - i) <= 1;
+      if (near && !bg._on) { bg.style.backgroundImage = `url("${smallCover(bg.dataset.bg).replace(/"/g, '%22')}")`; bg._on = true; }
+      else if (!near && bg._on) { bg.style.backgroundImage = ''; bg._on = false; }
+    });
+  }
+
   function cardHtml(it, i) {
     const liked = likes().has(itemKey(it));
     const n = it.q.likes + (liked ? 1 : 0);
     const a = it.a, fav = albumFav(a), avg = +a.rating || 0;
     return `
       <section class="qs-card" data-i="${i}">
-        <div class="qs-bg" style="background-image:url('${esc(a.image)}')"></div>
+        <div class="qs-bg" data-bg="${esc(a.image)}"></div>
         <div class="qs-body">
           <blockquote class="qs-quote"><span class="qs-oq">“</span>${esc(it.q.text)}”</blockquote>
           <div class="qs-meta">
@@ -323,6 +339,7 @@
       Q.obs.observe(card);
       const im = new Image(); im.src = Q.list[i].a.image;   // covers warm before they spin in
     });
+    if (Q.active >= 0) cullBgs(Q.scroller, '.qs-bg', Q.active);
     const L = Q.landing;
     if (L && !L.done) {
       const i = Q.list.findIndex(it => itemKey(it) === L.key);
@@ -662,6 +679,7 @@
     if (i === Q.active) return;
     const first = Q.active === -1;
     Q.active = i;
+    cullBgs(Q.scroller, '.qs-bg', i);
     if (window.sdFresh) window.sdFresh.seen(Q.list[i].a);
     Q.scroller.querySelectorAll('.qs-card.on').forEach(c => c.classList.remove('on'));
     const card = cardAt(i);
