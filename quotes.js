@@ -132,7 +132,8 @@
     return (window.ARCHIVE || [])
       .filter(a => a && a.album && a.image)
       .filter(a => { const k = a.artist + '|' + a.album; if (seen.has(k)) return false; seen.add(k); return true; })
-      .sort((x, y) => (y.reviewCount || 0) - (x.reviewCount || 0) || (y.rating || 0) - (x.rating || 0));
+      .sort((x, y) => window.sdFresh ? window.sdFresh.score(y, 'qs') - window.sdFresh.score(x, 'qs')
+                                     : (y.reviewCount || 0) - (x.reviewCount || 0));   // fresh order (doomscroll.js)
   }
   const tracks = a => typeof window.sdDzTracks === 'function' ? window.sdDzTracks(a) : Promise.resolve(null);
   const topSong = list => (list || []).filter(t => t.preview).sort((x, y) => (y.rank - x.rank) || (x.n - y.n))[0] || null;
@@ -403,7 +404,12 @@
       el.setAttribute('playsinline', '');
       el.muted = Q.muted;
       el.addEventListener('ended', () => goNext());
-      el.addEventListener('playing', () => Q.root && Q.root.classList.add('is-playing'));
+      el.addEventListener('playing', () => {
+        if (!Q.root) return;
+        Q.root.classList.add('is-playing');
+        // the first real song is on: the model bar has had its moment (round 15)
+        if (window.sdLive && window.sdLive.doneBar && el.src && !/^data:/.test(el.src)) window.sdLive.doneBar();
+      });
       el.addEventListener('pause', () => Q.root && Q.root.classList.remove('is-playing'));
       Q.audio = el;
     }
@@ -656,6 +662,7 @@
     if (i === Q.active) return;
     const first = Q.active === -1;
     Q.active = i;
+    if (window.sdFresh) window.sdFresh.seen(Q.list[i].a);
     Q.scroller.querySelectorAll('.qs-card.on').forEach(c => c.classList.remove('on'));
     const card = cardAt(i);
     if (card) card.classList.add('on');
@@ -683,6 +690,7 @@
     if (!host) return;
     window.sdQuoteClose();
     if (typeof window.sdDoomClose === 'function') window.sdDoomClose();
+    if (!resume && window.sdFresh) window.sdFresh.reset('qs');   // a new open deals a new order
     // the live-lyrics models (lyrics-live.js) download now, the first time Comments opens
     if (window.sdLive) window.sdLive.start();
     // Unlock audio INSIDE this tap, or iOS refuses the play() that comes later.
@@ -728,6 +736,7 @@
   window.sdQuoteClose = function () {
     Q.gen++; Q.gen2++;
     cancelAnimationFrame(Q.raf);
+    if (Q.root && window.sdLive && window.sdLive.doneBar) window.sdLive.doneBar();
     if (Q.audio) { Q.audio.pause(); Q.audio.removeAttribute('src'); }
     if (Q.obs) { Q.obs.disconnect(); Q.obs = null; }
     if (Q.root) {

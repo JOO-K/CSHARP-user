@@ -40,6 +40,13 @@
   const CLAP = 'Xenova/clap-htsat-unfused';
   const LS_KEY = 'sd-live-lyrics-v1', LS_MAX = 80;
   const BAR_AFTER = 1200;                    // show the boot bar only if it's taking a while
+  /* LITE on phones (round 15, Eric 11-06: "after like 2 songs the app crashes").
+     Whisper + CLAP in a wasm worker is ~75 MB of download and several hundred MB
+     of memory once both run, and iOS Safari kills the tab for it a couple of
+     songs in. A touch phone gets the part that needs no model: LRCLIB's synced
+     lyrics from the usual start, no Whisper refine, no captions / CLAP line
+     (a song with no synced lyrics says "No lyrics"). No download, so no bar. */
+  const LITE = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
 
   const WORKER_SRC = `
 import { pipeline, AutoProcessor, ClapAudioModelWithProjection, env } from '${TJS}';
@@ -102,6 +109,7 @@ self.onmessage = async e => {
   /* ── the worker + the boot bar ──────────────────────────────────────────── */
   function start() {
     if (S.ready) return S.ready;
+    if (LITE) { S.state = 'off'; S.ready = Promise.resolve(false); return S.ready; }
     S.t0 = Date.now();
     S.ready = new Promise(res => { S.readyRes = res; });
     try {
@@ -130,12 +138,14 @@ self.onmessage = async e => {
       S.worker.postMessage({ type, id, audio }, [audio.buffer]);
     });
   }
-  /* The bar rides at the bottom of whatever phone screen is up (login, intro,
-     home…), so it's there on the loading screen and never blocks a tap. A
-     re-render throws it away, so every tick puts it back if it's gone. */
+  /* The bar shows ONCE (round 15, Eric: "it should show once when u turn the
+     mode on and that's it"): only on the Comments page, and only until the
+     first song starts or the page closes (quotes.js calls sdLive.doneBar()).
+     After that it never comes back, even if the download is still going. */
   function paintBar() {
-    if (S.state !== 'loading' || Date.now() - S.t0 < BAR_AFTER) return;
-    const scr = [...document.querySelectorAll('.app-screen')].find(e => e.getBoundingClientRect().width);
+    if (S.barDone || S.state !== 'loading' || Date.now() - S.t0 < BAR_AFTER) return;
+    const qs = [...document.querySelectorAll('.qs-root')].find(e => e.getBoundingClientRect().width);
+    const scr = qs && qs.closest('.app-screen');
     if (!scr) return;
     if (!S.bar || !scr.contains(S.bar)) {
       if (S.bar) S.bar.remove();
@@ -149,6 +159,7 @@ self.onmessage = async e => {
     S.bar.querySelector('span').textContent = 'Getting live lyrics ready · ' + Math.round(p * 100) + '%';
   }
   function hideBar() {
+    S.barDone = true;
     clearTimeout(S.barT);
     const b = S.bar; S.bar = null;
     if (b) { b.classList.add('done'); setTimeout(() => b.remove(), 400); }
@@ -369,6 +380,7 @@ self.onmessage = async e => {
   }
   // the low-priority refine: listen, and swap in a better timing if there is one
   function refine(it, first) {
+    if (LITE) return;
     const id = String(it.t.id);
     job(1, async () => {
       const lrc = await lrclib(it.a.artist, it.t.title, it.a.album, it.t.dur);
@@ -428,7 +440,7 @@ self.onmessage = async e => {
     return p;
   }
 
-  window.sdLive = { start, analyze, onUpdate: null, get state() { return S.state; }, get last() { return S.last; } };
+  window.sdLive = { start, analyze, onUpdate: null, doneBar: hideBar, lite: LITE, get state() { return S.state; }, get last() { return S.last; } };
 
   /* NOT at boot (round 13, Eric: "put the install … when u open comments
      instead"): quotes.js calls sdLive.start() as the Comments page opens, and

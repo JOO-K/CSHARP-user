@@ -299,6 +299,19 @@
 >   Round 14 — LYRICS FIRST: a song with nothing prepared waits ("Listening" up,
 >   the last song paused) until its live entry arrives, at most 6s
 >   (`lyricsReady`, `READY_WAIT`), then plays; prepared songs start at once.
+>   Round 15 (11-06, Eric tested on his iPhone: the bar stayed forever and the
+>   site crashed after ~2 songs) — **LITE ON PHONES**: `(pointer: coarse)` →
+>   `sdLive.lite`, no worker / no model download at all (iOS killed the tab for
+>   the Whisper + CLAP memory). Phones get LRCLIB synced lyrics from the usual
+>   start only; no refine, no captions, no CLAP line (→ "No lyrics"). Desktop
+>   unchanged. The model bar now shows ONCE: only on the Comments page, gone
+>   for good when the first song plays or Comments closes (`sdLive.doneBar`).
+> - **FRESH ORDER in Swipe · Comments · Player** (Eric, 2026-11-06: "same albums
+>   over and over"). All three sorted by reviewCount; now `window.sdFresh`
+>   (top of doomscroll.js) gives each open a weighted shuffle (popular still
+>   leans early) and pushes back albums seen in ANY mode in the last 72h
+>   (`sd-seen-albums`). Scores hold per mode until the next non-resume open,
+>   so Back-resume and re-deals keep their order.
 > - **CD PLAYER (beta)** (Eric, 2026-11-06; `player.js` + `player.css`, header
 >   comment explains it). Trending's fourth tab (was the greyed Radio, now
 >   **Player**). The deck in the upper left IS the belt-drive logo (SD_INTRO_BELT,

@@ -77,7 +77,8 @@
     return (window.ARCHIVE || [])
       .filter(a => a && a.album && a.image)
       .filter(a => { const k = a.artist + '|' + a.album; if (seen.has(k)) return false; seen.add(k); return true; })
-      .sort((x, y) => (y.reviewCount || 0) - (x.reviewCount || 0) || (y.rating || 0) - (x.rating || 0));
+      .sort((x, y) => window.sdFresh ? window.sdFresh.score(y, 'cp') - window.sdFresh.score(x, 'cp')
+                                     : (y.reviewCount || 0) - (x.reviewCount || 0));   // fresh order (doomscroll.js)
   }
   /* THE GENRE PICKER (round 2): lower right of the ring. One genre at a time
      (a main brings its subgenres, Swipe's rule), or All. A thin genre is topped
@@ -472,6 +473,7 @@
     if (!P.root || !a) return;
     const auto = !(opts && opts.play === false);
     P.album = a;
+    if (window.sdFresh) window.sdFresh.seen(a);
     P.root.classList.toggle('is-suggested', !auto);
     P.root.classList.remove('deck-lifted');
     const disc = P.root.querySelector('.cp-disc');
@@ -599,6 +601,7 @@
     const host = (btn && btn.closest('.app-screen')) || document.querySelector('.s-wall2');
     if (!host) return;
     window.sdCpClose();
+    if (!resume && window.sdFresh) window.sdFresh.reset('cp');   // a new open deals a new order
     if (typeof window.sdDoomClose === 'function') window.sdDoomClose();
     if (typeof window.sdQuoteClose === 'function') window.sdQuoteClose();
     const el = audio();                                // unlock audio inside this tap (iOS)

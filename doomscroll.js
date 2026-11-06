@@ -163,6 +163,50 @@
   const haptic = () => { try { if (typeof sdHaptic === 'function') sdHaptic(8); } catch (e) {} };
 
   /* ── the album list: most reviewed first ─────────────────────────────── */
+  /* ── FRESH ORDER (Eric, 11-06: "i have been getting the same albums over and
+     over") ── Swipe, Comments and Player all sorted the shelf by review count,
+     so every open dealt the same top albums. Now each OPEN draws a weighted
+     shuffle (Efraimidis–Spirakis: random^(1/weight), weight = log of the review
+     count, so popular albums still lean early), and an album you've had on
+     screen in ANY of the three modes in the last 3 days is pushed back
+     (sd-seen-albums, shared). Scores are fixed per mode until the next fresh
+     open, so a resume (Back from the album page) or a re-deal keeps its order.
+     window.sdFresh = { score(a, tag), reset(tag), seen(a) } */
+  (function () {
+    const KEY = 'sd-seen-albums', MAX = 400, HOURS = 72;
+    const ak = a => a.artist + '|' + a.album;
+    let seen = null, saveT = 0;
+    const load = () => seen || (seen = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })());
+    const memo = new Map();
+    window.sdFresh = {
+      reset(tag) { memo.delete(tag); },
+      seen(a) {
+        if (!a || !a.album) return;
+        load()[ak(a)] = Date.now();
+        clearTimeout(saveT);
+        saveT = setTimeout(() => {
+          try {
+            const ks = Object.keys(seen).sort((x, y) => seen[y] - seen[x]);
+            ks.slice(MAX).forEach(k => { delete seen[k]; });
+            localStorage.setItem(KEY, JSON.stringify(seen));
+          } catch (e) {}
+        }, 400);
+      },
+      score(a, tag) {
+        let m = memo.get(tag);
+        if (!m) { m = new Map(); memo.set(tag, m); }
+        const k = ak(a);
+        if (!m.has(k)) {
+          const w = Math.log10((a.reviewCount || 0) + 10);
+          const at = load()[k], ago = at ? (Date.now() - at) / 36e5 : Infinity;
+          const stale = ago < HOURS ? 0.05 + 0.5 * ago / HOURS : 1;
+          m.set(k, Math.pow(Math.random(), 1 / w) * stale);
+        }
+        return m.get(k);
+      },
+    };
+  })();
+
   function allAlbums() {
     const all = (window.ARCHIVE || []).filter(a => a && a.album && a.image);
     const seen = new Set();
@@ -184,7 +228,7 @@
     return allAlbums().filter(a => { const g = String(a.genre || '').toLowerCase(); return g && terms.some(t => g.includes(t)); });
   }
   function listFor() {
-    const byReviews = (a, b) => (b.reviewCount || 0) - (a.reviewCount || 0) || (b.rating || 0) - (a.rating || 0);
+    const byReviews = (a, b) => window.sdFresh.score(b, 'ds') - window.sdFresh.score(a, 'ds');   // fresh order, not review count
     const picks = activePicks();
     if (!picks.length) return allAlbums().sort(byReviews);
     const exact = exactMatches(picks).sort(byReviews);
@@ -884,6 +928,7 @@
     if (i === DS.active) return;
     const first = DS.active === -1;                // a fresh deal (-2 = a pruned card handing over)
     DS.active = i;
+    window.sdFresh.seen(DS.list[i]);
     swapFixCd(DS.list[i], first);
     placeFixCd();
     DS.track = -1;
@@ -917,6 +962,7 @@
     const host = (btn && btn.closest('.app-screen')) || document.querySelector('.s-wall2');
     if (!host) return;
     window.sdDoomClose();
+    if (!resume) window.sdFresh.reset('ds');            // a new open deals a new order
     // Unlock audio INSIDE this tap, or iOS refuses the play() that comes later.
     const el = audio();
     wakeVolume();
