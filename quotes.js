@@ -510,6 +510,16 @@
     }
     return LIVE.get(id);
   }
+  const READY_WAIT = 6000;
+  function lyricsReady(it) {
+    if (!it || !window.sdLive || !LYR || lyrOf(it) || descOf(it)) return Promise.resolve();
+    if (liveFor(it) !== 'pending') return Promise.resolve();
+    const id = String(it.t.id), t0 = Date.now();
+    return new Promise(res => {
+      const poll = () => (LIVE.get(id) !== 'pending' || Date.now() - t0 > READY_WAIT) ? res() : setTimeout(poll, 120);
+      poll();
+    });
+  }
   function describe(box, id, it, live) {
     const state = id + ':' + (live === 'pending' ? 'wait' : live ? 'live' : 'none');
     if (box._desc === state) return;
@@ -652,8 +662,14 @@
     swapCd(Q.list[i], first);
     paintDock();
     const r = Q.landing;
-    if (r && r.key === itemKey(Q.list[i]) && r.t != null) { play(i, r.t); r.t = null; }
-    else play(i);
+    /* LYRICS FIRST (round 14, Eric: "begin with the lyrics ready instead of
+       loading while the previews are playing"). A song with nothing prepared
+       waits — "Listening" up — until its live lyrics / description arrive, at
+       most READY_WAIT, then plays. Prepared songs (and repeats) start at once. */
+    const at = r && r.key === itemKey(Q.list[i]) && r.t != null ? r.t : 0;
+    if (r && at) r.t = null;
+    if (Q.audio && !Q.audio.paused) Q.audio.pause();      // the last song doesn't play on under the wait
+    lyricsReady(Q.list[i]).then(() => { if (Q.active === i && Q.root) play(i, at); });
     if (i >= Q.list.length - 4) fill();
     // the next two songs' live lyrics are worked out while this one plays
     [Q.list[i + 1], Q.list[i + 2]].forEach(nx => { if (nx && LYR && !lyrOf(nx)) liveFor(nx); });

@@ -296,6 +296,9 @@
 >   `sd-live-lyrics-v1`. ⚠ The phone's Whisper is too small to hear most singers
 >   over a mix (Let Down -> "[music]"), which is why the usual-start rule exists.
 >   (A revert of all this ran by accident on 11-06 and was re-applied.)
+>   Round 14 — LYRICS FIRST: a song with nothing prepared waits ("Listening" up,
+>   the last song paused) until its live entry arrives, at most 6s
+>   (`lyricsReady`, `READY_WAIT`), then plays; prepared songs start at once.
 > - **CD PLAYER (beta)** (Eric, 2026-11-06; `player.js` + `player.css`, header
 >   comment explains it). Trending's fourth tab (was the greyed Radio, now
 >   **Player**). The deck in the upper left IS the belt-drive logo (SD_INTRO_BELT,
