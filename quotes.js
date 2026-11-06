@@ -183,7 +183,7 @@
         <button class="ds-ibtn" aria-label="Close comments mode" onclick="event.stopPropagation(); sdQuoteClose()">${ICO.close}</button>
         <span class="qs-credit">Previews by Deezer</span>
         <button class="cp-genre qs-genre" onclick="event.stopPropagation(); sdQuoteGenres()">
-          <svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>${esc(Q.genre || 'All genres')}</span>
+          <svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>${esc(Q.genre || '')}</span>
         </button>
       </div>
       <div class="ds-gsheet qs-gsheet" hidden>
@@ -804,10 +804,10 @@
     const tok = ++Q.gtok;
     const done = () => {
       if (tok !== Q.gtok || !Q.root) return;
-      if (g && !genreShelf(g).length) { btn.textContent = 'Nothing yet'; setTimeout(() => { if (Q.root) btn.textContent = Q.genre || 'All genres'; }, 1400); return; }
+      if (g && !genreShelf(g).length) { btn.textContent = 'Nothing yet'; setTimeout(() => { if (Q.root) btn.textContent = Q.genre || ''; }, 1400); return; }
       Q.genre = g;
       try { localStorage.setItem('sd-qs-genre', g); } catch (e) {}
-      btn.textContent = g || 'All genres';
+      btn.textContent = g || '';                         // no genre = just the icon (Eric, 11-06)
       // re-deal in place: same page, a fresh feed
       Q.gen++; Q.gen2++;
       if (Q.audio) Q.audio.pause();

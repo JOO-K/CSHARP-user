@@ -167,6 +167,7 @@
           <div class="cp-head">
             <div class="cp-titles">
               <div class="cp-album"><span class="cp-link" onclick="event.stopPropagation(); sdCpOpen('album')"></span><span class="cp-year"></span></div>
+              <div class="cp-adesc"></div>
               <div class="cp-artist"><span class="cp-link" onclick="event.stopPropagation(); sdCpOpen('artist')"></span></div>
             </div>
             <div class="cp-score"><button class="cp-rev" aria-label="Review this album" onclick="event.stopPropagation(); sdCpReview(this)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><b></b><span class="cp-discs"></span></div>
@@ -568,6 +569,8 @@
     R.querySelector('.cp-album .cp-link').textContent = a.album;
     R.querySelector('.cp-year').textContent = a.year || '';
     R.querySelector('.cp-artist .cp-link').textContent = a.artist;
+    // the artist's one-line description above their name (Eric, 11-06); Deezer recs have none → the genre
+    R.querySelector('.cp-adesc').textContent = a.artistDesc || (a.genre ? a.genre + ' artist' : '');
     R.querySelector('.cp-score b').textContent = (+a.rating || 0).toFixed(1);
     R.querySelector('.cp-discs').innerHTML = discsHtml(+a.rating || 0);
   }
@@ -709,7 +712,7 @@
      Kept on the device (sd-cp-genres). */
   function genreLabel() {
     return P.mode === 'genres' && P.genres.length ? P.genres[0] + (P.genres.length > 1 ? ' +' + (P.genres.length - 1) : '')
-      : P.mode === 'foryou' ? 'For You' : 'All genres';
+      : P.mode === 'foryou' ? '' : 'All genres';      // For You (the default) = just the icon (Eric, 11-06)
   }
   function dealList() {
     if (typeof window.sdGenreList === 'function') return window.sdGenreList(P.mode, P.genres, 'cp').filter(a => a && a.album && a.image);

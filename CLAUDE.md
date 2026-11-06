@@ -340,6 +340,10 @@
 >   everything (`P.mode` / `P.genres`, `sd-cp-genres`), dealt through Swipe's own
 >   `listFor`, now exposed as `window.sdGenreList(mode, genres, tag)` with
 >   `sdGenrePicks` / `sdGenreThin` (doomscroll.js).
+>   Last of 11-06: the artist's description (`artistDesc`, else "<genre> artist")
+>   sits above the artist name in the Player (`.cp-adesc`); the genres pill in
+>   Player and Comments is just its icon until a genre is picked (empty label →
+>   `.cp-genre:has(> span:empty)`).
 > - **CD PLAYER (beta)** (Eric, 2026-11-06; `player.js` + `player.css`, header
 >   comment explains it). Trending's fourth tab (was the greyed Radio, now
 >   **Player**). The deck in the upper left IS the belt-drive logo (SD_INTRO_BELT,

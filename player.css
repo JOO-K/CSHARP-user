@@ -255,3 +255,11 @@ html.sd-reduce-motion .cp-disc, html.sd-reduce-motion .cp-motor, html.sd-reduce-
   -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 32px), transparent);
           mask-image: linear-gradient(180deg, #000 calc(100% - 32px), transparent);
 }
+
+/* 11-06: the artist's description above their name; the genres pill is just
+   its icon until a genre is picked (Player and Comments share .cp-genre) */
+.cp-adesc { margin-top: 4px; font: 600 10.5px/1.2 var(--font-main); letter-spacing: .05em; text-transform: uppercase; color: rgba(255,255,255,.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cp-adesc:empty { display: none; }
+.cp-adesc + .cp-artist { margin-top: 2px; }
+.cp-genre span:empty { display: none; }
+.cp-genre:has(> span:empty) { width: 32px; padding: 0; justify-content: center; }
