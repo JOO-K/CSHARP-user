@@ -164,10 +164,10 @@
       <div class="cp-panel">
         <div class="cp-empty"><b>Pick a CD</b><span>Drag one from the ring onto the player.<br>Scroll to spin the ring.</span></div>
         <div class="cp-info" hidden>
+          <div class="cp-wiki" hidden><p class="cp-wiki-t"></p><a class="cp-wiki-src" target="_blank" rel="noopener" onclick="event.stopPropagation()">From Wikipedia</a></div>
           <div class="cp-head">
             <div class="cp-titles">
               <div class="cp-album"><span class="cp-link" onclick="event.stopPropagation(); sdCpOpen('album')"></span><span class="cp-year"></span></div>
-              <div class="cp-adesc"></div>
               <div class="cp-artist"><span class="cp-link" onclick="event.stopPropagation(); sdCpOpen('artist')"></span></div>
             </div>
             <div class="cp-score"><button class="cp-rev" aria-label="Review this album" onclick="event.stopPropagation(); sdCpReview(this)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><b></b><span class="cp-discs"></span></div>
@@ -569,8 +569,7 @@
     R.querySelector('.cp-album .cp-link').textContent = a.album;
     R.querySelector('.cp-year').textContent = a.year || '';
     R.querySelector('.cp-artist .cp-link').textContent = a.artist;
-    // the artist's one-line description above their name (Eric, 11-06); Deezer recs have none → the genre
-    R.querySelector('.cp-adesc').textContent = a.artistDesc || (a.genre ? a.genre + ' artist' : '');
+    paintWiki(a);
     R.querySelector('.cp-score b').textContent = (+a.rating || 0).toFixed(1);
     R.querySelector('.cp-discs').innerHTML = discsHtml(+a.rating || 0);
   }
@@ -662,6 +661,69 @@
     haptic();
     openLogSheet(btn, { title: a.album, subtitle: a.artist, image: a.image, year: a.year || '', ref: a });
   };
+  /* THE ARTIST, FROM WIKIPEDIA (Eric, 11-06: "a paragraph like wiki"). The
+     opening paragraph of the artist's article sits above the album name.
+     Wikipedia's action API, called from the phone (no key, CORS via origin=*):
+     ONE call asks for "<artist> (band)", "(musician)", "(rapper)", "(singer)"
+     and the bare name together (a bare "Justice" is a disambiguation page),
+     redirects followed; if none fits, one search for "<artist> musician".
+     At most two requests per artist. A hit has to read as music (band / singer / rapper …) or
+     nothing shows. One lookup per artist per device (sd-wiki-v1); the text is
+     CC BY-SA, hence the "From Wikipedia" link to the article. */
+  const WIKI_KEY = 'sd-wiki-v1';
+  const WIKI_MUSIC = /\b(band|singer|rapper|musician|songwriter|duo|group|producer|dj|composer|record|album|vocalist|guitarist|pianist|artist|trio|ensemble|orchestra)\b/i;
+  const wikiMem = (() => { try { return JSON.parse(localStorage.getItem(WIKI_KEY)) || {}; } catch (e) { return {}; } })();
+  const wikiPending = new Map();
+  function wikiFor(a) {
+    const k = String(a.artist || '').toLowerCase();
+    if (!k) return Promise.resolve(null);
+    if (k in wikiMem) return Promise.resolve(wikiMem[k]);
+    if (wikiPending.has(k)) return wikiPending.get(k);
+    // a failed request (offline, rate limit) THROWS, so it's never saved as "no article"
+    const j = u => fetch(u).then(r => { if (!r.ok) throw new Error('wiki ' + r.status); return r.json(); });
+    const n = String(a.artist).trim();
+    const flat = t => String(t).toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    // one call answers several titles at once: intro paragraph, short description, disambiguation flag
+    const API = 'https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&origin=*&redirects=1' +
+      '&prop=extracts|description|pageprops|info&inprop=url&exintro=1&explaintext=1&ppprop=disambiguation';
+    const good = pg => pg && !pg.missing && pg.extract && !(pg.pageprops && 'disambiguation' in pg.pageprops) &&
+      (WIKI_MUSIC.test(pg.description || '') || WIKI_MUSIC.test(pg.extract.slice(0, 220)));
+    const pick = (res, order) => {
+      const pages = (res && res.query && res.query.pages) || [];
+      for (const t of order) { const pg = pages.find(x => flat(x.title) === flat(t)); if (good(pg)) return pg; }
+      return pages.find(good) || null;
+    };
+    const direct = [n + ' (band)', n + ' (musician)', n + ' (rapper)', n + ' (singer)', n];
+    const p = j(API + '&titles=' + encodeURIComponent(direct.join('|'))).then(res => {
+      // a redirect renames the page (JAY Z → Jay-Z): follow the redirect list into the order too
+      const red = (res && res.query && res.query.redirects) || [];
+      const order = direct.flatMap(t => [t, ...red.filter(r => flat(r.from) === flat(t)).map(r => r.to)]);
+      return pick(res, order) ||
+        // not under its own name: the top search hits for "<artist> musician", if one is titled after them
+        j(API + '&generator=search&gsrlimit=4&gsrsearch=' + encodeURIComponent(n + ' musician')).then(r2 => {
+          const pages = ((r2 && r2.query && r2.query.pages) || []).filter(pg => flat(pg.title).startsWith(flat(n)));
+          return pages.find(good) || null;
+        });
+    }).then(pg => pg ? { x: pg.extract.split(String.fromCharCode(10))[0], u: pg.fullurl || ('https://en.wikipedia.org/wiki/' + encodeURIComponent(pg.title)) } : null).then(r => {
+      wikiMem[k] = r; wikiPending.delete(k);
+      try { localStorage.setItem(WIKI_KEY, JSON.stringify(wikiMem)); } catch (e) {}
+      return r;
+    }).catch(() => { wikiPending.delete(k); return null; });   // try again next time
+    wikiPending.set(k, p);
+    return p;
+  }
+  function paintWiki(a) {
+    const box = P.root && P.root.querySelector('.cp-wiki');
+    if (!box) return;
+    box.hidden = true;
+    wikiFor(a).then(w => {
+      if (!P.root || P.album !== a || !w) return;
+      box.querySelector('.cp-wiki-t').textContent = w.x;
+      box.querySelector('.cp-wiki-src').href = w.u;
+      box.hidden = false;
+    });
+  }
+
   window.sdCpClose = function () {
     P.gen++;
     cancelAnimationFrame(P.raf); cancelAnimationFrame(P.tickRaf);

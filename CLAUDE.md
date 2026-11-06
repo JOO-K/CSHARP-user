@@ -340,8 +340,13 @@
 >   everything (`P.mode` / `P.genres`, `sd-cp-genres`), dealt through Swipe's own
 >   `listFor`, now exposed as `window.sdGenreList(mode, genres, tag)` with
 >   `sdGenrePicks` / `sdGenreThin` (doomscroll.js).
->   Last of 11-06: the artist's description (`artistDesc`, else "<genre> artist")
->   sits above the artist name in the Player (`.cp-adesc`); the genres pill in
+>   Last of 11-06: the artist's WIKIPEDIA paragraph sits above the album name in
+>   the Player (`.cp-wiki`, `wikiFor` / `paintWiki`; 4 lines, "From Wikipedia"
+>   links the article, CC BY-SA). One action-API call asks "<artist> (band)" /
+>   (musician) / (rapper) / (singer) / bare name with redirects, else one search;
+>   a hit must read as music. Answers cached in `sd-wiki-v1`; failed requests
+>   (429s — Wikipedia rate-limits bursts) are NOT cached. (A one-line
+>   `.cp-adesc` above the artist name lasted an hour.) The genres pill in
 >   Player and Comments is just its icon until a genre is picked (empty label →
 >   `.cp-genre:has(> span:empty)`).
 > - **CD PLAYER (beta)** (Eric, 2026-11-06; `player.js` + `player.css`, header

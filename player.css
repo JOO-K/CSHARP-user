@@ -258,8 +258,22 @@ html.sd-reduce-motion .cp-disc, html.sd-reduce-motion .cp-motor, html.sd-reduce-
 
 /* 11-06: the artist's description above their name; the genres pill is just
    its icon until a genre is picked (Player and Comments share .cp-genre) */
-.cp-adesc { margin-top: 4px; font: 600 10.5px/1.2 var(--font-main); letter-spacing: .05em; text-transform: uppercase; color: rgba(255,255,255,.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cp-adesc:empty { display: none; }
-.cp-adesc + .cp-artist { margin-top: 2px; }
 .cp-genre span:empty { display: none; }
 .cp-genre:has(> span:empty) { width: 32px; padding: 0; justify-content: center; }
+
+/* the artist's Wikipedia paragraph, above the album name (11-06) */
+.cp-wiki { margin-bottom: 12px; }
+.cp-wiki[hidden] { display: none !important; }
+.cp-wiki-t {
+  margin: 0; font: 400 12.5px/1.45 var(--font-main); color: rgba(255,255,255,.72);
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+.cp-wiki-src { display: inline-block; margin-top: 4px; font: 600 10.5px/1 var(--font-main); color: rgba(255,255,255,.45); text-decoration: none; }
+
+/* 11-06 last: the paragraph sits 12px over the album name, 3 lines, 80% wide.
+   The + is lifted out of the flow (it made the head ~44px taller, pushing the
+   text up); it floats 20px over the score, in the 20% the paragraph leaves free. */
+.cp-wiki { width: 80%; margin-bottom: 12px; }
+.cp-wiki-t { -webkit-line-clamp: 3; }
+.cp-score { position: relative; }
+.cp-rev { position: absolute; right: 0; bottom: calc(100% + 20px); margin: 0; }
