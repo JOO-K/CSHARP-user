@@ -1,0 +1,273 @@
+/* ══ COMMENTS MODE — Trending's third view (quotes.js, 2026-11-05) ══════════
+   Same mount as Swipe (absolute inside the phone's .app-screen, z 190, under
+   the log sheet). Reuses Swipe's unscoped pieces: .ds-ibtn (close), .ds-svc /
+   .ds-svc-ico (streaming tiles), .ds-disc / .ds-hole and the ds-fx-in/out
+   keyframes (the CD). */
+
+.qs-root {
+  position: absolute; inset: 0; z-index: 190; overflow: hidden;
+  background: #2a2a33; color: #fff; font-family: var(--font-main);
+  opacity: 0; transform: translateY(16px);
+  transition: opacity .22s ease, transform .22s ease;
+}
+.qs-root.open { opacity: 1; transform: none; }
+.qs-root.qs-instant { transition: none; }
+/* a little grain over everything, like printed paper (the receipt) */
+.qs-root::after {
+  content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  opacity: .16; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── top: close · source ── */
+.qs-top {
+  position: absolute; z-index: 4; top: 0; left: 0; right: 0;
+  display: flex; align-items: flex-start; padding: 12px; pointer-events: none;
+}
+.qs-top > * { pointer-events: auto; }
+.qs-credit {
+  position: absolute; left: 50%; top: 24px; transform: translateX(-50%);
+  font: 500 10.5px/1 var(--font-main); color: rgba(255,255,255,.6); letter-spacing: .02em;
+  white-space: nowrap; pointer-events: none !important;
+}
+
+/* ── the feed: one long receipt ── */
+.qs-scroll {
+  position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain;
+  scroll-snap-type: y mandatory; scrollbar-width: none;
+}
+.qs-scroll::-webkit-scrollbar { display: none; }
+/* The seams: the top edge is the 50/50 mix with the page above, the bottom
+   edge the 50/50 mix with the page below, so both sides of a seam match. */
+.qs-card {
+  position: relative; height: 100%; overflow: hidden;
+  scroll-snap-align: start; scroll-snap-stop: always;
+  --c: #2a2a33; --cp: var(--c); --cn: var(--c);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--cp) 50%, var(--c)) 0%,
+    var(--c) 24%, var(--c) 76%,
+    color-mix(in srgb, var(--c) 50%, var(--cn)) 100%);
+}
+
+/* the comment */
+/* round 2: the cover, blurred, over the page colour — faded out toward both
+   edges so the seams are still pure colour and keep blending */
+.qs-bg {
+  position: absolute; inset: -40px; z-index: 0; pointer-events: none;
+  background-size: cover; background-position: center;
+  filter: blur(42px) saturate(1.35) brightness(.78); opacity: .62;
+  -webkit-mask-image: linear-gradient(180deg, transparent 4%, #000 26%, #000 74%, transparent 96%);
+          mask-image: linear-gradient(180deg, transparent 4%, #000 26%, #000 74%, transparent 96%);
+}
+.qs-body {
+  position: absolute; z-index: 1; left: 34px; right: 30px; top: 64px; bottom: 210px;
+  display: flex; flex-direction: column; justify-content: center;
+  opacity: .25; transform: translateY(10px);
+  transition: opacity .45s ease, transform .45s cubic-bezier(.2,.7,.2,1);
+}
+.qs-card.on .qs-body { opacity: 1; transform: none; }
+.qs-quote {
+  position: relative; margin: 0;
+  font: 700 34px/1.12 var(--font-main); letter-spacing: -.02em;
+  text-wrap: pretty; overflow-wrap: break-word;
+  text-shadow: 0 1px 12px rgba(0,0,0,.12);
+}
+.qs-oq { position: absolute; right: 100%; margin-right: .04em; }   /* the opening quote hangs */
+.qs-meta {
+  display: flex; align-items: center; gap: 18px; margin-top: 18px;
+  font: 500 13px/1 var(--font-main); color: rgba(255,255,255,.82);
+}
+.qs-like {
+  display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none;
+  color: inherit; font: inherit; cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.qs-like svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; transition: transform .15s; }
+.qs-like.on svg { fill: #fff; stroke: #fff; }
+.qs-like.pop svg { animation: ds-pop .35s ease; }
+
+/* the comment's replies button, right of the likes (round 2). It is a
+   .v3-cmt-btn so cmtRender repaints its count; that class's pill look is undone. */
+.qs-meta .qs-cbtn {
+  display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0;
+  background: none !important; color: inherit !important; font: inherit; cursor: pointer;
+  font-variant-numeric: tabular-nums; box-shadow: none; min-width: 0; height: auto;
+}
+.qs-cbtn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; }
+
+/* the album's score + likes, over the song (round 2) */
+.qs-score { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; --vinyl-gold: #fff; --vinyl-empty: rgba(255,255,255,.3); }
+.qs-big { font: 800 46px/.9 var(--font-main); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.qs-side { display: flex; flex-direction: column; gap: 6px; }
+.qs-discs { display: flex; gap: 1px; line-height: 0; }
+.qs-discs .hstar { width: 15px; height: 15px; }
+.qs-arow { display: flex; align-items: center; gap: 12px; }
+.qs-revs { font: 500 12.5px/1 var(--font-main); color: rgba(255,255,255,.75); white-space: nowrap; }
+.qs-afav {
+  display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; cursor: pointer;
+  color: rgba(255,255,255,.88); font: 600 12.5px/1 var(--font-main); font-variant-numeric: tabular-nums;
+}
+.qs-afav svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; }
+.qs-afav.on svg { fill: #ff4f7b; stroke: #ff4f7b; }
+.qs-afav.pop svg { animation: ds-pop .35s ease; }
+
+/* the replies sheet (Swipe's .ds-r* chrome) */
+.qs-csheet { z-index: 6; }
+.qs-cquote {
+  flex: 0 0 auto; margin: 0 16px 10px; padding: 10px 12px; border-radius: 12px;
+  background: rgba(255,255,255,.06); display: flex; flex-direction: column; gap: 5px;
+}
+.qs-cq-t { font: 600 14px/1.35 var(--font-main); }
+.qs-cq-by { font: 500 11.5px/1 var(--font-main); color: rgba(255,255,255,.55); }
+.qs-chd-n { font: 500 12px/1 var(--font-main); opacity: .55; }
+
+/* the song, lower left */
+.qs-song { position: absolute; z-index: 1; left: 20px; right: 124px; bottom: 30px; }
+.qs-st {
+  font: 700 18px/1.2 var(--font-main); letter-spacing: -.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qs-sa {
+  margin-top: 3px; font: 400 13px/1.3 var(--font-main); color: rgba(255,255,255,.8);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qs-sa .qs-link:first-child { font-weight: 700; }
+.qs-link { cursor: pointer; }
+.qs-dot { margin: 0 5px; opacity: .6; }
+.qs-go {
+  margin-top: 11px; padding: 7px 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.4); background: rgba(255,255,255,.12); color: #fff;
+  font: 600 12px/1 var(--font-main);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.qs-go span { margin-left: 2px; }
+
+/* ── the dock, lower right: streaming icons over the CD (fixed; pages scroll under it) ── */
+.qs-dock {
+  position: absolute; z-index: 4; right: 16px; bottom: 30px;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  --ds-base: #2a2a33;
+}
+/* round 3: the icons are tucked away until the CD is pressed, then pop up
+   one by one (nearest the CD first) above "Listen now" */
+.qs-svcs {
+  position: absolute; left: 50%; bottom: 100%; margin-bottom: 14px; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  pointer-events: none;
+}
+.qs-svcs .ds-svc {
+  opacity: 0; transform: translateY(18px) scale(.5);
+  transition: opacity .18s ease, transform .22s cubic-bezier(.3,1.5,.5,1);
+}
+.qs-dock.svcs-open .qs-svcs { pointer-events: auto; }
+.qs-dock.svcs-open .qs-svcs .ds-svc { opacity: 1; transform: none; }
+.qs-dock.svcs-open .qs-svcs .ds-svc:nth-last-child(2) { transition-delay: .04s; }
+.qs-dock.svcs-open .qs-svcs .ds-svc:nth-last-child(3) { transition-delay: .08s; }
+.qs-dock.svcs-open .qs-svcs .ds-svc:nth-last-child(4) { transition-delay: .12s; }
+.qs-listen {
+  font: 700 11px/1 var(--font-main); letter-spacing: .04em; text-transform: uppercase;
+  color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.35); white-space: nowrap; margin-bottom: -6px;
+}
+.qs-mute { margin-left: auto; }
+.qs-mute svg path { stroke: currentColor; }
+.qs-cd { position: relative; width: 88px; aspect-ratio: 1; cursor: pointer; }
+.qs-fx { position: absolute; inset: 0; opacity: 0; }
+.qs-fx.cur { opacity: 1; }
+.qs-fx.in  { animation: ds-fx-in .52s cubic-bezier(.2,.7,.2,1) both; }
+.qs-fx.out { animation: ds-fx-out .42s cubic-bezier(.4,0,.6,1) both; }
+.qs-cd .ds-disc {
+  background-color: #17171b;
+  background-image: radial-gradient(circle, #222 0 30%, #111 31% 100%);
+  box-shadow: 0 8px 20px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.12);
+}
+.qs-root.is-playing .qs-fx.cur .ds-disc { animation-play-state: running; }
+.qs-pause {
+  position: absolute; z-index: 2; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px;
+  border-radius: 50%; background: rgba(0,0,0,.5); opacity: 0; transition: opacity .2s; pointer-events: none;
+}
+.qs-pause::before {
+  content: ''; position: absolute; left: 11px; top: 8px;
+  border-style: solid; border-width: 7px 0 7px 11px; border-color: transparent transparent transparent #fff;
+}
+.qs-root:not(.is-playing) .qs-pause { opacity: 1; }
+
+/* the preview's progress, along the bottom edge */
+.qs-prog { position: absolute; z-index: 4; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.2); pointer-events: none; }
+.qs-prog i { display: block; height: 100%; background: #fff; transform-origin: 0 50%; transform: scaleX(0); }
+
+/* first load */
+.qs-wait {
+  height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  font-size: 14px; color: rgba(255,255,255,.75);
+}
+.qs-spin {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.25); border-top-color: #fff;
+  animation: qs-spin .8s linear infinite;
+}
+@keyframes qs-spin { to { transform: rotate(360deg); } }
+
+html.sd-reduce-motion .qs-fx, html.sd-reduce-motion .qs-cd .ds-disc { animation: none !important; }
+html.sd-reduce-motion .qs-body { transition: none; }
+
+/* ── KARAOKE (round 4): the preview's lyrics under the comment ──
+   One line at a time, half the quote's size (fitQuote sets it): the line fades
+   in grey, words light white as they're sung, a ball hops word to word, and
+   the line fades up and out for the next. The lines sit absolutely in one box
+   so the outgoing and incoming lines crossfade in place. */
+.qs-body { padding-bottom: 120px; }          /* the comment sits ~60px higher (round 4) */
+.qs-lyr {
+  position: relative; margin-top: 60px; min-height: 2.7em;   /* 60px under the comment (round 5) */
+  font: 600 17px/1.3 var(--font-main); letter-spacing: -.005em;
+}
+.qs-lyr:empty { visibility: hidden; }
+.qs-ln {
+  position: absolute; left: 0; right: 0; top: 0;
+  opacity: 0; transform: translateY(6px);
+  transition: opacity .32s ease, transform .32s ease;
+}
+.qs-ln.in { opacity: 1; transform: none; }
+.qs-ln.in.out, .qs-ln.out { opacity: 0; transform: translateY(-6px); }
+.qs-w { color: rgba(255,255,255,.4); transition: color .12s linear; }
+.qs-w.on { color: #fff; }
+.qs-ball {
+  position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none;
+  width: 8px; height: 8px; margin: -11px 0 0 -4px; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.55);
+  will-change: transform;
+}
+html.sd-reduce-motion .qs-ln { transition: opacity .2s; transform: none; }
+
+/* ── no lyrics → a description (round 7): one still line, fading in ── */
+.qs-desc {
+  display: flex; flex-direction: column; gap: 6px;
+  opacity: 0; transform: translateY(6px); transition: opacity .6s ease .3s, transform .6s ease .3s;
+}
+.qs-desc.in { opacity: 1; transform: none; }
+.qs-desc b { font: 800 .55em/1 var(--font-main); letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.6); }
+.qs-desc span { color: rgba(255,255,255,.88); font-weight: 600; }
+.qs-desc--none span { color: rgba(255,255,255,.6); font-weight: 500; }
+
+
+/* ── live lyrics (round 10) ── */
+.qs-desc--wait b { color: rgba(255,255,255,.55); }
+.qs-desc--wait span { display: inline-flex; gap: 5px; padding-top: 4px; }
+.qs-desc--wait i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.7); animation: qs-wait 1.1s ease-in-out infinite; }
+.qs-desc--wait i:nth-child(2) { animation-delay: .15s; }
+.qs-desc--wait i:nth-child(3) { animation-delay: .3s; }
+@keyframes qs-wait { 0%, 100% { opacity: .25; transform: none; } 45% { opacity: 1; transform: translateY(-3px); } }
+/* captions of what was heard - labelled, like YouTube's auto-captions */
+.qs-lyr[data-heard]::before {
+  content: 'Heard · auto captions'; position: absolute; left: 0; top: -2.1em;
+  font: 800 .5em/1 var(--font-main); letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.5);
+}
+/* the download bar, shown on the Comments page the first time it opens */
+.sd-live-bar {
+  position: absolute; z-index: 400; left: 24px; right: 24px; top: 72px; pointer-events: none;   /* under the Comments top bar (round 13) */
+  display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 12px;
+  background: rgba(0,0,0,.55); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  font: 600 11px/1 var(--font-main); color: rgba(255,255,255,.85);
+  transition: opacity .35s ease;
+}
+.sd-live-bar i { display: block; height: 3px; border-radius: 2px; background: rgba(255,255,255,.2); overflow: hidden; }
+.sd-live-bar b { display: block; height: 100%; width: 0; background: #fff; transition: width .3s ease; }
+.sd-live-bar.done { opacity: 0; }

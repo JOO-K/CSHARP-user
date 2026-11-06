@@ -1,0 +1,237 @@
+/* ══ CD PLAYER — Trending's fourth view (player.js, 2026-11-06) ═════════════
+   Same mount as Swipe / Comments (absolute in the phone's .app-screen, z 190).
+   Reuses Swipe's unscoped pieces: .ds-ibtn, .ds-svc / .ds-svc-ico, the song
+   list (.ds-songs-hd / .ds-ssw / .ds-tracks / .ds-tr*), .hstar discs. */
+
+.cp-root {
+  position: absolute; inset: 0; z-index: 190; overflow: hidden;
+  color: #f3eee6; font-family: var(--font-main);
+  --cp-accent: #3a3a46; --ds-star: #e8a83c; --cp-ink: #e8e2d6;
+  background:
+    radial-gradient(90% 55% at 20% 18%, color-mix(in srgb, var(--cp-accent) 55%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--cp-accent) 30%, #0d0d12), #0d0d12 70%);
+  opacity: 0; transform: translateY(16px);
+  transition: opacity .22s ease, transform .22s ease, background .5s ease;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.cp-root.open { opacity: 1; transform: none; }
+.cp-root.cp-instant { transition: none; }
+.cp-bg {
+  position: absolute; inset: -60px; pointer-events: none;
+  background-size: cover; background-position: center;
+  filter: blur(50px) saturate(1.3); opacity: .28;
+  -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent 75%);
+          mask-image: linear-gradient(180deg, #000 30%, transparent 75%);
+  transition: opacity .4s;
+}
+
+.cp-top {
+  position: absolute; z-index: 6; top: 0; left: 0; right: 0;
+  display: flex; padding: 12px; pointer-events: none;
+}
+.cp-top > * { pointer-events: auto; }
+.cp-credit {
+  position: absolute; left: 50%; top: 24px; transform: translateX(-50%);
+  font: 500 10.5px/1 var(--font-main); color: rgba(255,255,255,.5); white-space: nowrap; pointer-events: none !important;
+}
+
+/* ── the deck: the belt-drive logo ── */
+.cp-svg { position: absolute; z-index: 2; height: auto; overflow: visible; pointer-events: none; }
+.cp-ink, .cp-belt { fill: none; stroke: var(--cp-ink); stroke-width: 16; }
+.cp-belt { stroke-linejoin: round; }
+/* the belt RUNS while playing: a dash pattern in the album's colour slides along it */
+/* Round 4 (Eric: "the belt and the cd should go in the same direction as well
+   as the smaller thing … more subtle … slower"). An open belt turns both
+   pulleys the SAME way, so CD, motor and belt all go clockwise: the path is
+   drawn left→right along the bottom, where a clockwise platter's surface moves
+   right→left, so the dashes run BACKWARD along the path (offset grows). One
+   speed throughout, matched at the rims (viewBox units): the record turns in
+   8s → rim 2π·409.75/8 ≈ 322 u/s; the motor's rim matches at 8·79.7/409.75 ≈
+   1.56s a turn; the belt moves 496 u (4 dash periods) in 496/322 ≈ 1.54s. */
+.cp-belt-run {
+  fill: none; stroke: var(--cp-ink); stroke-width: 7; opacity: .22;
+  stroke-dasharray: 14 110; stroke-linecap: round;
+  animation: cp-belt 2.31s linear infinite; animation-play-state: paused;   /* round 6: all 1.5x slower (record 12s, motor 2.33s) */
+}
+@keyframes cp-belt { to { stroke-dashoffset: 496; } }
+.cp-motor { transform-box: fill-box; transform-origin: center; animation: cp-spin 2.33s linear infinite; animation-play-state: paused; }
+.cp-motor-mark { stroke-linecap: round; }
+.cp-plat { stroke-width: 10; opacity: .55; }
+.cp-root.is-playing .cp-belt-run, .cp-root.is-playing .cp-motor { animation-play-state: running; }
+@keyframes cp-spin { to { transform: rotate(360deg); } }
+
+/* the record: the CD on the deck */
+.cp-slot { position: absolute; z-index: 3; border-radius: 50%; cursor: default; }
+.cp-disc {
+  position: absolute; inset: 0; border-radius: 50%; opacity: 0;
+  background-color: #17171b; background-size: cover; background-position: center;
+  box-shadow: 0 10px 26px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.12);
+  animation: cp-spin 12s linear infinite; animation-play-state: paused;
+  transition: opacity .2s;
+}
+.cp-disc::after {             /* the CD sheen */
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 30deg, transparent 0 8%, rgba(255,255,255,.22) 13%, transparent 20% 50%, rgba(255,255,255,.16) 58%, transparent 66%);
+  mix-blend-mode: screen;
+}
+.cp-root.has-cd .cp-disc { opacity: 1; }
+.cp-root.has-cd .cp-slot { cursor: grab; }
+.cp-root.is-playing .cp-disc { animation-play-state: running; }
+.cp-root.deck-lifted .cp-disc { opacity: 0; transition: none; }
+.cp-disc.land { animation: cp-land .38s cubic-bezier(.2,.7,.2,1), cp-spin 12s linear infinite; }
+.cp-root .cp-disc.land { animation-play-state: running, paused; }          /* the landing always plays; the spin waits for music */
+.cp-root.is-playing .cp-disc.land { animation-play-state: running, running; }
+@keyframes cp-land { from { transform: scale(1.08); } to { transform: none; } }
+/* the logo's centre circle = the spindle */
+.cp-hub {
+  position: absolute; z-index: 1; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  border-radius: 50%; border: 2.5px solid var(--cp-ink); background: #0d0d12;
+}
+.cp-drop {
+  position: absolute; left: 0; right: 0; top: 64%; text-align: center;
+  font: 600 10px/1 var(--font-main); letter-spacing: .05em; text-transform: uppercase; color: rgba(255,255,255,.45);
+  transition: opacity .2s;
+}
+.cp-root.has-cd .cp-drop { opacity: 0; }
+.cp-root.drop-ready .cp-slot { box-shadow: 0 0 0 3px rgba(255,255,255,.85), 0 0 30px rgba(255,255,255,.35); }
+.cp-root.drop-ready .cp-drop { color: #fff; }
+.cp-root.eject-ready .cp-slot { box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
+
+/* ── the ring ── */
+.cp-ring { position: absolute; inset: 0; z-index: 4; }
+.cp-cd {
+  position: absolute; left: 0; top: 0; width: 60px; height: 60px; cursor: grab;
+  will-change: transform;
+}
+.cp-cd-disc {
+  position: absolute; inset: 0; border-radius: 50%;
+  background-color: #17171b; background-size: cover; background-position: center;
+  box-shadow: 0 6px 14px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.14);
+}
+.cp-cd-disc::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 30deg, transparent 0 8%, rgba(255,255,255,.2) 13%, transparent 20% 50%, rgba(255,255,255,.14) 58%, transparent 66%);
+  mix-blend-mode: screen;
+}
+.cp-cd-hole {
+  position: absolute; z-index: 1; left: 50%; top: 50%; width: 20%; height: 20%;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle, #0d0d12 0 38%, rgba(255,255,255,.55) 40% 46%, rgba(220,220,230,.3) 48% 100%);
+}
+/* the album that's on the deck (or being carried) leaves an empty sleeve */
+.cp-cd.is-out .cp-cd-disc { background-image: none !important; background: transparent; box-shadow: none; border: 1.5px dashed rgba(255,255,255,.28); }
+.cp-cd.is-out .cp-cd-disc::after, .cp-cd.is-out .cp-cd-hole { display: none; }
+.cp-fly {
+  position: absolute; left: 0; top: 0; z-index: 7; pointer-events: none;
+  filter: drop-shadow(0 14px 22px rgba(0,0,0,.5));
+}
+.cp-root.lifting, .cp-root.lifting * { cursor: grabbing; }
+
+.cp-hint {
+  position: absolute; z-index: 5; right: 18px; top: 88px; max-width: 120px; text-align: right;
+  font: 600 11px/1.3 var(--font-main); color: rgba(255,255,255,.5); pointer-events: none;
+  transition: opacity .3s;
+}
+.cp-root.has-cd .cp-hint { opacity: 0; }
+
+/* ── the panel ── */
+.cp-panel {
+  position: absolute; z-index: 5; left: 0; right: 0; bottom: 0;
+  display: flex; flex-direction: column; padding: 0 18px 14px; min-height: 0;
+}
+.cp-panel [hidden] { display: none !important; }
+.cp-empty {
+  margin: auto; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  font-size: 13px; color: rgba(255,255,255,.55); padding-bottom: 40px;
+}
+.cp-empty b { font-size: 17px; color: #fff; }
+.cp-info { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.cp-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; }
+.cp-titles { min-width: 0; }
+.cp-album { font: 800 21px/1.15 var(--font-main); letter-spacing: -.02em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cp-year { font: 500 13px/1 var(--font-main); opacity: .55; margin-left: 7px; letter-spacing: 0; }
+.cp-artist { margin-top: 3px; font: 500 14px/1.2 var(--font-main); color: rgba(255,255,255,.75); }
+.cp-link { cursor: pointer; }
+.cp-score { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; --vinyl-gold: var(--ds-star); --vinyl-empty: rgba(255,255,255,.25); }
+.cp-score b { font: 800 34px/.9 var(--font-main); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.cp-discs { display: flex; gap: 1px; line-height: 0; }
+.cp-discs .hstar { width: 14px; height: 14px; }
+.cp-prog { height: 3px; margin: 12px 0 10px; border-radius: 2px; background: rgba(255,255,255,.16); overflow: hidden; }
+.cp-prog i { display: block; height: 100%; background: var(--ds-star); transform-origin: 0 50%; transform: scaleX(0); }
+/* Swipe's song list, un-nudged for this panel */
+.cp-panel .ds-songs-hd, .cp-panel .ds-tracks { top: 0; margin-right: 0; }
+.cp-panel .ds-songs-hd { margin-bottom: 4px; }
+.cp-panel .ds-tracks {
+  flex: 1; min-height: 0; max-height: none; overflow-y: auto; margin: 0; padding: 0; list-style: none;
+  scrollbar-width: none; touch-action: pan-y;
+}
+.cp-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; }
+.cp-svcs { display: flex; gap: 10px; }
+.cp-svcs .ds-svc-ico { width: 30px; height: 30px; border-radius: 8px; }
+/* under the deck (round 6): an album icon + arrow, only with a CD on the deck */
+.cp-go {
+  position: absolute; z-index: 6; transform: translateX(-50%); opacity: 0; pointer-events: none; transition: opacity .2s;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  display: inline-flex; align-items: center; gap: 2px; height: 30px;
+  padding: 0 8px 0 10px; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #fff;
+  font: 600 12px/1 var(--font-main);
+}
+
+html.sd-reduce-motion .cp-disc, html.sd-reduce-motion .cp-motor, html.sd-reduce-motion .cp-belt-run { animation: none !important; }
+
+/* ── the genre picker (round 2): lower right of the ring ── */
+.cp-genre {
+  position: relative; margin-left: auto; align-self: center;   /* upper right (round 3) */
+  display: inline-flex; align-items: center; gap: 6px; max-width: 170px; height: 32px; padding: 0 13px;
+  border: 0; border-radius: 999px; cursor: pointer; color: #fff;
+  background: rgba(0,0,0,.32); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  font: 600 12.5px/1 var(--font-main);
+}
+.cp-genre span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cp-genre svg { width: 15px; height: 15px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.cp-gsheet { z-index: 8; }
+
+/* ── the right-hand CDs' tags (round 3): friends · recommended · popular ── */
+.cp-tag {
+  position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(calc(-50% + 12px));   /* 12px lower (round 7) */
+  display: flex; flex-direction: column; gap: 3px; width: 64px;
+  opacity: var(--tag, 0); pointer-events: none;
+  font: 600 10px/1.15 var(--font-main); color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.4);
+}
+.cp-cd.is-out .cp-tag { display: none; }
+.cp-tag b { font: 800 8px/1 var(--font-main); letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; }
+.cp-tag--rec b { color: #8fd1ff; }
+.cp-tag--pop b { color: #e8a83c; }
+.cp-tag-s { font-weight: 500; color: rgba(255,255,255,.62); }
+.cp-tag-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cp-tag-faces { display: flex; }
+.cp-tag-face {
+  width: 18px; height: 18px; border-radius: 50%; flex: 0 0 auto;
+  background-size: cover; background-position: center; background-color: #333;
+  box-shadow: 0 0 0 1.5px #16161c;
+}
+.cp-tag-face + .cp-tag-face { margin-left: -6px; }
+
+/* ── the suggestion on launch (round 4) ── */
+.cp-sugg {
+  font: 700 9.5px/1 var(--font-main); letter-spacing: .06em; text-transform: uppercase;
+  color: rgba(255,255,255,.55); margin-bottom: 8px; display: none;
+}
+.cp-root.is-suggested .cp-sugg { display: block; }
+/* a play badge on the deck's CD while it's waiting */
+.cp-play {
+  position: absolute; z-index: 2; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px;
+  border-radius: 50%; background: rgba(0,0,0,.5); opacity: 0; transition: opacity .2s; pointer-events: none;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.cp-play::before {
+  content: ''; position: absolute; left: 17px; top: 13px;
+  border-style: solid; border-width: 9px 0 9px 14px; border-color: transparent transparent transparent #fff;
+}
+.cp-root.has-cd:not(.is-playing):not(.deck-lifted) .cp-play { opacity: 1; }
+.cp-root.has-cd .cp-go { opacity: 1; pointer-events: auto; }
+.cp-go svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.cp-go .cp-go-arr { width: 14px; height: 14px; stroke-width: 2.4; }
+.cp-go { gap: 5px; padding: 0 9px 0 11px; }
+.cp-go-t { font: 600 12.5px/1 var(--font-main); }

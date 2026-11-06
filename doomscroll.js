@@ -287,6 +287,7 @@
       have.add(k(m.a, m.t));
       const r = dzRecord({ title: m.t, id: m.id, cover_xl: m.img, release_date: m.y ? String(m.y) : '', genre_id: 0 }, { name: m.a, id: m.aid });
       r.genre = g;
+      r._gfill = true;                     // fetched to fill a genre, not a recommendation (player.js's tags)
       fresh.push(r);
     });
     if (!fresh.length) return;
@@ -351,7 +352,7 @@
       .then(r => {
         const list = ((r && r.data) || []).map((x, n) => ({
           n, pos: x.track_position || n + 1, rank: x.rank || 0,
-          title: x.title_short || x.title || '', dur: x.duration || 0, preview: x.preview || '',
+          id: x.id || 0, title: x.title_short || x.title || '', dur: x.duration || 0, preview: x.preview || '',
         }));
         return list.length ? list : null;
       })
@@ -361,6 +362,8 @@
     return p;
   }
   const cachedTracks = a => { const h = TRACKS.get(a.artist + '|' + a.album); return h && !h.p ? h.list : null; };
+  window.sdGenreTopUp = picks => topUpGenres(picks);   // player.js's genre picker shares the Deezer genre cache
+  window.sdDzTracks = tracksFor;            // quotes.js (the Comments feed) shares this cache
   // Display order. Popular = Deezer's rank, most played first; numbers stay the album's own.
   const ordered = list => DS.songSort === 'popular'
     ? list.slice().sort((x, y) => (y.rank - x.rank) || (x.n - y.n)) : list;

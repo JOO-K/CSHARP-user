@@ -2706,8 +2706,8 @@ function wallHtml(light) {
                    deals WALL_TAB = friends as it did by default. -->
               <button class="wall2-cat ds-swipe" aria-label="Swipe mode (beta)" onclick="event.stopPropagation(); sdDoomOpen(this)">Swipe<span class="ds-beta">beta</span></button>
               <button class="wall2-cat ds-swipe wall2-view" data-view="carousel" aria-label="Carousel (beta)" onclick="event.stopPropagation(); pickWallView(this)">Carousel<span class="ds-beta">beta</span></button>
-              <button class="wall2-cat wall2-off" type="button" disabled aria-disabled="true">Charts</button>
-              <button class="wall2-cat wall2-off" type="button" disabled aria-disabled="true">Radio</button>
+              <button class="wall2-cat ds-swipe qs-entry" aria-label="Comments mode (beta)" onclick="event.stopPropagation(); sdQuoteOpen(this)">Comments<span class="ds-beta">beta</span></button>
+              <button class="wall2-cat ds-swipe cp-entry" aria-label="CD player (beta)" onclick="event.stopPropagation(); sdCpLaunch(this)">Player<span class="ds-beta">beta</span></button>
             </div>
             <!-- 2026-11-04 (Eric): BROWSE, like Apple Music's New page: a heading
                  per category and a sideways rail of covers, about 2.5 showing,

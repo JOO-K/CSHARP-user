@@ -217,6 +217,127 @@
 >   on the shell shows the header back caret (sdHeaderBack → Browse) and the old deck + friends row + reviews (deck deals
 >   `WALL_TAB` = friends) and hides the browse list. Friends/Popular/New tabs are
 >   out of the markup; their code stays.
+> - **COMMENTS MODE (beta)** (Eric, 2026-11-05; `quotes.js` + `quotes.css`,
+>   header comment explains it). Trending's third tab (was the greyed Charts)
+>   opens a full-screen feed of SONG comments: one big quote per page (DM Sans,
+>   hanging open-quote, @handle · likes · year), the song's Deezer preview
+>   playing, song / artist · album + "Go to album" lower left, ONE fixed CD lower
+>   right with the streaming tiles stacked above it. Each page takes its cover's
+>   colour (saturated, lightness clamped for white text, `deepen`), and the
+>   SEAMS BLEND: a card's gradient runs from the 50/50 mix with the page above
+>   (--cp) to its own (--c) to the 50/50 mix with the page below (--cn), so the
+>   feed reads as one long receipt. Songs = shelf albums by reviewCount, each
+>   one's top Deezer-rank song with a preview, via doomscroll.js's track cache
+>   (now exposed as `window.sdDzTracks`). Comments are MOCK, seeded per song
+>   (`LINES` pool, CMT_CAST handles); likes kept in `sd-quote-likes`. A finished
+>   preview scrolls to the next page; album/artist links resume the feed on Back.
+>   Round 2 (same day): the album's big score + discs + a heart with the album's
+>   like count (the album `fav` draft flag) sit above the song title; the blurred
+>   cover is each page's background (`.qs-bg`, masked out toward the edges so
+>   the seams stay pure colour); a reply bubble + count right of the likes opens
+>   a Replies sheet in the feed (Swipe's `.ds-r*` chrome) with the app's thread
+>   (`cmtWrapHtml`, key `quote::<song>::<album>`), pre-seeded into `CMT_CACHE`
+>   with song-reply lines (`REPLIES`) because revThread's filler is review-speak.
+>   Round 3: the streaming icons are tucked away until the CD is tapped
+>   (`.qs-dock.svcs-open`, they pop up nearest-first above a "Listen now" label);
+>   the CD no longer pauses — a MUTE button top-right does sound (`sd-quote-muted`,
+>   this page only); "n reviews" sits beside the album's heart and opens the album
+>   page glided to its reviews (`sdQuoteOpenAlbum(i, 'reviews')`).
+>   Round 4 — **KARAOKE LYRICS** under the comment (half its size, the comment
+>   ~60px higher): one line at a time, grey → each word white as it's sung, a ball
+>   hopping word to word, lines crossfade (`karaoke` / `swapLine`, driven off
+>   `audio.currentTime` in `tick`). Deezer never says where its 30s preview starts,
+>   so timing is computed OFFLINE: `node tools/quote_songs.js` lists the feed's
+>   songs (via `window.sdQuoteSongList`; recs are random so it unions 3 loads) into
+>   `tools/quote-songs.json`, then `python tools/quote_lyrics.py` (openai-whisper
+>   `turbo` on the GPU + ffmpeg) transcribes each preview with word timestamps,
+>   slides it along LRCLIB's synced lyrics to find the clip's start, and writes
+>   `quote-lyrics.json` (root, keyed by Deezer track id, times relative to the
+>   preview). Unsure matches are skipped (`tools/.lyrcache/skips.json`); re-runs only
+>   do new songs (`--redo` for all). doomscroll.js's tracks now carry Deezer `id`.
+>   Deezer previews turned out to start ~0:48 into most songs. Lyrics are
+>   LRCLIB's (community, unlicensed) — fine for the prototype, a licence question
+>   for launch.
+>   Round 6 (11-06) — **RE-TIMED**: `python tools/quote_retime.py` separates the
+>   vocals (Demucs htdemucs) and force-aligns each line's known words with
+>   torchaudio's MMS aligner inside ±0.7s of the old times (Whisper's word times
+>   were ~0.3s off; 871 of 1218 lines moved). Entries get `"r":1`; old timings
+>   backed up in `tools/.lyrcache/quote-lyrics.before-retime.json`. The page runs
+>   the karaoke clock 0.08s AHEAD of the audio (`LYR_LEAD`).
+>   Round 7 — **NO LYRICS → A DESCRIPTION**: `python tools/quote_describe.py`
+>   writes `quote-desc.json` (kicker: Instrumental / Wordless vocals / Vocal chops /
+>   Hazy vocals / Lyrics not found, + "Mood lead over bed · tempo") for songs with
+>   no lyrics, from CLAP (`laion/clap-htsat-unfused`) phrase scores z-scored
+>   against the OTHER no-lyric songs. ⚠ `laion/larger_clap_music`'s text side is
+>   broken in transformers 4.56 (all phrases ~0.999 alike) — don't switch back.
+>   Shown statically where the lyrics go (`describe`, `.qs-desc`).
+>   Round 8: the feed deals albums by artists that quote-lyrics.json /
+>   quote-desc.json know FIRST (shelf order kept within each group), after
+>   waiting ≤2s for both files — a tester's shelf (recs, Swipe genre fills)
+>   differs from the script's, so karaoke seemed to "stop" after 2 songs.
+>   Round 9: lyrics / descriptions are also matched by ARTIST + TITLE (`lyrOf` /
+>   `descOf`, `nameKey` drops "(feat. …)"), since Deezer lists one song under
+>   several ids (explicit / clean editions); a song with neither now says
+>   "No lyrics · We don't have the lyrics for this one yet." (`.qs-desc--none`).
+>   Round 10-12 — **LIVE LYRICS** (`lyrics-live.js`, `window.sdLive`): songs neither
+>   file covers are worked out ON THE PHONE in a module Web Worker (transformers.js
+>   3.7.6 from jsdelivr, wasm): Whisper tiny (`onnx-community/whisper-tiny_timestamped`
+>   q8, ~41 MB) + CLAP's AUDIO model only (`Xenova/clap-htsat-unfused` q8, ~34 MB;
+>   phrase embeddings + per-phrase pool stats ship in `quote-clap.json`, written by
+>   `tools/quote_describe.py --vocab`). Models download the first time Comments opens
+>   (round 13; `sdQuoteOpen` calls `sdLive.start()`), with a progress bar under the
+>   top bar (`.sd-live-bar`) after 1.2s. FAST FIRST (round 12): with LRCLIB synced lyrics the song shows AT
+>   ONCE from the USUAL START (Deezer previews start at ~0:48 for 94/139 measured
+>   songs, else 0:30 / 0:00), and Whisper refines it in the background
+>   (`refine`, priority 1, `sdLive.onUpdate` swaps the timing in). No lyrics →
+>   captions of what Whisper heard (`heard`, "Heard · auto captions"), else CLAP's
+>   interpretive line from ONE middle 10s slice (priority 2, ahead of refines).
+>   The next TWO songs are prefetched; results cached in localStorage
+>   `sd-live-lyrics-v1`. ⚠ The phone's Whisper is too small to hear most singers
+>   over a mix (Let Down -> "[music]"), which is why the usual-start rule exists.
+>   (A revert of all this ran by accident on 11-06 and was re-applied.)
+> - **CD PLAYER (beta)** (Eric, 2026-11-06; `player.js` + `player.css`, header
+>   comment explains it). Trending's fourth tab (was the greyed Radio, now
+>   **Player**). The deck in the upper left IS the belt-drive logo (SD_INTRO_BELT,
+>   record, centre circle, motor): while a preview plays the CD spins, the motor
+>   turns ~5× faster and the belt RUNS (a dash pattern in the album's colour).
+>   Round it, an INFINITE ring of CDs (shelf by reviewCount, slot i = album i mod n,
+>   continuous `pos`); wheel turns it, a finger turns it by angle round the
+>   record's centre, with momentum and a settle onto a slot. A drag along the
+>   radius LIFTS a CD (across it turns the ring); drop on the deck = play (a tap
+>   does the same); drag the deck's CD off and let go outside = eject (music
+>   stops, panel empties); tap the deck = pause. The album on the deck leaves a
+>   dashed empty sleeve in the ring. Bottom panel: title/year/artist + score,
+>   progress line, Swipe's song list (`.ds-tracks`, Chrono · Popular, song hearts),
+>   streaming tiles, Go to album (Back reopens the player with the CD in).
+>   ⚠ The ring's layer covers the deck, so the deck is hit-tested by POSITION.
+>   Round 2: covers are set by PROPERTY (`url("…")` inside a `style="…"`
+>   attribute closed it and every CD was blank); a GENRE pill lower right of the
+>   ring opens Swipe's genre sheet chrome (All + SD_GENRE_TREE mains, one at a
+>   time, a main brings its subs, `sd-cp-genre`); a thin genre is topped up from
+>   Deezer through Swipe's cache (`window.sdGenreTopUp`, doomscroll.js).
+>   Round 3: genres pill moved to the top bar's right; the right-hand CDs (about
+>   -30° to 45°) carry a level tag beside them — friends who listened (faces +
+>   count, `wallFriendsFor`, thinned to ~45% of albums without a real reviewer,
+>   seeded), else RECOMMENDED (a Deezer rec: `_rec` and not `_gfill`) or POPULAR
+>   (review count). Genre-fill albums now carry `_gfill` (doomscroll.js
+>   adoptGenre), since dzRecord marks every Deezer record `_rec`. The ring fades
+>   out above about -30° so nothing sits under the top bar.
+>   Round 4: on launch a SUGGESTED CD sits on the deck (a Deezer rec, else one of
+>   the ten most reviewed), songs listed, silent — "Suggested for you · tap the CD
+>   to play" + a play badge; tapping it or dragging another CD in plays.
+>   CD, motor and belt all turn CLOCKWISE at one rim speed (record 8s, motor
+>   1.56s, belt 496u per 1.54s; the belt's dashes run backward along the path
+>   because it is drawn left→right along the bottom); the belt's dashes are thin
+>   ink at 22% now.
+>   Round 5: four right-hand CDs are tagged (up to about 66°); Go to album moved
+>   out of the panel to the lower right of the ring (`.cp-go`, shown with a CD in).
+>   Round 6: all 1.5× slower (record 12s, motor 2.33s, belt 2.31s); Go to album is
+>   an album icon + arrow UNDER the deck; THE SWAP: the deck's CD is never in the
+>   ring (P.list; a slot may be null = empty sleeve) — taking a CD from slot i
+>   sends the deck's CD flying into slot i (`startSwap`, `P.pending` shows a sleeve
+>   until it lands); an ejected CD drops into the nearest empty slot in sight, else
+>   a hole / the ring's end. The launch suggestion is taken out of the ring.
 > - Smaller: delete your own comments (`cmtDelete`, trash left of the heart);
 >   the intro logo is the base four parts (belt, record, centre circle, motor)
 >   and runs ~0.2s longer.
