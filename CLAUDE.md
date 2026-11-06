@@ -324,6 +324,22 @@
 >   decade and event pictures are PLACEHOLDER photos (`wallPh`, picsum.photos
 >   seeded by name). `WALL_EVENTS` is MOCK (usual-season months, not announced
 >   dates). Player: the song panel starts 32px lower (`PANEL_TOP`), one row fewer.
+>   Later the same day: the Player panel hugs the bottom and its song list is the
+>   bottom quarter of the screen in whole 32px rows (`--cp-songs-h`, set in
+>   `sdCpLaunch`; `PANEL_TOP` is unused now); a quick-review + sits 20px above the
+>   big score (`.cp-rev` → `sdCpReview` → openLogSheet); the deck's Go to album is
+>   just "Album ›" (no album icon).
+>   Then: the Player shows FOUR songs (128px), the last fading out while more
+>   are below (`.has-more`, `moreFade`). Comments lost its MUTE button (sound is
+>   always on) for a GENRES pill top right — the Player's `.cp-genre` pill and
+>   `.ds-gsheet` sheet; a pick re-deals the feed in place (`sdQuoteGenre` /
+>   `dealAlbums` / `genreShelf`, kept in `sd-qs-genre`).
+>   Then the Player: no "Suggested for you · tap the CD to play" line; covers are
+>   250px (ring, flying CDs, bg) / 500px (deck) Deezer copies (`urlOf(a, n)`);
+>   GENRES = SWIPE'S SHEET — For You by default, mains + subs, Pick genres, Show
+>   everything (`P.mode` / `P.genres`, `sd-cp-genres`), dealt through Swipe's own
+>   `listFor`, now exposed as `window.sdGenreList(mode, genres, tag)` with
+>   `sdGenrePicks` / `sdGenreThin` (doomscroll.js).
 > - **CD PLAYER (beta)** (Eric, 2026-11-06; `player.js` + `player.css`, header
 >   comment explains it). Trending's fourth tab (was the greyed Radio, now
 >   **Player**). The deck in the upper left IS the belt-drive logo (SD_INTRO_BELT,

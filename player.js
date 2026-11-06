@@ -58,7 +58,11 @@
     album: null, tracks: null, track: -1, audio: null, gen: 0,
     sort: (() => { try { return localStorage.getItem(SORT_KEY) === 'order' ? 'order' : 'popular'; } catch (e) { return 'popular'; } })(),
     drag: null, resume: null, pending: null,
-    genre: (() => { try { return localStorage.getItem('sd-cp-genre') || ''; } catch (e) { return ''; } })(), gtok: 0,
+    ...(() => {                                         // For You by default (Eric, 11-06), Swipe's modes
+      try { const g = JSON.parse(localStorage.getItem('sd-cp-genres')); if (g && g.mode) return { mode: g.mode, genres: g.genres || [] }; } catch (e) {}
+      return { mode: 'foryou', genres: [] };
+    })(),
+    gtok: 0, gpick: new Set(), gopen: new Set(), gfy: true,
   };
 
   const esc = s => String(s == null ? '' : s)
@@ -70,7 +74,10 @@
   const haptic = () => { try { if (typeof sdHaptic === 'function') sdHaptic(8); } catch (e) {} };
   const calm = () => document.documentElement.classList.contains('sd-reduce-motion');
   const mod = (a, n) => ((a % n) + n) % n;
-  const urlOf = a => `url("${String(a.image).replace(/"/g, '%22')}")`;
+  /* Smaller covers (Eric, 11-06: the phone lagged): Deezer serves any size, so
+     the ring's 60px CDs take a 250px copy and the deck a 500px one. */
+  const sized = (u, n) => String(u || '').replace(/\/(\d+)x\1-/, `/${n}x${n}-`);
+  const urlOf = (a, n) => `url("${sized(a.image, n || 250).replace(/"/g, '%22')}")`;
 
   function shelf() {
     const seen = new Set();
@@ -130,7 +137,7 @@
         <button class="ds-ibtn" aria-label="Close the CD player" onclick="event.stopPropagation(); sdCpClose()">${CLOSE}</button>
         <span class="cp-credit">Previews by Deezer</span>
         <button class="cp-genre" onclick="event.stopPropagation(); sdCpGenres()">
-          <svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>${esc(P.genre || 'All genres')}</span>
+          <svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>${esc(genreLabel())}</span>
         </button>
       </div>
       <div class="cp-ring"></div>
@@ -145,25 +152,24 @@
         <div class="ds-gscrim" onclick="event.stopPropagation(); sdCpGenresClose()"></div>
         <div class="ds-gpanel" onclick="event.stopPropagation()">
           <div class="ds-gnub" onclick="sdCpGenresClose()"></div>
-          <div class="ds-ghd"><b>Genres</b></div>
+          <div class="ds-ghd"><b>Genres</b><button class="ds-gclear" onclick="sdCpGenreClear()">Show everything</button></div>
           <div class="ds-glist"></div>
+          <button class="ds-ggo" onclick="sdCpGenreCommit()" hidden>Pick genres</button>
         </div>
       </div>
       <button class="cp-go" style="left:${DECK_X + DECK_W / 2}px;top:${Math.round(DECK_Y + DECK_W * VB.h / VB.w + 10)}px" aria-label="Go to album" onclick="event.stopPropagation(); sdCpOpen('album')">
-        <svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="12" height="14" rx="1.5"/><path d="M14.5 7.2a5 5 0 0 1 0 9.6"/><circle cx="8.5" cy="12" r="2.2"/></svg>
         <span class="cp-go-t">Album</span>
         <svg class="cp-go-arr" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
       </button>
-      <div class="cp-panel" style="top:${PANEL_TOP}px">
+      <div class="cp-panel">
         <div class="cp-empty"><b>Pick a CD</b><span>Drag one from the ring onto the player.<br>Scroll to spin the ring.</span></div>
         <div class="cp-info" hidden>
-          <div class="cp-sugg">Suggested for you · tap the CD to play</div>
           <div class="cp-head">
             <div class="cp-titles">
               <div class="cp-album"><span class="cp-link" onclick="event.stopPropagation(); sdCpOpen('album')"></span><span class="cp-year"></span></div>
               <div class="cp-artist"><span class="cp-link" onclick="event.stopPropagation(); sdCpOpen('artist')"></span></div>
             </div>
-            <div class="cp-score"><b></b><span class="cp-discs"></span></div>
+            <div class="cp-score"><button class="cp-rev" aria-label="Review this album" onclick="event.stopPropagation(); sdCpReview(this)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><b></b><span class="cp-discs"></span></div>
           </div>
           <div class="cp-prog"><i></i></div>
           <div class="ds-songs-hd"><span class="ds-songs-lbl">Songs</span><div class="ds-ssw">${
@@ -477,7 +483,7 @@
     P.root.classList.toggle('is-suggested', !auto);
     P.root.classList.remove('deck-lifted');
     const disc = P.root.querySelector('.cp-disc');
-    disc.style.backgroundImage = urlOf(a);
+    disc.style.backgroundImage = urlOf(a, 500);
     P.root.classList.add('has-cd');
     if (!calm()) { disc.classList.remove('land'); void disc.offsetWidth; disc.classList.add('land'); }
     if (auto) haptic();
@@ -577,6 +583,11 @@
       </li>`).join('');
     ol.scrollTop = 0;
     paintTrack();
+    moreFade();
+  }
+  function moreFade() {
+    const ol = P.root && P.root.querySelector('.ds-tracks');
+    if (ol) ol.classList.toggle('has-more', ol.scrollHeight - ol.scrollTop - ol.clientHeight > 4);
   }
   function paintTrack() {
     if (!P.root) return;
@@ -619,8 +630,12 @@
     host.classList.add('ds-host');
     host.appendChild(root);
     P.root = root;
-    P.list = genreShelf(P.genre);
-    if (!P.list.length) { P.genre = ''; P.list = shelf(); }
+    // the song list is the bottom quarter of the screen (Eric, 11-06)
+    // FOUR songs (Eric, 11-06), the last one fading out while more are below
+    root.style.setProperty('--cp-songs-h', 4 * 32 + 'px');
+    root.querySelector('.ds-tracks').addEventListener('scroll', moreFade, { passive: true });
+    P.list = dealList();
+    if (!P.list.length) { P.mode = 'all'; P.genres = []; P.list = dealList(); }
     P.pos = Math.round(P.pos) || 0;
     P.els = new Map();
     render();
@@ -635,6 +650,14 @@
       const s = suggest();
       if (s) { P.list = P.list.filter(x => x !== s); rebuildRing(); insert(s, { play: false }); }
     }
+  };
+  /* QUICK REVIEW (Eric, 11-06): a + above the big score opens the app's rate &
+     review sheet on the album on the deck (Swipe's Review does the same). */
+  window.sdCpReview = function (btn) {
+    const a = P.album;
+    if (!a || typeof openLogSheet !== 'function') return;
+    haptic();
+    openLogSheet(btn, { title: a.album, subtitle: a.artist, image: a.image, year: a.year || '', ref: a });
   };
   window.sdCpClose = function () {
     P.gen++;
@@ -677,12 +700,43 @@
     }
     if (el.paused) el.play().catch(() => {}); else el.pause();
   };
+  /* GENRES = SWIPE'S SHEET (Eric, 11-06: "for you be the default genre and u
+     can choose the genres similar to the swipe mode"). For You first (on by
+     default, never mixed), then SD_GENRE_TREE's mains — a tap picks a main and
+     opens its subgenres, a sub toggles — and nothing changes until Pick genres.
+     Show everything = the whole shelf. The deal itself is Swipe's
+     (sdGenreList, doomscroll.js); a thin pick is topped up from Deezer first.
+     Kept on the device (sd-cp-genres). */
+  function genreLabel() {
+    return P.mode === 'genres' && P.genres.length ? P.genres[0] + (P.genres.length > 1 ? ' +' + (P.genres.length - 1) : '')
+      : P.mode === 'foryou' ? 'For You' : 'All genres';
+  }
+  function dealList() {
+    if (typeof window.sdGenreList === 'function') return window.sdGenreList(P.mode, P.genres, 'cp').filter(a => a && a.album && a.image);
+    return shelf();
+  }
+  function paintGenres() {
+    const box = P.root && P.root.querySelector('.cp-gsheet .ds-glist');
+    if (!box) return;
+    const T = TREE();
+    const bub = (g, cls, fn) => `<button class="ds-gb${cls}" data-g="${esc(g)}" onclick="${fn}(this.dataset.g)">${esc(g)}</button>`;
+    const fy = `<button class="ds-gb ds-gb-fy${P.gfy ? ' on' : ''}" onclick="sdCpGenreFY()">For You</button><span class="ds-gbreak"></span>`;
+    box.innerHTML = fy + Object.keys(T).map(m => {
+      const on = P.gpick.has(m), open = P.gopen.has(m);
+      const lit = !on && (T[m] || []).some(g => P.gpick.has(g));
+      const subs = (T[m] || []).filter(x => x.toLowerCase() !== m.toLowerCase());
+      return bub(m, (on ? ' on' : lit ? ' lit' : '') + (open ? ' open' : ''), 'sdCpGenreMain') +
+        (open ? `<div class="ds-gsubs">${subs.map(x => bub(x, P.gpick.has(x) ? ' on' : '', 'sdCpGenreSub')).join('')}</div>` : '');
+    }).join('');
+    const n = P.gpick.size, go = P.root.querySelector('.cp-gsheet .ds-ggo');
+    go.hidden = !n; go.textContent = n > 1 ? `Pick ${n} genres` : 'Pick genres';
+  }
   window.sdCpGenres = function () {
     const sh = P.root && P.root.querySelector('.cp-gsheet');
     if (!sh) return;
-    const all = ['', ...Object.keys(TREE())];
-    sh.querySelector('.ds-glist').innerHTML = all.map(g =>
-      `<button class="ds-gb${g === P.genre ? ' on' : ''}" data-g="${esc(g)}" onclick="sdCpGenre(this.dataset.g)">${esc(g || 'All genres')}</button>`).join('');
+    P.gpick = new Set(P.mode === 'genres' ? P.genres : []); P.gopen = new Set();
+    P.gfy = P.mode === 'foryou';
+    paintGenres();
     sh.hidden = false;
     requestAnimationFrame(() => sh.classList.add('open'));
     haptic();
@@ -693,7 +747,21 @@
     sh.classList.remove('open');
     setTimeout(() => { if (!sh.classList.contains('open')) sh.hidden = true; }, 260);
   };
-  window.sdCpGenre = function (g) {
+  window.sdCpGenreMain = function (m) {
+    P.gfy = false;
+    if (P.gopen.has(m)) { P.gopen.delete(m); P.gpick.delete(m); }
+    else { P.gopen.add(m); P.gpick.add(m); }
+    paintGenres(); haptic();
+  };
+  window.sdCpGenreSub = function (g) {
+    P.gfy = false;
+    P.gpick.has(g) ? P.gpick.delete(g) : P.gpick.add(g);
+    paintGenres(); haptic();
+  };
+  window.sdCpGenreFY = function () { applyGenres('foryou', []); };
+  window.sdCpGenreClear = function () { applyGenres('all', []); };
+  window.sdCpGenreCommit = function () { if (P.gpick.size) applyGenres('genres', [...P.gpick]); };
+  function applyGenres(mode, genres) {
     if (!P.root) return;
     window.sdCpGenresClose();
     haptic();
@@ -701,20 +769,26 @@
     const tok = ++P.gtok;
     const done = () => {
       if (tok !== P.gtok || !P.root) return;
-      let list = genreShelf(g);
-      if (!list.length) { btn.textContent = 'Nothing yet'; setTimeout(() => { if (P.root) btn.textContent = P.genre || 'All genres'; }, 1400); return; }
-      P.genre = g;
-      try { localStorage.setItem('sd-cp-genre', g); } catch (e) {}
-      btn.textContent = g || 'All genres';
-      P.list = list.filter(x => x !== P.album);         // the deck's CD stays out of the ring
+      const prev = { mode: P.mode, genres: P.genres };
+      P.mode = mode; P.genres = genres;
+      const list = dealList();
+      if (!list.length) {
+        Object.assign(P, prev);
+        btn.textContent = 'Nothing yet'; setTimeout(() => { if (P.root) btn.textContent = genreLabel(); }, 1400); return;
+      }
+      try { localStorage.setItem('sd-cp-genres', JSON.stringify({ mode, genres })); } catch (e) {}
+      btn.textContent = genreLabel();
+      if (window.sdFresh) window.sdFresh.reset('cp');
+      P.list = dealList().filter(x => x !== P.album);   // the deck's CD stays out of the ring
       P.pos = 0; P.vel = 0; P.pending = null;
       P.els.forEach(el => el.remove()); P.els.clear();
       render();
     };
-    if (!g || genreShelf(g).length >= 15 || typeof window.sdGenreTopUp !== 'function') { done(); return; }
-    btn.textContent = 'Finding ' + g + '…';
-    Promise.race([window.sdGenreTopUp([g]).catch(() => {}), new Promise(r => setTimeout(r, 9000))]).then(done);
-  };
+    const picks = typeof window.sdGenrePicks === 'function' ? window.sdGenrePicks(mode, genres) : [];
+    if (!picks.length || typeof window.sdGenreThin !== 'function' || !window.sdGenreThin(picks)) { done(); return; }
+    btn.textContent = 'Finding ' + (mode === 'foryou' ? 'For You' : genres[0]) + '…';
+    Promise.race([window.sdGenreTopUp(picks).catch(() => {}), new Promise(r => setTimeout(r, 9000))]).then(done);
+  }
   window.sdCpSort = function (id) {
     if (!P.root || id === P.sort) return;
     P.sort = id;

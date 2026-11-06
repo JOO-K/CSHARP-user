@@ -43,7 +43,8 @@
     root: null, scroller: null, albums: [], next: 0, list: [], active: -1,
     audio: null, gen: 0, obs: null, filling: null, raf: 0, fxTok: 0,
     resume: null, landing: null, used: [],
-    muted: (() => { try { return localStorage.getItem('sd-quote-muted') === '1'; } catch (e) { return false; } })(),
+    muted: false,          // the mute button gave way to Genres (11-06); sound is always on
+    genre: (() => { try { return localStorage.getItem('sd-qs-genre') || ''; } catch (e) { return ''; } })(), gtok: 0,
   };
 
   const esc = s => String(s == null ? '' : s)
@@ -181,7 +182,17 @@
       <div class="qs-top">
         <button class="ds-ibtn" aria-label="Close comments mode" onclick="event.stopPropagation(); sdQuoteClose()">${ICO.close}</button>
         <span class="qs-credit">Previews by Deezer</span>
-        <button class="ds-ibtn ds-mute qs-mute${Q.muted ? ' is-muted' : ''}" aria-label="Mute" onclick="event.stopPropagation(); sdQuoteMute(this)">${ICO.sound}</button>
+        <button class="cp-genre qs-genre" onclick="event.stopPropagation(); sdQuoteGenres()">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>${esc(Q.genre || 'All genres')}</span>
+        </button>
+      </div>
+      <div class="ds-gsheet qs-gsheet" hidden>
+        <div class="ds-gscrim" onclick="event.stopPropagation(); sdQuoteGenresClose()"></div>
+        <div class="ds-gpanel" onclick="event.stopPropagation()">
+          <div class="ds-gnub" onclick="sdQuoteGenresClose()"></div>
+          <div class="ds-ghd"><b>Genres</b></div>
+          <div class="ds-glist"></div>
+        </div>
       </div>
       <div class="qs-dock">
         <div class="qs-svcs">${servicesHtml()}</div>
@@ -737,18 +748,79 @@
        after a couple and the karaoke "stopped". Albums by an artist the two
        files know now lead (shelf order kept within each group); the rest
        follow. Waits for the files (2s at most) before dealing. */
-    const gen0 = Q.gen;
-    Promise.race([loadLyrics(), new Promise(r => setTimeout(r, 2000))]).then(() => {
-      if (gen0 !== Q.gen || !Q.root) return;
-      const known = new Set(Object.values(Object.assign({}, LYR || {}, DESC || {})).map(e => String(e.a || '').toLowerCase()));
-      const all = shelf();
-      Q.albums = all.filter(a => known.has(a.artist.toLowerCase())).concat(all.filter(a => !known.has(a.artist.toLowerCase())));
-      fill();
-    });
+    dealAlbums();
     cancelAnimationFrame(Q.raf);
     Q.raf = requestAnimationFrame(tick);
     if (resume) root.classList.add('qs-instant', 'open');
     else requestAnimationFrame(() => root.classList.add('open'));
+  };
+
+  function dealAlbums() {
+    const gen0 = Q.gen;
+    Promise.race([loadLyrics(), new Promise(r => setTimeout(r, 2000))]).then(() => {
+      if (gen0 !== Q.gen || !Q.root) return;
+      const known = new Set(Object.values(Object.assign({}, LYR || {}, DESC || {})).map(e => String(e.a || '').toLowerCase()));
+      let all = genreShelf(Q.genre);
+      if (!all.length) all = shelf();
+      Q.albums = all.filter(a => known.has(a.artist.toLowerCase())).concat(all.filter(a => !known.has(a.artist.toLowerCase())));
+      fill();
+    });
+  }
+
+  /* GENRES (Eric, 11-06: "genres instead of the mute button in the upper
+     right"). The Player's pill and sheet: All + SD_GENRE_TREE's mains, one at a
+     time, a main bringing its subgenres; a thin genre is topped up from Deezer
+     through Swipe's cache (sdGenreTopUp). A pick re-deals the feed in place.
+     Kept on the device (sd-qs-genre). */
+  const TREE = () => (typeof SD_GENRE_TREE !== 'undefined' ? SD_GENRE_TREE : {});
+  function genreShelf(g) {
+    if (!g) return shelf();
+    const terms = [g, ...(TREE()[g] || [])].map(x => x.toLowerCase());
+    const hit = shelf().filter(a => { const x = String(a.genre || '').toLowerCase(); return x && terms.some(t => x.includes(t)); });
+    if (hit.length >= 4 || typeof wallPickedPool !== 'function') return hit;
+    const pool = new Set(wallPickedPool([g]));
+    return shelf().filter(a => pool.has(a));
+  }
+  window.sdQuoteGenres = function () {
+    const sh = Q.root && Q.root.querySelector('.qs-gsheet');
+    if (!sh) return;
+    sh.querySelector('.ds-glist').innerHTML = ['', ...Object.keys(TREE())].map(g =>
+      `<button class="ds-gb${g === Q.genre ? ' on' : ''}" data-g="${esc(g)}" onclick="sdQuoteGenre(this.dataset.g)">${esc(g || 'All genres')}</button>`).join('');
+    sh.hidden = false;
+    requestAnimationFrame(() => sh.classList.add('open'));
+    haptic();
+  };
+  window.sdQuoteGenresClose = function () {
+    const sh = Q.root && Q.root.querySelector('.qs-gsheet');
+    if (!sh || sh.hidden) return;
+    sh.classList.remove('open');
+    setTimeout(() => { if (!sh.classList.contains('open')) sh.hidden = true; }, 260);
+  };
+  window.sdQuoteGenre = function (g) {
+    if (!Q.root) return;
+    window.sdQuoteGenresClose();
+    haptic();
+    const btn = Q.root.querySelector('.qs-genre span');
+    const tok = ++Q.gtok;
+    const done = () => {
+      if (tok !== Q.gtok || !Q.root) return;
+      if (g && !genreShelf(g).length) { btn.textContent = 'Nothing yet'; setTimeout(() => { if (Q.root) btn.textContent = Q.genre || 'All genres'; }, 1400); return; }
+      Q.genre = g;
+      try { localStorage.setItem('sd-qs-genre', g); } catch (e) {}
+      btn.textContent = g || 'All genres';
+      // re-deal in place: same page, a fresh feed
+      Q.gen++; Q.gen2++;
+      if (Q.audio) Q.audio.pause();
+      Q.obs.disconnect();
+      Q.scroller.innerHTML = '<div class="qs-wait"><span class="qs-spin"></span>Finding songs…</div>';
+      Q.scroller.scrollTop = 0;
+      Q.active = -1; Q.albums = []; Q.next = 0; Q.list = []; Q.used = []; Q.filling = null; Q.landing = null;
+      if (window.sdFresh) window.sdFresh.reset('qs');
+      dealAlbums();
+    };
+    if (!g || genreShelf(g).length >= 15 || typeof window.sdGenreTopUp !== 'function') { done(); return; }
+    btn.textContent = 'Finding ' + g + '…';
+    Promise.race([window.sdGenreTopUp([g]).catch(() => {}), new Promise(r => setTimeout(r, 9000))]).then(done);
   };
 
   window.sdQuoteClose = function () {

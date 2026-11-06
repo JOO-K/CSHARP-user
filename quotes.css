@@ -274,3 +274,7 @@ html.sd-reduce-motion .qs-ln { transition: opacity .2s; transform: none; }
 
 /* phones: no blended grain over the scrolling feed (GPU memory, 11-06 crash) */
 @media (pointer: coarse) { .qs-root::after { display: none; } }
+
+/* Genres where the mute button was (11-06); the pill is the Player's .cp-genre */
+.qs-genre { z-index: 1; }
+.qs-gsheet { z-index: 6; }

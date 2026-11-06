@@ -227,12 +227,14 @@
     const terms = genreTerms(picks);
     return allAlbums().filter(a => { const g = String(a.genre || '').toLowerCase(); return g && terms.some(t => g.includes(t)); });
   }
-  function listFor() {
-    const byReviews = (a, b) => window.sdFresh.score(b, 'ds') - window.sdFresh.score(a, 'ds');   // fresh order, not review count
-    const picks = activePicks();
+  /* mode/genres/tag default to Swipe's own; the Player deals through it too
+     (window.sdGenreList, 11-06) with its own mode, picks and fresh-order tag. */
+  function listFor(mode = DS.mode, genres = DS.genres, tag = 'ds') {
+    const byReviews = (a, b) => window.sdFresh.score(b, tag) - window.sdFresh.score(a, tag);   // fresh order, not review count
+    const picks = mode === 'genres' ? genres : mode === 'foryou' ? tasteGenres() : [];
     if (!picks.length) return allAlbums().sort(byReviews);
     const exact = exactMatches(picks).sort(byReviews);
-    if (DS.mode === 'foryou') {
+    if (mode === 'foryou') {
       // Your genres first, taken in turn (one Jazz, one Shoegaze, …) so one
       // genre can't bury the others; then the rest of the shelf.
       const lanes = picks.map(g => exactMatches([g]).sort(byReviews));
@@ -406,7 +408,10 @@
     return p;
   }
   const cachedTracks = a => { const h = TRACKS.get(a.artist + '|' + a.album); return h && !h.p ? h.list : null; };
-  window.sdGenreTopUp = picks => topUpGenres(picks);   // player.js's genre picker shares the Deezer genre cache
+  window.sdGenreTopUp = picks => topUpGenres(picks);
+  window.sdGenreList = (mode, genres, tag) => listFor(mode, genres || [], tag || 'ds');
+  window.sdGenrePicks = (mode, genres) => mode === 'genres' ? (genres || []) : mode === 'foryou' ? tasteGenres() : [];
+  window.sdGenreThin = picks => picks.length > 0 && exactMatches(picks).length < GF_ENOUGH;   // player.js's genre picker shares the Deezer genre cache
   window.sdDzTracks = tracksFor;            // quotes.js (the Comments feed) shares this cache
   // Display order. Popular = Deezer's rank, most played first; numbers stay the album's own.
   const ordered = list => DS.songSort === 'popular'

@@ -235,3 +235,23 @@ html.sd-reduce-motion .cp-disc, html.sd-reduce-motion .cp-motor, html.sd-reduce-
 .cp-go .cp-go-arr { width: 14px; height: 14px; stroke-width: 2.4; }
 .cp-go { gap: 5px; padding: 0 9px 0 11px; }
 .cp-go-t { font: 600 12.5px/1 var(--font-main); }
+
+/* 11-06 (Eric): the panel hugs the bottom and the song list is the bottom
+   quarter of the screen (--cp-songs-h, set on open); a quick-review + sits
+   20px above the big score; Go to album is just "Album ›". */
+.cp-info { flex: 0 0 auto; }
+.cp-panel .ds-tracks { flex: 0 0 auto; height: var(--cp-songs-h, 25%); }
+.cp-rev {
+  width: 28px; height: 28px; margin-bottom: 16px; padding: 0; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.28); color: #fff;
+}
+.cp-rev svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.cp-rev:active { transform: scale(.92); }
+.cp-go { padding: 0 9px 0 12px; }
+
+/* four songs; the last fades out while there are more below (Eric, 11-06) */
+.cp-panel .ds-tracks.has-more {
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 32px), transparent);
+          mask-image: linear-gradient(180deg, #000 calc(100% - 32px), transparent);
+}
